@@ -22,7 +22,7 @@ export const routes: Routes = [
     component: Dashboard,
     canActivate: [AuthGuard],
     children: [
-      { path: '', redirectTo: 'home', pathMatch: 'full' }, // ✅ redirect default /dashboard → /dashboard/home
+      { path: '', redirectTo: 'properties', pathMatch: 'full' }, // ✅ redirect default /dashboard → /dashboard/home
       { path: 'home', component: DashHome, canActivate: [AuthGuard] },
       { path: 'rental-collections', component: RentalCollections, canActivate: [AuthGuard] },
       { path: 'receipts', component: Receipts, canActivate: [AuthGuard] },

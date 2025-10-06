@@ -3,13 +3,13 @@ import { HttpClient } from '@angular/common/http';
 import { Observable, tap } from 'rxjs';
 import { isPlatformBrowser } from '@angular/common';
 import { HttpHeaders } from '@angular/common/http';
-
+import { environment } from '../../environments/environment';
 @Injectable({
   providedIn: 'root'
 })
 export class AuthService {
-  private apiUrl = 'http://127.0.0.1:8000/api/login/';
-  private logoutUrl = 'http://127.0.0.1:8000/api/logout/';
+  private apiUrl = environment.apiUrl+'api/login/';
+  private logoutUrl = environment.apiUrl+'api/logout/';
 
   constructor(private http: HttpClient, @Inject(PLATFORM_ID) private platformId: Object) {}
 
