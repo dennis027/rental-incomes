@@ -1,19 +1,18 @@
 import { Injectable, Inject, PLATFORM_ID } from '@angular/core';
-import { CanActivate, Router } from '@angular/router';
+import { CanActivate, Router, UrlTree } from '@angular/router';
 import { isPlatformBrowser } from '@angular/common';
 
-@Injectable({
-  providedIn: 'root',
-})
+@Injectable({ providedIn: 'root' })
 export class AuthGuard implements CanActivate {
   constructor(private router: Router, @Inject(PLATFORM_ID) private platformId: Object) {}
 
-  canActivate(): boolean {
+  canActivate(): boolean | UrlTree {
     if (isPlatformBrowser(this.platformId)) {
       const token = localStorage.getItem('access_token');
       if (token) return true;
     }
-    this.router.navigate(['/login']);
-    return false;
+
+    // ✅ Proper redirect instead of navigate()
+    return this.router.parseUrl('/login');
   }
 }

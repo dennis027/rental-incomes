@@ -1,0 +1,18 @@
+.dashboard-container {
+  .card {
+    border-radius: 12px;
+    transition: transform 0.2s ease;
+    &:hover {
+      transform: translateY(-4px);
+    }
+  }
+
+  canvas {
+    width: 100% !important;
+    height: 280px !important; /* Adjust height here */
+  }
+
+  .icon {
+    color: #4e73df;
+  }
+}

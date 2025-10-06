@@ -1,0 +1,35 @@
+<div class="dashboard-container p-3">
+  <h2 class="mb-4">Dashboard Overview</h2>
+
+  <!-- Summary Cards -->
+  <div class="row g-3 mb-4">
+    @for (card of summaryCards; track card.label) {
+      <div class="col-md-3 col-6">
+        <div class="card shadow-sm border-0 text-center p-3">
+          <div class="icon mb-2">
+            <i [class]="card.icon + ' fa-2x text-primary'"></i>
+          </div>
+          <h4 class="fw-bold mb-0">{{ card.value }}</h4>
+          <small class="text-muted">{{ card.label }}</small>
+        </div>
+      </div>
+    }
+  </div>
+
+  <!-- Charts Row -->
+  <div class="row g-3">
+    <div class="col-md-8">
+      <div class="card shadow-sm p-3 h-100">
+        <h5 class="mb-3">Monthly Rent Collection</h5>
+        <canvas id="rentChart"></canvas>
+      </div>
+    </div>
+
+    <div class="col-md-4">
+      <div class="card shadow-sm p-3 h-100">
+        <h5 class="mb-3">Occupancy Rate</h5>
+        <canvas id="occupancyChart"></canvas>
+      </div>
+    </div>
+  </div>
+</div>

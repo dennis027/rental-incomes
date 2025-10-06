@@ -2,12 +2,14 @@ import { Injectable, Inject, PLATFORM_ID } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, tap } from 'rxjs';
 import { isPlatformBrowser } from '@angular/common';
+import { HttpHeaders } from '@angular/common/http';
 
 @Injectable({
   providedIn: 'root'
 })
 export class AuthService {
   private apiUrl = 'http://127.0.0.1:8000/api/login/';
+  private logoutUrl = 'http://127.0.0.1:8000/api/logout/';
 
   constructor(private http: HttpClient, @Inject(PLATFORM_ID) private platformId: Object) {}
 
@@ -29,10 +31,37 @@ export class AuthService {
     return null;
   }
 
-  logout() {
-    if (isPlatformBrowser(this.platformId)) {
-      localStorage.removeItem('access_token');
-      localStorage.removeItem('refresh_token');
-    }
+logout(): Observable<any> {
+  const accessToken = this.getAccessToken();
+  const refreshToken = isPlatformBrowser(this.platformId)
+    ? localStorage.getItem('refresh_token')
+    : null;
+
+
+  let headers = new HttpHeaders();
+  if (accessToken) {
+    headers = headers.set('Authorization', `Bearer ${accessToken}`);
   }
+
+  // 🟡 Django expects the refresh token in the body
+  const body = { refresh: refreshToken };
+
+  return this.http.post<any>(this.logoutUrl, body, { headers }).pipe(
+    tap({
+      next: () => {
+        if (isPlatformBrowser(this.platformId)) {
+          localStorage.removeItem('access_token');
+          localStorage.removeItem('refresh_token');
+        }
+      },
+      error: () => {
+        if (isPlatformBrowser(this.platformId)) {
+          localStorage.removeItem('access_token');
+          localStorage.removeItem('refresh_token');
+        }
+      }
+    })
+  );
+}
+
 }

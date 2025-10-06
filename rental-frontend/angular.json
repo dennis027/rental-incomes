@@ -75,6 +75,7 @@
         "test": {
           "builder": "@angular/build:karma",
           "options": {
+            
             "tsConfig": "tsconfig.spec.json",
             "assets": [
               {
