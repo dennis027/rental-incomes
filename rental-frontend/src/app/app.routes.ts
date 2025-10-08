@@ -14,11 +14,11 @@ import { Settings } from './components/dashboard/settings/settings';
 export const routes: Routes = [
   // 🌍 Public pages
   { path: '', component: Home },
-  { path: 'login', component: Login },
+  { path: 'login', component: Login }, 
 
   // 💼 Protected dashboard section
   {
-    path: 'dashboard',
+    path: 'dashboard',  
     component: Dashboard,
     canActivate: [AuthGuard],
     children: [
@@ -35,4 +35,7 @@ export const routes: Routes = [
 
   // ❗ Wildcard fallback
   { path: '**', redirectTo: 'login' },
+
+ 
+  
 ];

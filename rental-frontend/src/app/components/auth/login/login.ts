@@ -4,6 +4,7 @@ import { CommonModule } from '@angular/common';
 import { AuthService } from '../../../services/auth'
 import { finalize } from 'rxjs';
 import { Router } from '@angular/router';
+import { MatSnackBar } from '@angular/material/snack-bar';
 
 @Component({
   selector: 'app-login',
@@ -16,6 +17,28 @@ export class Login {
 private fb = inject(FormBuilder);
   private authService = inject(AuthService);
   private route = inject(Router);
+  private snackBar = inject(MatSnackBar);
+
+
+  // SMACKBAR MESSAGES
+
+ showSuccess(message: string) {
+    this.snackBar.open(message, 'Close', {
+      duration: 3000,
+      panelClass: ['success-snackbar'],
+      horizontalPosition: 'right',
+      verticalPosition: 'top'
+    });
+  }
+
+  showError(message: string) {
+    this.snackBar.open(message, 'Close', {
+      duration: 4000,
+      panelClass: ['error-snackbar'],
+      horizontalPosition: 'right',
+      verticalPosition: 'top'
+    });
+  }
 
   loginForm: FormGroup = this.fb.group({
     identifier: ['', Validators.required],
@@ -35,11 +58,11 @@ private fb = inject(FormBuilder);
       .pipe(finalize(() => this.loading.set(false)))
       .subscribe({
         next: res => {
-          console.log("Login success:", res);
           this.route.navigate(['/dashboard']);
+          this.showSuccess('Logged In successfully!');
         },
         error: err => {
-          console.error("Login failed:", err);
+            this.showError('Check your details.');
           this.errorMessage.set(
             err.error?.message || 'Login failed. Please try again.'
           );
