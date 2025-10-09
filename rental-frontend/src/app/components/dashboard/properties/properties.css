@@ -99,3 +99,22 @@ tr.mat-row {
 }
 
 
+.dialog-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.dialog-header h2 {
+  margin: 0;
+  font-weight: 600;
+}
+
+.close-btn {
+  color: #555;
+  float: right;
+}
+
+.close-btn:hover {
+  color: #000;
+}

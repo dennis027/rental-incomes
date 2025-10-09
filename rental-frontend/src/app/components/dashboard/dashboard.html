@@ -9,7 +9,7 @@
 <!-- Sidebar overlay -->
 <div class="sidebar-overlay" (click)="closeSidebar()"></div>
 
-<div class="container">
+<div class="dashboard-wrapper d-flex">
   <!-- Sidebar -->
   <aside class="sidebar" id="sidebar">
     <div class="sidebar-header">
@@ -39,7 +39,7 @@
   </aside>
 
   <!-- Main content -->
-  <main class="main-content">
+  <main class="main-content" style="width: 100%;">
 
     <router-outlet></router-outlet>
   </main>

@@ -1,4 +1,4 @@
-import { AfterViewInit, Component, ViewChild, TemplateRef, OnInit } from '@angular/core';
+import { AfterViewInit, Component, ViewChild, TemplateRef, OnInit, inject } from '@angular/core';
 import { MatPaginator, MatPaginatorModule } from '@angular/material/paginator';
 import { MatTableDataSource, MatTableModule } from '@angular/material/table';
 import { CommonModule } from '@angular/common';
@@ -11,6 +11,8 @@ import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angula
 import {MatInputModule} from '@angular/material/input';
 import {MatFormFieldModule} from '@angular/material/form-field';
 import { Router } from '@angular/router';
+import { MatSnackBar } from '@angular/material/snack-bar';
+import {MatProgressSpinnerModule} from '@angular/material/progress-spinner';
 
 export interface PropertiesTable {
   id: string;
@@ -32,16 +34,22 @@ export interface PropertiesTable {
             MatDialogModule,
             ReactiveFormsModule,
             MatInputModule,
-            MatFormFieldModule],
+            MatFormFieldModule,
+            MatProgressSpinnerModule],
   templateUrl: './properties.html',
   styleUrls: ['./properties.css']
 })
 export class Properties implements OnInit, AfterViewInit { // Added OnInit interface
-
+    private snackBar = inject(MatSnackBar);
   // ViewChild for the dialog template
   @ViewChild('openAddDialog') openAddDialog!: TemplateRef<any>;
    @ViewChild('updateDialog') updateDialog!: TemplateRef<any>;
   @ViewChild('deleteDialog') deleteDialog!: TemplateRef<any>;
+
+
+  loadAdding= false;
+  loadUpdating= false;
+  loadDeleting= false;
 
   
     propertyForm!: FormGroup;
@@ -50,6 +58,27 @@ export class Properties implements OnInit, AfterViewInit { // Added OnInit inter
 
   displayedColumns: string[] = [ 'name', 'address', 'description', 'actions'];
   propertiesObject: PropertiesTable[] = [];
+
+
+   showSuccess(message: string) {
+    this.snackBar.open(message, 'Close', {
+      duration: 3000,
+      panelClass: ['success-snackbar'],
+      horizontalPosition: 'right',
+      verticalPosition: 'top'
+    });
+  }
+
+  showError(message: string) {
+    this.snackBar.open(message, 'Close', {
+      duration: 4000,
+      panelClass: ['error-snackbar'],
+      horizontalPosition: 'right',
+      verticalPosition: 'top'
+    });
+  }
+
+
 
   dataSource = new MatTableDataSource<PropertiesTable>(this.propertiesObject);
 
@@ -84,16 +113,15 @@ export class Properties implements OnInit, AfterViewInit { // Added OnInit inter
       next: (res: PropertiesTable[] | any) => { // Use 'any' or correct type if API response is not PropertiesTable[] directly
         this.propertiesObject = res; 
         this.dataSource.data = this.propertiesObject;
-        // 💡 OPTIMIZATION: Removed assignment here; it's better placed in ngAfterViewInit
-        console.log('Properties fetched successfully:', res);
+        
       },
       error: (err) => {
         if (err.status === 0) {
-          console.error('Network error: Please check your internet connection.');
         }
         if (err.status === 401) {
-          console.error('Unauthorized: Please log in again.');
+        
           this.router.navigate(['/login']);
+            this.dialog.closeAll();
         }
         else{
           console.error('Error fetching properties:', err);
@@ -111,12 +139,7 @@ export class Properties implements OnInit, AfterViewInit { // Added OnInit inter
 
   openAddPropertyDialog() {
       const isMobile = window.innerWidth < 600;
-    let dialogRef = this.dialog.open(this.openAddDialog,{
-    width: isMobile ? '90vw' : '840px',
-    maxWidth: '95vw',
-    maxHeight: '90vh',
-    panelClass: 'responsive-dialog',
-  });
+    let dialogRef = this.dialog.open(this.openAddDialog);
     dialogRef.afterClosed().subscribe(result => {
         if (result !== undefined) {
             if (result === 'yes') {
@@ -133,23 +156,24 @@ export class Properties implements OnInit, AfterViewInit { // Added OnInit inter
       this.propertyForm.markAllAsTouched();
       return;
     }
-
+    this.loadAdding = true;
     const newProperty = this.propertyForm.value;
 
     this.PropertiesService.addProperty(newProperty).subscribe({
       next: (res) => {
-        console.log('✅ Property added successfully:', res);
+        this.loadAdding = false;
         this.getProperties();
         this.propertyForm.reset();
         this.dialog.closeAll(); 
+        this.showSuccess('Property added successfully!');
       },
-      error: (err) => 
-        {
+      error: (err) => {
+        this.loadAdding = false;
+          this.showError('Failed to add property. Please try again.');
         if (err.status === 0) {
-          console.error('Network error: Please check your internet connection.');
         }
         if (err.status === 401) {
-          console.error('Unauthorized: Please log in again.');
+            this.dialog.closeAll();
           this.router.navigate(['/login']);
         }
           else{
@@ -174,22 +198,24 @@ export class Properties implements OnInit, AfterViewInit { // Added OnInit inter
   /** Submits update request */
   updateProperty() {
     if (!this.selectedPropertyId || this.updatePropertyForm.invalid) return;
-
+    this.loadUpdating = true;
     const updatedData = this.updatePropertyForm.value;
 
     this.PropertiesService.updateProperty(this.selectedPropertyId, updatedData).subscribe({
       next: (response) => {
-        console.log('✅ Property updated successfully:', response);
+        this.loadUpdating = false;
         this.getProperties();
         this.propertyForm.reset();
         this.dialog.closeAll(); 
+        this.showSuccess('Property updated successfully!');
       },
       error: (error) => {
+        this.loadUpdating = false;
+        this.showError('Failed to update property. Please try again.');
              if (error.status === 0) {
-          console.error('Network error: Please check your internet connection.');
         }
         if (error.status === 401) {
-          console.error('Unauthorized: Please log in again.');
+            this.dialog.closeAll();
           this.router.navigate(['/login']);
         }
           else{
@@ -213,17 +239,33 @@ export class Properties implements OnInit, AfterViewInit { // Added OnInit inter
 
   /** Performs deletion after confirmation */
   confirmDelete() {
+    this.loadDeleting = true;
     if (!this.selectedPropertyId) return;
 
     this.PropertiesService.deleteProperty(this.selectedPropertyId).subscribe({
       next: (response) => {
+        this.loadDeleting = false;
         this.getProperties();
         this.propertyForm.reset();
         this.dialog.closeAll(); 
+        this.showSuccess('Property deleted successfully!');
       },
       error: (error) => {
-        console.error('❌ Delete failed:', error);
-        alert('Delete failed. Please check console for details.');
+        this.loadDeleting = false;
+        this.showError('Failed to delete property. Please try again.');
+        if (error.status === 0) {
+
+        }
+        if (error.status === 401) {
+        
+          this.router.navigate(['/login']);
+          this.dialog.closeAll();
+        }
+          else{
+
+          }
+   
+  
       },
     });
   }
