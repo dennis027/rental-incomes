@@ -16,9 +16,10 @@ import { AuthService } from '../../services/auth';
 export class Dashboard {
 links = [
   { name: 'Dashboard', route: '/dashboard/home', icon: 'fas fa-chart-pie' },
+  { name: 'Properties', route: '/dashboard/properties', icon: 'fas fa-building' },
+  { name: 'Units', route: '/dashboard/units', icon: 'fas fa-building' },
   { name: 'Rental Collections', route: '/dashboard/rental-collections', icon: 'fas fa-money-bill-wave' },
   { name: 'Receipts', route: '/dashboard/receipts', icon: 'fas fa-receipt' },
-  { name: 'Properties', route: '/dashboard/properties', icon: 'fas fa-building' },
   { name: 'Tenants', route: '/dashboard/tenants', icon: 'fas fa-user-friends' },
   { name: 'Contracts', route: '/dashboard/contracts', icon: 'fas fa-file-signature' },
   { name: 'Settings', route: '/dashboard/settings', icon: 'fas fa-cog' },

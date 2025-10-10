@@ -1,18 +1,12 @@
 import { AfterViewInit, Component, ViewChild, TemplateRef, OnInit, inject } from '@angular/core';
-import { MatPaginator, MatPaginatorModule } from '@angular/material/paginator';
-import { MatTableDataSource, MatTableModule } from '@angular/material/table';
-import { CommonModule } from '@angular/common';
+import { MatPaginator } from '@angular/material/paginator';
+import { MatTableDataSource } from '@angular/material/table';
 import { PropertiesService } from '../../../services/properties';
-import { MatIconModule } from '@angular/material/icon'; 
-import { MatTooltipModule } from '@angular/material/tooltip';
-import { MatButtonModule } from '@angular/material/button';
-import { MatDialog, MatDialogModule } from '@angular/material/dialog';
-import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
-import {MatInputModule} from '@angular/material/input';
-import {MatFormFieldModule} from '@angular/material/form-field';
+import { MatDialog } from '@angular/material/dialog';
+import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
 import { MatSnackBar } from '@angular/material/snack-bar';
-import {MatProgressSpinnerModule} from '@angular/material/progress-spinner';
+import { SharedImports } from '../../../shared-imports/imports';
 
 export interface PropertiesTable {
   id: string;
@@ -25,17 +19,7 @@ export interface PropertiesTable {
   selector: 'app-properties',
   standalone: true,
   // 💡 CORRECTED: Removed MatIconButton from imports; MatButtonModule covers the buttons.
-  imports: [ CommonModule,
-            MatTableModule,
-            MatPaginatorModule,
-            MatIconModule,
-            MatTooltipModule,
-            MatButtonModule,
-            MatDialogModule,
-            ReactiveFormsModule,
-            MatInputModule,
-            MatFormFieldModule,
-            MatProgressSpinnerModule],
+  imports: [SharedImports],
   templateUrl: './properties.html',
   styleUrls: ['./properties.css']
 })

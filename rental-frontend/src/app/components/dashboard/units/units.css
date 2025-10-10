@@ -1,0 +1,63 @@
+.property-units-container {
+  padding: 2rem;
+  background: #fafafa;
+  border-radius: 12px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.full-width {
+  width: 100%;
+}
+
+.mt-2 {
+  margin-top: 0.75rem;
+}
+
+.mt-3 {
+  margin-top: 1rem;
+}
+
+.table-container {
+  margin-top: 1rem;
+  border-radius: 10px;
+  overflow: hidden;
+  background: #fff;
+}
+
+.full-width-table {
+  width: 100%;
+}
+
+.occupied {
+  color: #2e7d32;
+  font-weight: 600;
+}
+
+.vacant {
+  color: #c62828;
+  font-weight: 600;
+}
+
+.text-center {
+  text-align: center;
+}
+
+.actions-cell {
+  text-align: center;
+}
+
+mat-paginator {
+  border-top: 1px solid #eee;
+}
+
+h2 {
+  font-weight: 600;
+  color: #2c3e50;
+  margin: 0;
+}

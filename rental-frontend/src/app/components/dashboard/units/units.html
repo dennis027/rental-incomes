@@ -1,0 +1,97 @@
+<div class="property-units-container">
+  <div class="header">
+    <h2>
+    {{
+        selectedPropertyName
+        ? selectedPropertyName + ' Management'
+        : (properties.length > 0 ? properties[0].name + ' Management' : 'Units Management')
+    }}
+    </h2>
+
+  </div>
+
+  <!-- 🔹 Property Selector -->
+    <mat-form-field appearance="outline" class="full-width mt-3">
+    <mat-label>Select Property</mat-label>
+    <mat-select [(ngModel)]="selectedPropertyId" (selectionChange)="filterUnitsByProperty()">
+        <mat-option *ngFor="let property of properties" [value]="property.id">
+        {{ property.name }}
+        </mat-option>
+    </mat-select>
+    </mat-form-field>
+
+
+  <!-- 🔹 Search Bar -->
+  <mat-form-field appearance="outline" class="full-width mt-2">
+    <mat-label>Search Units</mat-label>
+    <input
+      matInput
+      [(ngModel)]="searchText"
+      (keyup)="applyFilter()"
+      placeholder="Search by number, type, or status"
+    />
+    <mat-icon matSuffix>search</mat-icon>
+  </mat-form-field>
+
+  <!-- 🔹 Units Table -->
+  <div class="table-container mat-elevation-z8 mt-3">
+    <button mat-raised-button color="primary" (click)="openAddUnitDialog()">
+      <mat-icon>add</mat-icon> Add Unit
+    </button>
+    <table mat-table [dataSource]="dataSource" class="full-width-table">
+
+      <!-- Property -->
+      <ng-container matColumnDef="property_name">
+        <th mat-header-cell *matHeaderCellDef>Property</th>
+        <td mat-cell *matCellDef="let element">{{ element.property_name }}</td>
+      </ng-container>
+
+      <!-- Unit Number -->
+      <ng-container matColumnDef="unit_number">
+        <th mat-header-cell *matHeaderCellDef>Unit No</th>
+        <td mat-cell *matCellDef="let element">{{ element.unit_number }}</td>
+      </ng-container>
+
+      <!-- Type -->
+      <ng-container matColumnDef="unit_type">
+        <th mat-header-cell *matHeaderCellDef>Type</th>
+        <td mat-cell *matCellDef="let element">{{ element.unit_type }}</td>
+      </ng-container>
+
+      <!-- Rent -->
+      <ng-container matColumnDef="rent_amount">
+        <th mat-header-cell *matHeaderCellDef>Rent</th>
+        <td mat-cell *matCellDef="let element">{{ element.rent_amount | currency:'KES' }}</td>
+      </ng-container>
+
+      <!-- Status -->
+      <ng-container matColumnDef="status">
+        <th mat-header-cell *matHeaderCellDef>Status</th>
+        <td mat-cell *matCellDef="let element">
+          <span [ngClass]="element.status === 'occupied' ? 'occupied' : 'vacant'">
+            {{ element.status | titlecase }}
+          </span>
+        </td>
+      </ng-container>
+
+      <!-- Actions -->
+      <ng-container matColumnDef="actions">
+        <th mat-header-cell *matHeaderCellDef class="text-center">Actions</th>
+        <td mat-cell *matCellDef="let element" class="actions-cell">
+          <button mat-icon-button color="primary" (click)="openUpdateDialog(element)" matTooltip="Edit Unit">
+            <mat-icon>edit</mat-icon>
+          </button>
+          <button mat-icon-button color="warn" (click)="openDeleteDialog(element)" matTooltip="Delete Unit">
+            <mat-icon>delete</mat-icon>
+          </button>
+        </td>
+      </ng-container>
+
+      <!-- Table Rows -->
+      <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+      <tr mat-row *matRowDef="let row; columns: displayedColumns"></tr>
+    </table>
+
+    <mat-paginator [pageSizeOptions]="[5, 10, 20]" showFirstLastButtons></mat-paginator>
+  </div>
+</div>

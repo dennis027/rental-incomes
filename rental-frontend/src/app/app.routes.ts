@@ -10,6 +10,7 @@ import { Properties } from './components/dashboard/properties/properties';
 import { Tenants } from './components/dashboard/tenants/tenants';
 import { Contracts } from './components/dashboard/contracts/contracts';
 import { Settings } from './components/dashboard/settings/settings';
+import { Units } from './components/dashboard/units/units';
 
 export const routes: Routes = [
   // 🌍 Public pages
@@ -30,6 +31,7 @@ export const routes: Routes = [
       { path: 'tenants', component: Tenants, canActivate: [AuthGuard] },
       { path: 'contracts', component: Contracts, canActivate: [AuthGuard] },
       { path: 'settings', component: Settings, canActivate: [AuthGuard] },
+      { path: 'units', component: Units, canActivate: [AuthGuard] },
     ],
   },
 
