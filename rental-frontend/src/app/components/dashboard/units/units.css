@@ -61,3 +61,297 @@ h2 {
   color: #2c3e50;
   margin: 0;
 }
+
+
+.property-units-container {
+  padding: 20px;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.header h2 {
+  margin: 0;
+  font-size: 24px;
+  font-weight: 600;
+  color: #333;
+}
+
+.full-width {
+  width: 100%;
+}
+
+.mt-2 {
+  margin-top: 16px;
+}
+
+.mt-3 {
+  margin-top: 24px;
+}
+
+.mb-3 {
+  margin-bottom: 24px;
+}
+
+.table-container {
+  background: white;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.full-width-table {
+  width: 100%;
+}
+
+.full-width-table th {
+  background-color: #f5f5f5;
+  font-weight: 600;
+  color: #333;
+  padding: 16px;
+}
+
+.full-width-table td {
+  padding: 16px;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.full-width-table tr:hover {
+  background-color: #fafafa;
+}
+
+/* Status badges */
+.occupied {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 12px;
+  background-color: #e8f5e9;
+  color: #2e7d32;
+  font-size: 12px;
+  font-weight: 500;
+  text-transform: uppercase;
+}
+
+.vacant {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 12px;
+  background-color: #fff3e0;
+  color: #ef6c00;
+  font-size: 12px;
+  font-weight: 500;
+  text-transform: uppercase;
+}
+
+.status-maintenance {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 12px;
+  background-color: #e3f2fd;
+  color: #1565c0;
+  font-size: 12px;
+  font-weight: 500;
+  text-transform: uppercase;
+}
+
+/* Actions cell */
+.actions-cell {
+  text-align: center;
+}
+
+.text-center {
+  text-align: center;
+}
+
+/* No data message */
+.no-data {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+  color: #999;
+}
+
+.no-data mat-icon {
+  font-size: 48px;
+  width: 48px;
+  height: 48px;
+  margin-bottom: 16px;
+  color: #ccc;
+}
+
+.no-data p {
+  margin: 0;
+  font-size: 16px;
+}
+
+/* Dialog styles */
+.unit-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 400px;
+  padding: 20px 0;
+}
+
+.unit-form mat-form-field {
+  width: 100%;
+}
+
+mat-dialog-content {
+  max-height: 70vh;
+  overflow-y: auto;
+}
+
+mat-dialog-actions {
+  padding: 16px 24px;
+  gap: 8px;
+}
+
+/* Button with spinner */
+button mat-spinner {
+  display: inline-block;
+  margin-right: 8px;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .property-units-container {
+    padding: 10px;
+  }
+
+  .header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 16px;
+  }
+
+  .header h2 {
+    font-size: 20px;
+  }
+
+  .full-width-table th,
+  .full-width-table td {
+    padding: 12px 8px;
+    font-size: 14px;
+  }
+
+  .unit-form {
+    min-width: 300px;
+  }
+
+  .actions-cell button {
+    margin: 0 2px;
+  }
+
+  /* Stack columns on mobile */
+  .mat-mdc-table {
+    display: block;
+    overflow-x: auto;
+  }
+}
+
+@media (max-width: 480px) {
+  .property-units-container {
+    padding: 8px;
+  }
+
+  .header h2 {
+    font-size: 18px;
+  }
+
+  .unit-form {
+    min-width: 250px;
+  }
+
+  .occupied,
+  .vacant,
+  .status-maintenance {
+    padding: 2px 8px;
+    font-size: 11px;
+  }
+}
+
+/* Material overrides */
+::ng-deep .mat-mdc-dialog-container {
+  border-radius: 8px;
+}
+
+::ng-deep .mat-mdc-dialog-title {
+  font-size: 20px;
+  font-weight: 600;
+  margin-bottom: 16px;
+}
+
+/* Success/Error snackbar styles */
+::ng-deep .success-snackbar {
+  background-color: #4caf50 !important;
+  color: white !important;
+}
+
+::ng-deep .error-snackbar {
+  background-color: #f44336 !important;
+  color: white !important;
+}
+
+::ng-deep .success-snackbar .mat-simple-snackbar-action,
+::ng-deep .error-snackbar .mat-simple-snackbar-action {
+  color: white !important;
+}
+
+/* Loading state */
+.loading-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 40px;
+}
+
+/* Table elevation */
+.mat-elevation-z8 {
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+/* Form field appearance */
+mat-form-field {
+  font-size: 14px;
+}
+
+/* Button styles */
+button[mat-raised-button] {
+  text-transform: uppercase;
+  font-weight: 500;
+  letter-spacing: 0.5px;
+}
+
+button[mat-icon-button] {
+  transition: transform 0.2s ease;
+}
+
+button[mat-icon-button]:hover {
+  transform: scale(1.1);
+}
+
+/* Paginator */
+::ng-deep .mat-mdc-paginator {
+  border-top: 1px solid #e0e0e0;
+  background-color: #fafafa;
+}
+
+/* Table header */
+::ng-deep .mat-mdc-header-row {
+  background-color: #f5f5f5;
+}
+
+/* Table row hover effect */
+::ng-deep .mat-mdc-row:hover {
+  background-color: #f5f5f5;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}

@@ -19,6 +19,8 @@ import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatDatepickerModule } from '@angular/material/datepicker';
 import { MatNativeDateModule } from '@angular/material/core';
 import { MatExpansionModule } from '@angular/material/expansion';
+import { MatMenuModule } from '@angular/material/menu';
+
 
 // ✅ Export all of them in a single array
 export const SharedImports = [
@@ -42,4 +44,5 @@ export const SharedImports = [
   MatDatepickerModule,
   MatNativeDateModule,
   MatExpansionModule,
+  MatMenuModule,
 ];

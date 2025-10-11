@@ -1,27 +1,28 @@
 <div class="property-units-container">
+  <!-- Header Section -->
   <div class="header">
     <h2>
-    {{
+      {{
         selectedPropertyName
-        ? selectedPropertyName + ' Management'
-        : (properties.length > 0 ? properties[0].name + ' Management' : 'Units Management')
-    }}
+          ? selectedPropertyName + ' Management'
+          : (properties.length > 0 ? properties[0].name + ' Management' : 'Units Management')
+      }}
     </h2>
-
   </div>
 
-  <!-- 🔹 Property Selector -->
-    <mat-form-field appearance="outline" class="full-width mt-3">
+  <!-- Property Selector -->
+  <mat-form-field appearance="outline" class="full-width mt-3">
     <mat-label>Select Property</mat-label>
     <mat-select [(ngModel)]="selectedPropertyId" (selectionChange)="filterUnitsByProperty()">
-        <mat-option *ngFor="let property of properties" [value]="property.id">
-        {{ property.name }}
+      @for (property of properties; track property.id) {
+        <mat-option [value]="property.id">
+          {{ property.name }}
         </mat-option>
+      }
     </mat-select>
-    </mat-form-field>
+  </mat-form-field>
 
-
-  <!-- 🔹 Search Bar -->
+  <!-- Search Bar -->
   <mat-form-field appearance="outline" class="full-width mt-2">
     <mat-label>Search Units</mat-label>
     <input
@@ -33,18 +34,16 @@
     <mat-icon matSuffix>search</mat-icon>
   </mat-form-field>
 
-  <!-- 🔹 Units Table -->
-  <div class="table-container mat-elevation-z8 mt-3">
+  <!-- Add Unit Button -->
+  <div class="mt-3 mb-3">
     <button mat-raised-button color="primary" (click)="openAddUnitDialog()">
       <mat-icon>add</mat-icon> Add Unit
     </button>
-    <table mat-table [dataSource]="dataSource" class="full-width-table">
+  </div>
 
-      <!-- Property -->
-      <ng-container matColumnDef="property_name">
-        <th mat-header-cell *matHeaderCellDef>Property</th>
-        <td mat-cell *matCellDef="let element">{{ element.property_name }}</td>
-      </ng-container>
+  <!-- Units Table -->
+  <div class="table-container mat-elevation-z8">
+    <table mat-table [dataSource]="dataSource" class="full-width-table">
 
       <!-- Unit Number -->
       <ng-container matColumnDef="unit_number">
@@ -90,8 +89,227 @@
       <!-- Table Rows -->
       <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
       <tr mat-row *matRowDef="let row; columns: displayedColumns"></tr>
+
+      <!-- No Data Row -->
+      @if (dataSource.data.length === 0) {
+        <tr class="mat-row">
+          <td class="mat-cell" [attr.colspan]="displayedColumns.length">
+            <div class="no-data">
+              <mat-icon>inbox</mat-icon>
+              <p>No units found</p>
+            </div>
+          </td>
+        </tr>
+      }
     </table>
 
     <mat-paginator [pageSizeOptions]="[5, 10, 20]" showFirstLastButtons></mat-paginator>
   </div>
 </div>
+
+<!-- Add Unit Dialog Template -->
+<ng-template #openAddDialog>
+  <h2 mat-dialog-title>Add New Unit</h2>
+  <mat-dialog-content>
+    <form [formGroup]="unitForm" class="unit-form">
+
+      <mat-form-field appearance="outline">
+        <mat-label>Unit Number</mat-label>
+        <input matInput formControlName="unit_number" placeholder="e.g., A101">
+        @if (unitForm.get('unit_number')?.hasError('required')) {
+          <mat-error>Unit number is required</mat-error>
+        }
+        @if (unitForm.get('unit_number')?.hasError('minlength')) {
+          <mat-error>Unit number must be at least 1 character</mat-error>
+        }
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>Unit Type</mat-label>
+        <mat-select formControlName="unit_type">
+          <mat-option value="bedsitter">Bedsitter</mat-option>
+          <mat-option value="studio">Studio</mat-option>
+          <mat-option value="one_bedroom">1 Bedroom</mat-option>
+          <mat-option value="two_bedroom">2 Bedroom</mat-option>
+          <mat-option value="three_bedroom">3 Bedroom</mat-option>
+          <mat-option value="four_bedroom">4 Bedroom</mat-option>
+          <mat-option value="five_bedroom">5 Bedroom</mat-option>
+        </mat-select>
+        @if (unitForm.get('unit_type')?.hasError('required')) {
+          <mat-error>Unit type is required</mat-error>
+        }
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>Rent Amount</mat-label>
+        <input matInput type="number" formControlName="rent_amount" placeholder="0.00">
+        <span matPrefix>KES&nbsp;</span>
+        @if (unitForm.get('rent_amount')?.hasError('required')) {
+          <mat-error>Rent amount is required</mat-error>
+        }
+        @if (unitForm.get('rent_amount')?.hasError('min')) {
+          <mat-error>Rent amount must be at least 0</mat-error>
+        }
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>Water Meter Reading</mat-label>
+        <input matInput type="number" (change)="testForm()"  formControlName="water_meter_reading" placeholder="0">
+        @if (unitForm.get('water_meter_reading')?.hasError('required')) {
+          <mat-error>Water meter reading is required</mat-error>
+        }
+        @if (unitForm.get('water_meter_reading')?.hasError('min')) {
+          <mat-error>Reading must be at least 0</mat-error>
+        }
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>Electricity Meter Reading</mat-label>
+        <input matInput type="number" formControlName="electricity_meter_reading" placeholder="0">
+        @if (unitForm.get('electricity_meter_reading')?.hasError('required')) {
+          <mat-error>Electricity meter reading is required</mat-error>
+        }
+        @if (unitForm.get('electricity_meter_reading')?.hasError('min')) {
+          <mat-error>Reading must be at least 0</mat-error>
+        }
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>Status</mat-label>
+        <mat-select formControlName="status">
+          <mat-option value="vacant">Vacant</mat-option>
+          <mat-option value="occupied">Occupied</mat-option>
+          <mat-option value="maintenance">Maintenance</mat-option>
+        </mat-select>
+        @if (unitForm.get('status')?.hasError('required')) {
+          <mat-error>Status is required</mat-error>
+        }
+      </mat-form-field>
+
+    </form>
+  </mat-dialog-content>
+  <mat-dialog-actions align="end">
+    <button mat-button mat-dialog-close>Cancel</button>
+    <button mat-raised-button color="primary" (click)="addUnit()" [disabled]="unitForm.invalid || loadAdding">
+      @if (loadAdding) {
+        <mat-spinner diameter="20"></mat-spinner>
+      }
+      @if (!loadAdding) {
+        <span>Add Unit</span>
+      }
+    </button>
+  </mat-dialog-actions>
+</ng-template>
+
+<!-- Update Unit Dialog Template -->
+<ng-template #updateDialog>
+  <h2 mat-dialog-title>Update Unit</h2>
+  <mat-dialog-content>
+    <form [formGroup]="updateUnitForm" class="unit-form">
+
+      <mat-form-field appearance="outline">
+        <mat-label>Unit Number</mat-label>
+        <input matInput formControlName="unit_number" placeholder="e.g., A101">
+        @if (updateUnitForm.get('unit_number')?.hasError('required')) {
+          <mat-error>Unit number is required</mat-error>
+        }
+        @if (updateUnitForm.get('unit_number')?.hasError('minlength')) {
+          <mat-error>Unit number must be at least 1 character</mat-error>
+        }
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>Unit Type</mat-label>
+           <mat-select formControlName="unit_type">
+        <mat-option value="bedsitter">Bedsitter</mat-option>
+          <mat-option value="studio">Studio</mat-option>
+          <mat-option value="one_bedroom">1 Bedroom</mat-option>
+          <mat-option value="two_bedroom">2 Bedroom</mat-option>
+          <mat-option value="three_bedroom">3 Bedroom</mat-option>
+          <mat-option value="four_bedroom">4 Bedroom</mat-option>
+          <mat-option value="five_bedroom">5 Bedroom</mat-option>
+        </mat-select>
+        @if (updateUnitForm.get('unit_type')?.hasError('required')) {
+          <mat-error>Unit type is required</mat-error>
+        }
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>Rent Amount</mat-label>
+        <input matInput type="number" formControlName="rent_amount" placeholder="0.00">
+        <span matPrefix>KES&nbsp;</span>
+        @if (updateUnitForm.get('rent_amount')?.hasError('required')) {
+          <mat-error>Rent amount is required</mat-error>
+        }
+        @if (updateUnitForm.get('rent_amount')?.hasError('min')) {
+          <mat-error>Rent amount must be at least 0</mat-error>
+        }
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>Water Meter Reading</mat-label>
+        <input matInput type="number" formControlName="water_meter_reading" placeholder="0">
+        @if (updateUnitForm.get('water_meter_reading')?.hasError('required')) {
+          <mat-error>Water meter reading is required</mat-error>
+        }
+        @if (updateUnitForm.get('water_meter_reading')?.hasError('min')) {
+          <mat-error>Reading must be at least 0</mat-error>
+        }
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>Electricity Meter Reading</mat-label>
+        <input matInput type="number" formControlName="electricity_meter_reading" placeholder="0">
+        @if (updateUnitForm.get('electricity_meter_reading')?.hasError('required')) {
+          <mat-error>Electricity meter reading is required</mat-error>
+        }
+        @if (updateUnitForm.get('electricity_meter_reading')?.hasError('min')) {
+          <mat-error>Reading must be at least 0</mat-error>
+        }
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>Status</mat-label>
+        <mat-select formControlName="status">
+          <mat-option value="vacant">Vacant</mat-option>
+          <mat-option value="occupied">Occupied</mat-option>
+          <mat-option value="maintenance">Maintenance</mat-option>
+        </mat-select>
+        @if (updateUnitForm.get('status')?.hasError('required')) {
+          <mat-error>Status is required</mat-error>
+        }
+      </mat-form-field>
+
+    </form>
+  </mat-dialog-content>
+  <mat-dialog-actions align="end">
+    <button mat-button mat-dialog-close>Cancel</button>
+    <button mat-raised-button color="primary" (click)="updateUnit()" [disabled]="updateUnitForm.invalid || loadUpdating">
+      @if (loadUpdating) {
+        <mat-spinner diameter="20"></mat-spinner>
+      }
+      @if (!loadUpdating) {
+        <span>Update Unit</span>
+      }
+    </button>
+  </mat-dialog-actions>
+</ng-template>
+
+<!-- Delete Confirmation Dialog Template -->
+<ng-template #deleteDialog>
+  <h2 mat-dialog-title>Confirm Delete</h2>
+  <mat-dialog-content>
+    <p>Are you sure you want to delete this unit? This action cannot be undone.</p>
+  </mat-dialog-content>
+  <mat-dialog-actions align="end">
+    <button mat-button mat-dialog-close>Cancel</button>
+    <button mat-raised-button color="warn" (click)="confirmDelete()" [disabled]="loadDeleting">
+      @if (loadDeleting) {
+        <mat-spinner diameter="20"></mat-spinner>
+      }
+      @if (!loadDeleting) {
+        <span>Delete</span>
+      }
+    </button>
+  </mat-dialog-actions>
+</ng-template>
