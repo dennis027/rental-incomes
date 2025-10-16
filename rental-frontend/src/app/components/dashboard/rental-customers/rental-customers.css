@@ -1,0 +1,399 @@
+.container {
+  padding: 20px;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.header h2 {
+  margin: 0;
+  font-size: 24px;
+  font-weight: 600;
+  color: #333;
+}
+
+.full-width {
+  width: 100%;
+}
+
+.mt-3 {
+  margin-top: 24px;
+}
+
+.table-container {
+  background: white;
+  border-radius: 8px;
+  overflow: hidden;
+  margin-top: 20px;
+}
+
+table {
+  width: 100%;
+}
+
+th {
+  background-color: #f5f5f5;
+  font-weight: 600;
+  color: #333;
+  padding: 16px;
+}
+
+td {
+  padding: 16px;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+tr:hover {
+  background-color: #fafafa;
+}
+
+.text-center {
+  text-align: center;
+}
+
+.actions-cell {
+  text-align: center;
+}
+
+/* Loading and Error States */
+.loading-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 60px 20px;
+}
+
+.error-message {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 20px;
+  background-color: #ffebee;
+  border-radius: 8px;
+  color: #c62828;
+  margin-top: 20px;
+}
+
+.error-message mat-icon {
+  color: #c62828;
+}
+
+/* No Data Message */
+.no-data {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+  color: #999;
+}
+
+.no-data mat-icon {
+  font-size: 48px;
+  width: 48px;
+  height: 48px;
+  margin-bottom: 16px;
+  color: #ccc;
+}
+
+.no-data p {
+  margin: 0;
+  font-size: 16px;
+}
+
+/* Dialog Form Styles */
+.customer-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 500px;
+  padding: 20px 0;
+  max-height: 70vh;
+  overflow-y: auto;
+}
+
+.customer-form mat-form-field {
+  width: 100%;
+}
+
+/* Image Upload Section */
+.image-upload-section {
+  margin: 16px 0;
+  padding: 16px;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  background-color: #fafafa;
+}
+
+.upload-label {
+  display: block;
+  font-size: 14px;
+  font-weight: 500;
+  color: #333;
+  margin-bottom: 12px;
+}
+
+.upload-container {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.upload-container button[mat-stroked-button] {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Existing Image Display */
+.existing-image {
+  margin-bottom: 12px;
+  padding: 12px;
+  background-color: white;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+}
+
+.existing-label {
+  font-size: 12px;
+  font-weight: 500;
+  color: #666;
+  margin: 0 0 8px 0;
+}
+
+.current-image {
+  width: 100%;
+  max-width: 250px;
+  height: auto;
+  border-radius: 4px;
+  border: 1px solid #ddd;
+}
+
+/* Image Preview */
+.image-preview {
+  position: relative;
+  width: 100%;
+  max-width: 300px;
+  border: 2px solid #1976d2;
+  border-radius: 8px;
+  overflow: hidden;
+  background-color: white;
+  padding: 8px;
+}
+
+.preview-label {
+  font-size: 12px;
+  font-weight: 500;
+  color: #1976d2;
+  margin: 0 0 8px 0;
+}
+
+.image-preview img {
+  width: 100%;
+  height: auto;
+  display: block;
+  object-fit: contain;
+  max-height: 200px;
+}
+
+.remove-btn {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  background-color: rgba(255, 255, 255, 0.9);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.hint-text {
+  display: block;
+  font-size: 12px;
+  color: #666;
+  margin-top: 8px;
+  font-style: italic;
+}
+
+.file-error {
+  color: #f44336;
+  font-size: 12px;
+  margin-top: 4px;
+  display: block;
+}
+
+/* Customer Details View */
+.customer-details {
+  padding: 20px;
+  min-width: 400px;
+}
+
+.detail-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 12px 0;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.detail-row:last-child {
+  border-bottom: none;
+}
+
+.detail-row strong {
+  color: #555;
+  font-weight: 500;
+  min-width: 140px;
+}
+
+.detail-row span {
+  color: #333;
+  text-align: right;
+  flex: 1;
+}
+
+/* ID Photos Section in View Dialog */
+.id-photos-section {
+  margin-top: 24px;
+  padding-top: 24px;
+  border-top: 2px solid #e0e0e0;
+}
+
+.id-photos-section h3 {
+  margin: 0 0 16px 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: #333;
+}
+
+.id-photos-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+}
+
+.id-photo-item {
+  text-align: center;
+}
+
+.photo-label {
+  font-size: 14px;
+  font-weight: 500;
+  color: #666;
+  margin: 0 0 8px 0;
+}
+
+.id-photo-view {
+  width: 100%;
+  max-width: 250px;
+  height: auto;
+  border: 2px solid #e0e0e0;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: transform 0.2s ease;
+}
+
+.id-photo-view:hover {
+  transform: scale(1.05);
+  border-color: #1976d2;
+}
+
+/* Dialog Styles */
+mat-dialog-content {
+  max-height: 70vh;
+  overflow-y: auto;
+}
+
+mat-dialog-actions {
+  padding: 16px 24px;
+  gap: 8px;
+}
+
+/* Button with spinner */
+button mat-spinner {
+  display: inline-block;
+  margin-right: 8px;
+}
+
+/* Success/Error snackbar styles */
+::ng-deep .success-snackbar {
+  background-color: #4caf50 !important;
+  color: white !important;
+}
+
+::ng-deep .error-snackbar {
+  background-color: #f44336 !important;
+  color: white !important;
+}
+
+::ng-deep .success-snackbar .mat-simple-snackbar-action,
+::ng-deep .error-snackbar .mat-simple-snackbar-action {
+  color: white !important;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .container {
+    padding: 10px;
+  }
+
+  .header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 16px;
+  }
+
+  .header h2 {
+    font-size: 20px;
+  }
+
+  .customer-form {
+    min-width: 300px;
+  }
+
+  .customer-details {
+    min-width: 280px;
+  }
+
+  .detail-row {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .detail-row span {
+    text-align: left;
+  }
+
+  .id-photos-grid {
+    grid-template-columns: 1fr;
+  }
+
+  th,
+  td {
+    padding: 12px 8px;
+    font-size: 14px;
+  }
+}
+
+@media (max-width: 480px) {
+  .container {
+    padding: 8px;
+  }
+
+  .header h2 {
+    font-size: 18px;
+  }
+
+  .customer-form {
+    min-width: 250px;
+  }
+
+  .image-preview,
+  .current-image,
+  .id-photo-view {
+    max-width: 100%;
+  }
+}

@@ -1,0 +1,457 @@
+<div class="container">
+  <!-- Header Section -->
+  <div class="header">
+    <h2>Rental Customers Management</h2>
+    <button mat-raised-button color="primary" (click)="openAddCustomerDialog()">
+      <mat-icon>add</mat-icon>
+      Add Customer
+    </button>
+  </div>
+
+  <!-- Search Bar -->
+  <mat-form-field appearance="outline" class="full-width mt-3">
+    <mat-label>Search Customers</mat-label>
+    <input
+      matInput
+      [(ngModel)]="searchText"
+      (keyup)="applyFilter()"
+      placeholder="Search by name, phone, email, or ID number"
+    />
+    <mat-icon matSuffix>search</mat-icon>
+  </mat-form-field>
+
+  <!-- Loading Spinner -->
+  @if (isLoading) {
+    <div class="loading-container">
+      <mat-spinner></mat-spinner>
+    </div>
+  }
+
+  <!-- Error Message -->
+  @if (error && !isLoading) {
+    <div class="error-message">
+      <mat-icon>error</mat-icon>
+      <p>{{ error }}</p>
+    </div>
+  }
+
+  <!-- Table Container -->
+  @if (!isLoading && !error) {
+    <div class="table-container">
+      <div class="mat-elevation-z8">
+        <table mat-table [dataSource]="dataSource">
+
+          <!-- First Name Column -->
+          <ng-container matColumnDef="first_name">
+            <th mat-header-cell *matHeaderCellDef>First Name</th>
+            <td mat-cell *matCellDef="let element">{{ element.first_name }}</td>
+          </ng-container>
+
+          <!-- Last Name Column -->
+          <ng-container matColumnDef="last_name">
+            <th mat-header-cell *matHeaderCellDef>Last Name</th>
+            <td mat-cell *matCellDef="let element">{{ element.last_name }}</td>
+          </ng-container>
+
+          <!-- Phone Number Column -->
+          <ng-container matColumnDef="phone_number">
+            <th mat-header-cell *matHeaderCellDef>Phone Number</th>
+            <td mat-cell *matCellDef="let element">{{ element.phone_number }}</td>
+          </ng-container>
+
+          <!-- Email Column -->
+          <ng-container matColumnDef="email">
+            <th mat-header-cell *matHeaderCellDef>Email</th>
+            <td mat-cell *matCellDef="let element">{{ element.email }}</td>
+          </ng-container>
+
+          <!-- ID Number Column -->
+          <ng-container matColumnDef="id_number">
+            <th mat-header-cell *matHeaderCellDef>ID Number</th>
+            <td mat-cell *matCellDef="let element">{{ element.id_number }}</td>
+          </ng-container>
+
+          <!-- Actions Column -->
+          <ng-container matColumnDef="actions">
+            <th mat-header-cell *matHeaderCellDef class="text-center">Actions</th>
+            <td mat-cell *matCellDef="let element" class="actions-cell">
+              <button mat-icon-button color="accent" (click)="openViewDialog(element)" matTooltip="View Customer">
+                <mat-icon>visibility</mat-icon>
+              </button>
+              <button mat-icon-button color="primary" (click)="openUpdateDialog(element)" matTooltip="Edit Customer">
+                <mat-icon>edit</mat-icon>
+              </button>
+              <button mat-icon-button color="warn" (click)="openDeleteDialog(element)" matTooltip="Delete Customer">
+                <mat-icon>delete</mat-icon>
+              </button>
+            </td>
+          </ng-container>
+
+          <!-- Table Rows -->
+          <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+          <tr mat-row *matRowDef="let row; columns: displayedColumns"></tr>
+
+          <!-- No Data Row -->
+          @if (dataSource.data.length === 0) {
+            <tr class="mat-row">
+              <td class="mat-cell" [attr.colspan]="displayedColumns.length">
+                <div class="no-data">
+                  <mat-icon>inbox</mat-icon>
+                  <p>No customers found</p>
+                </div>
+              </td>
+            </tr>
+          }
+        </table>
+
+        <mat-paginator 
+          [pageSizeOptions]="[5, 10, 20]"
+          showFirstLastButtons
+          aria-label="Select page of customers">
+        </mat-paginator>
+      </div>
+    </div>
+  }
+</div>
+
+<!-- Add Customer Dialog Template -->
+<ng-template #openAddDialog>
+  <h2 mat-dialog-title>Add New Customer</h2>
+  <mat-dialog-content>
+    <form [formGroup]="customerForm" class="customer-form">
+
+      <mat-form-field appearance="outline">
+        <mat-label>First Name</mat-label>
+        <input matInput formControlName="first_name" placeholder="Enter first name">
+        @if (customerForm.get('first_name')?.hasError('required')) {
+          <mat-error>First name is required</mat-error>
+        }
+        @if (customerForm.get('first_name')?.hasError('minlength')) {
+          <mat-error>First name must be at least 2 characters</mat-error>
+        }
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>Last Name</mat-label>
+        <input matInput formControlName="last_name" placeholder="Enter last name">
+        @if (customerForm.get('last_name')?.hasError('required')) {
+          <mat-error>Last name is required</mat-error>
+        }
+        @if (customerForm.get('last_name')?.hasError('minlength')) {
+          <mat-error>Last name must be at least 2 characters</mat-error>
+        }
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>Phone Number</mat-label>
+        <input matInput formControlName="phone_number" placeholder="e.g., 0712345678">
+        @if (customerForm.get('phone_number')?.hasError('required')) {
+          <mat-error>Phone number is required</mat-error>
+        }
+        @if (customerForm.get('phone_number')?.hasError('pattern')) {
+          <mat-error>Phone number must be 10-15 digits</mat-error>
+        }
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>Email</mat-label>
+        <input matInput type="email" formControlName="email" placeholder="customer@example.com">
+        @if (customerForm.get('email')?.hasError('required')) {
+          <mat-error>Email is required</mat-error>
+        }
+        @if (customerForm.get('email')?.hasError('email')) {
+          <mat-error>Invalid email format</mat-error>
+        }
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>ID Number</mat-label>
+        <input matInput formControlName="id_number" placeholder="Enter ID/Passport number">
+        @if (customerForm.get('id_number')?.hasError('required')) {
+          <mat-error>ID number is required</mat-error>
+        }
+        @if (customerForm.get('id_number')?.hasError('minlength')) {
+          <mat-error>ID number must be at least 5 characters</mat-error>
+        }
+      </mat-form-field>
+
+      <!-- ID Photo Front Upload -->
+      <div class="image-upload-section">
+        <label class="upload-label">ID Photo (Front) *</label>
+        <div class="upload-container">
+          @if (!frontImagePreview) {
+            <button type="button" mat-stroked-button color="primary" (click)="frontFileInput.click()">
+              <mat-icon>cloud_upload</mat-icon>
+              Choose Front Image
+            </button>
+            <input #frontFileInput type="file" accept="image/*" hidden (change)="onFrontImageSelected($event)">
+          }
+          @if (frontImagePreview) {
+            <div class="image-preview">
+              <img [src]="frontImagePreview" alt="Front ID Preview">
+              <button type="button" mat-icon-button color="warn" (click)="removeFrontImage()" class="remove-btn">
+                <mat-icon>close</mat-icon>
+              </button>
+            </div>
+          }
+        </div>
+        @if (customerForm.get('id_photo_front')?.hasError('required') && customerForm.get('id_photo_front')?.touched) {
+          <mat-error class="file-error">Front ID photo is required</mat-error>
+        }
+      </div>
+
+      <!-- ID Photo Back Upload -->
+      <div class="image-upload-section">
+        <label class="upload-label">ID Photo (Back) *</label>
+        <div class="upload-container">
+          @if (!backImagePreview) {
+            <button type="button" mat-stroked-button color="primary" (click)="backFileInput.click()">
+              <mat-icon>cloud_upload</mat-icon>
+              Choose Back Image
+            </button>
+            <input #backFileInput type="file" accept="image/*" hidden (change)="onBackImageSelected($event)">
+          }
+          @if (backImagePreview) {
+            <div class="image-preview">
+              <img [src]="backImagePreview" alt="Back ID Preview">
+              <button type="button" mat-icon-button color="warn" (click)="removeBackImage()" class="remove-btn">
+                <mat-icon>close</mat-icon>
+              </button>
+            </div>
+          }
+        </div>
+        @if (customerForm.get('id_photo_back')?.hasError('required') && customerForm.get('id_photo_back')?.touched) {
+          <mat-error class="file-error">Back ID photo is required</mat-error>
+        }
+      </div>
+
+    </form>
+  </mat-dialog-content>
+  <mat-dialog-actions align="end">
+    <button mat-button mat-dialog-close>Cancel</button>
+    <button mat-raised-button color="primary" (click)="addCustomer()" [disabled]="customerForm.invalid || loadAdding">
+      @if (loadAdding) {
+        <mat-spinner diameter="20"></mat-spinner>
+      }
+      @if (!loadAdding) {
+        <span>Add Customer</span>
+      }
+    </button>
+  </mat-dialog-actions>
+</ng-template>
+
+<!-- Update Customer Dialog Template -->
+<ng-template #updateDialog>
+  <h2 mat-dialog-title>Update Customer</h2>
+  <mat-dialog-content>
+    <form [formGroup]="updateCustomerForm" class="customer-form">
+
+      <mat-form-field appearance="outline">
+        <mat-label>First Name</mat-label>
+        <input matInput formControlName="first_name" placeholder="Enter first name">
+        @if (updateCustomerForm.get('first_name')?.hasError('required')) {
+          <mat-error>First name is required</mat-error>
+        }
+        @if (updateCustomerForm.get('first_name')?.hasError('minlength')) {
+          <mat-error>First name must be at least 2 characters</mat-error>
+        }
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>Last Name</mat-label>
+        <input matInput formControlName="last_name" placeholder="Enter last name">
+        @if (updateCustomerForm.get('last_name')?.hasError('required')) {
+          <mat-error>Last name is required</mat-error>
+        }
+        @if (updateCustomerForm.get('last_name')?.hasError('minlength')) {
+          <mat-error>Last name must be at least 2 characters</mat-error>
+        }
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>Phone Number</mat-label>
+        <input matInput formControlName="phone_number" placeholder="e.g., 0712345678">
+        @if (updateCustomerForm.get('phone_number')?.hasError('required')) {
+          <mat-error>Phone number is required</mat-error>
+        }
+        @if (updateCustomerForm.get('phone_number')?.hasError('pattern')) {
+          <mat-error>Phone number must be 10-15 digits</mat-error>
+        }
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>Email</mat-label>
+        <input matInput type="email" formControlName="email" placeholder="customer@example.com">
+        @if (updateCustomerForm.get('email')?.hasError('required')) {
+          <mat-error>Email is required</mat-error>
+        }
+        @if (updateCustomerForm.get('email')?.hasError('email')) {
+          <mat-error>Invalid email format</mat-error>
+        }
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>ID Number</mat-label>
+        <input matInput formControlName="id_number" placeholder="Enter ID/Passport number">
+        @if (updateCustomerForm.get('id_number')?.hasError('required')) {
+          <mat-error>ID number is required</mat-error>
+        }
+        @if (updateCustomerForm.get('id_number')?.hasError('minlength')) {
+          <mat-error>ID number must be at least 5 characters</mat-error>
+        }
+      </mat-form-field>
+
+      <!-- ID Photo Front Upload (Optional for update) -->
+      <div class="image-upload-section">
+        <label class="upload-label">ID Photo (Front) - Optional</label>
+        
+        <!-- Show existing image if available -->
+        @if (selectedCustomer && selectedCustomer.id_photo_front && !updateFrontImagePreview) {
+          <div class="existing-image">
+            <p class="existing-label">Current Image:</p>
+            <img [src]="apiUrl+selectedCustomer.id_photo_front" alt="Current Front ID" class="current-image">
+          </div>
+        }
+        
+        <div class="upload-container">
+          @if (!updateFrontImagePreview) {
+            <button type="button" mat-stroked-button color="primary" (click)="updateFrontFileInput.click()">
+              <mat-icon>cloud_upload</mat-icon>
+              {{ selectedCustomer &&apiUrl+selectedCustomer.id_photo_front ? 'Replace Front Image' : 'Upload Front Image' }}
+            </button>
+            <input #updateFrontFileInput type="file" accept="image/*" hidden (change)="onUpdateFrontImageSelected($event)">
+          }
+          @if (updateFrontImagePreview) {
+            <div class="image-preview">
+              <p class="preview-label">New Image:</p>
+              <img [src]="updateFrontImagePreview" alt="Front ID Preview">
+              <button type="button" mat-icon-button color="warn" (click)="removeUpdateFrontImage()" class="remove-btn">
+                <mat-icon>close</mat-icon>
+              </button>
+            </div>
+          }
+        </div>
+        <small class="hint-text">Leave empty to keep existing image</small>
+      </div>
+
+      <!-- ID Photo Back Upload (Optional for update) -->
+      <div class="image-upload-section">
+        <label class="upload-label">ID Photo (Back) - Optional</label>
+        
+        <!-- Show existing image if available -->
+        @if (selectedCustomer && selectedCustomer.id_photo_back && !updateBackImagePreview) {
+          <div class="existing-image">
+            <p class="existing-label">Current Image:</p>
+            <img [src]="apiUrl+selectedCustomer.id_photo_back" alt="Current Back ID" class="current-image">
+          </div>
+        }
+        
+        <div class="upload-container">
+          @if (!updateBackImagePreview) {
+            <button type="button" mat-stroked-button color="primary" (click)="updateBackFileInput.click()">
+              <mat-icon>cloud_upload</mat-icon>
+              {{ selectedCustomer && apiUrl+selectedCustomer.id_photo_back ? 'Replace Back Image' : 'Upload Back Image' }}
+            </button>
+            <input #updateBackFileInput type="file" accept="image/*" hidden (change)="onUpdateBackImageSelected($event)">
+          }
+          @if (updateBackImagePreview) {
+            <div class="image-preview">
+              <p class="preview-label">New Image:</p>
+              <img [src]="updateBackImagePreview" alt="Back ID Preview">
+              <button type="button" mat-icon-button color="warn" (click)="removeUpdateBackImage()" class="remove-btn">
+                <mat-icon>close</mat-icon>
+              </button>
+            </div>
+          }
+        </div>
+        <small class="hint-text">Leave empty to keep existing image</small>
+      </div>
+
+    </form>
+  </mat-dialog-content>
+  <mat-dialog-actions align="end">
+    <button mat-button mat-dialog-close>Cancel</button>
+    <button mat-raised-button color="primary" (click)="updateCustomer()" [disabled]="updateCustomerForm.invalid || loadUpdating">
+      @if (loadUpdating) {
+        <mat-spinner diameter="20"></mat-spinner>
+      }
+      @if (!loadUpdating) {
+        <span>Update Customer</span>
+      }
+    </button>
+  </mat-dialog-actions>
+</ng-template>
+
+<!-- View Customer Dialog Template -->
+<ng-template #viewDialog>
+  <h2 mat-dialog-title>Customer Details</h2>
+  <mat-dialog-content>
+    @if (selectedCustomer) {
+      <div class="customer-details">
+        <div class="detail-row">
+          <strong>First Name:</strong>
+          <span>{{ selectedCustomer.first_name }}</span>
+        </div>
+        <div class="detail-row">
+          <strong>Last Name:</strong>
+          <span>{{ selectedCustomer.last_name }}</span>
+        </div>
+        <div class="detail-row">
+          <strong>Phone Number:</strong>
+          <span>{{ selectedCustomer.phone_number }}</span>
+        </div>
+        <div class="detail-row">
+          <strong>Email:</strong>
+          <span>{{ selectedCustomer.email }}</span>
+        </div>
+        <div class="detail-row">
+          <strong>ID Number:</strong>
+          <span>{{ selectedCustomer.id_number }}</span>
+        </div>
+        
+        <!-- Display ID Photos -->
+        @if (selectedCustomer.id_photo_front || selectedCustomer.id_photo_back) {
+          <div class="id-photos-section">
+            <h3>ID Photos</h3>
+            <div class="id-photos-grid">
+              @if (selectedCustomer.id_photo_front) {
+                <div class="id-photo-item">
+                  <p class="photo-label">Front</p>
+                  <img [src]="apiUrl+selectedCustomer.id_photo_front" alt="ID Front" class="id-photo-view">
+                </div>
+              }
+              @if (selectedCustomer.id_photo_back) {
+                <div class="id-photo-item">
+                  <p class="photo-label">Back</p>
+                  <img [src]="apiUrl+selectedCustomer.id_photo_back" alt="ID Back" class="id-photo-view">
+                </div>
+              }
+            </div>
+          </div>
+        }
+      </div>
+    }
+  </mat-dialog-content>
+  <mat-dialog-actions align="end">
+    <button mat-button mat-dialog-close>Close</button>
+  </mat-dialog-actions>
+</ng-template>
+
+<!-- Delete Confirmation Dialog Template -->
+<ng-template #deleteDialog>
+  <h2 mat-dialog-title>Confirm Delete</h2>
+  <mat-dialog-content>
+    <p>Are you sure you want to delete this customer? This action cannot be undone.</p>
+  </mat-dialog-content>
+  <mat-dialog-actions align="end">
+    <button mat-button mat-dialog-close>Cancel</button>
+    <button mat-raised-button color="warn" (click)="confirmDelete()" [disabled]="loadDeleting">
+      @if (loadDeleting) {
+        <mat-spinner diameter="20"></mat-spinner>
+      }
+      @if (!loadDeleting) {
+        <span>Delete</span>
+      }
+    </button>
+  </mat-dialog-actions>
+</ng-template>
