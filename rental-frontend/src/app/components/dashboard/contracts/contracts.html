@@ -1,1 +1,365 @@
-<p>contracts works!</p>
+@if (!isLoading && !error) {
+  <div class="contracts-container">
+    <div class="header">
+      <h2>Contracts</h2>
+      <button mat-raised-button color="primary" (click)="openAddDialogForm()">Add Contract</button>
+      <mat-form-field appearance="outline" class="search-field" >
+        <input matInput placeholder="Search" [(ngModel)]="searchText" (keyup)="applyFilter()" />
+      </mat-form-field>
+    </div>
+
+    <table mat-table [dataSource]="dataSource" class="mat-elevation-z8">
+
+      <!-- Contract Number -->
+      <ng-container matColumnDef="contract_number">
+        <th mat-header-cell *matHeaderCellDef>Contract #</th>
+        <td mat-cell *matCellDef="let element">{{ element.contract_number || '—' }}</td>
+      </ng-container>
+
+      <!-- Customer -->
+      <ng-container matColumnDef="customer_name">
+        <th mat-header-cell *matHeaderCellDef>Customer</th>
+        <td mat-cell *matCellDef="let element">{{ element.customer_name }}</td>
+      </ng-container>
+
+      <!-- Phone -->
+      <ng-container matColumnDef="customer_phone">
+        <th mat-header-cell *matHeaderCellDef>Phone</th>
+        <td mat-cell *matCellDef="let element">{{ element.customer_phone }}</td>
+      </ng-container>
+
+      <!-- Unit -->
+      <ng-container matColumnDef="unit_info">
+        <th mat-header-cell *matHeaderCellDef>Unit</th>
+        <td mat-cell *matCellDef="let element">{{ element.unit_info }}</td>
+      </ng-container>
+
+      <!-- Start Date -->
+      <ng-container matColumnDef="start_date">
+        <th mat-header-cell *matHeaderCellDef>Start</th>
+        <td mat-cell *matCellDef="let element">{{ element.start_date }}</td>
+      </ng-container>
+
+      <!-- End Date -->
+      <ng-container matColumnDef="end_date">
+        <th mat-header-cell *matHeaderCellDef>End</th>
+        <td mat-cell *matCellDef="let element">{{ element.end_date }}</td>
+      </ng-container>
+
+      <!-- Rent -->
+      <ng-container matColumnDef="rent_amount">
+        <th mat-header-cell *matHeaderCellDef>Rent</th>
+        <td mat-cell *matCellDef="let element">{{ element.rent_amount }}</td>
+      </ng-container>
+
+      <!-- Deposit -->
+      <ng-container matColumnDef="deposit_amount">
+        <th mat-header-cell *matHeaderCellDef>Deposit</th>
+        <td mat-cell *matCellDef="let element">{{ element.deposit_amount }}</td>
+      </ng-container>
+
+      <!-- Frequency -->
+      <ng-container matColumnDef="payment_frequency">
+        <th mat-header-cell *matHeaderCellDef>Frequency</th>
+        <td mat-cell *matCellDef="let element">{{ element.payment_frequency }}</td>
+      </ng-container>
+
+      <!-- Status -->
+        <ng-container matColumnDef="is_active">
+        <th mat-header-cell *matHeaderCellDef>Status</th>
+        <td
+            mat-cell
+            *matCellDef="let element"
+            [ngClass]="element.is_active ? 'active-row' : 'inactive-row'"
+        >
+            <span class="status-badge" [ngClass]="element.is_active ? 'active' : 'inactive'">
+            {{ element.is_active ? 'Active' : 'Inactive' }}
+            </span>
+        </td>
+        </ng-container>
+
+      <!-- Actions -->
+      <ng-container matColumnDef="actions">
+        <th mat-header-cell *matHeaderCellDef>Actions</th>
+        <td mat-cell *matCellDef="let element">
+          <button mat-icon-button color="primary" (click)="openEditDialog(element)" matTooltip="Edit">
+            <mat-icon>edit</mat-icon>
+          </button>
+          <button mat-icon-button color="accent" (click)="openCancelDialog(element)" matTooltip="Cancel Contract" [disabled]="!element.is_active">
+            <mat-icon>block</mat-icon>
+          </button>
+          <button mat-icon-button color="warn" (click)="openDeleteDialog(element)" matTooltip="Delete">
+            <mat-icon>delete</mat-icon>
+          </button>
+        </td>
+      </ng-container>
+
+      <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+      <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
+    </table>
+
+    <mat-paginator [pageSizeOptions]="[5, 10, 25]" showFirstLastButtons></mat-paginator>
+  </div>
+} @else {
+  @if (isLoading) {
+    <div class="loading-container">
+      <mat-spinner diameter="60"></mat-spinner>
+      <p>Loading contracts...</p>
+    </div>
+  }
+  @if (error) {
+    <div class="error-container">
+      <mat-icon color="warn">error</mat-icon>
+      <p>{{ error }}</p>
+    </div>
+  }
+}
+
+<!-- Add Contract Dialog -->
+<ng-template #openAddDialog>
+  <h2 mat-dialog-title>Add Contract</h2>
+  <mat-dialog-content>
+    <form [formGroup]="contractForm">
+      <mat-form-field appearance="outline">
+        <mat-label>Customer</mat-label>
+        <mat-select formControlName="customer">
+          @for (customer of customers; track customer.id) {
+            <mat-option [value]="customer.id">
+              {{ customer.first_name }} {{ customer.last_name }}
+            </mat-option>
+          }
+        </mat-select>
+        @if (contractForm.get('customer')?.hasError('required')) {
+          <mat-error>Customer is required</mat-error>
+        }
+      </mat-form-field>
+
+
+      <mat-form-field appearance="outline">
+      <mat-label>Property</mat-label>
+      <mat-select formControlName="property" (selectionChange)="onPropertyChange($event.value)">
+        @for (prop of properties; track prop.id) {
+          <mat-option [value]="prop.id">
+            {{ prop.property_name }}
+          </mat-option>
+        }
+      </mat-select>
+      @if (contractForm.get('property')?.hasError('required')) {
+        <mat-error>Property is required</mat-error>
+      }
+    </mat-form-field>
+
+    <mat-form-field appearance="outline">
+      <mat-label>Unit</mat-label>
+      <mat-select formControlName="unit">
+        @for (unit of filteredUnits; track unit.id) {
+          <mat-option [value]="unit.id">
+            {{ unit.unit_number }}
+          </mat-option>
+        }
+      </mat-select>
+      @if (contractForm.get('unit')?.hasError('required')) {
+        <mat-error>Unit is required</mat-error>
+      }
+    </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>Start Date</mat-label>
+        <input matInput type="date" formControlName="start_date" />
+        @if (contractForm.get('start_date')?.hasError('required')) {
+          <mat-error>Start date is required</mat-error>
+        }
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>End Date</mat-label>
+        <input matInput type="date" formControlName="end_date" />
+        @if (contractForm.get('end_date')?.hasError('required')) {
+          <mat-error>End date is required</mat-error>
+        }
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>Rent Amount</mat-label>
+        <input matInput type="number" formControlName="rent_amount" />
+        @if (contractForm.get('rent_amount')?.hasError('required')) {
+          <mat-error>Rent amount is required</mat-error>
+        }
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>Deposit Amount</mat-label>
+        <input matInput type="number" formControlName="deposit_amount" />
+        @if (contractForm.get('deposit_amount')?.hasError('required')) {
+          <mat-error>Deposit amount is required</mat-error>
+        }
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>Payment Frequency</mat-label>
+        <mat-select formControlName="payment_frequency">
+          <mat-option value="monthly">Monthly</mat-option>
+          <mat-option value="quarterly">Quarterly</mat-option>
+          <mat-option value="yearly">Yearly</mat-option>
+        </mat-select>
+        @if (contractForm.get('payment_frequency')?.hasError('required')) {
+          <mat-error>Payment frequency is required</mat-error>
+        }
+      </mat-form-field>
+    </form>
+  </mat-dialog-content>
+
+  <mat-dialog-actions align="end">
+    <button mat-stroked-button mat-dialog-close [disabled]="loadAdding">Cancel</button>
+    <button mat-flat-button color="primary" (click)="addContract()" [disabled]="loadAdding">
+      @if (loadAdding) {
+        <mat-spinner diameter="20" style="display: inline-block; margin-right: 8px;"></mat-spinner>
+      }
+      {{ loadAdding ? 'Saving...' : 'Save' }}
+    </button>
+  </mat-dialog-actions>
+</ng-template>
+
+<!-- Edit Contract Dialog -->
+<ng-template #editDialog>
+  <h2 mat-dialog-title>Edit Contract</h2>
+  <mat-dialog-content>
+    <form [formGroup]="updateContractForm">
+      <mat-form-field appearance="outline">
+        <mat-label>Customer</mat-label>
+        <mat-select formControlName="customer">
+          @for (customer of customers; track customer.id) {
+            <mat-option [value]="customer.id">
+              {{ customer.first_name }} {{ customer.last_name }}
+            </mat-option>
+          }
+        </mat-select>
+        @if (contractForm.get('customer')?.hasError('required')) {
+          <mat-error>Customer is required</mat-error>
+        }
+      </mat-form-field>
+
+
+
+      <mat-form-field appearance="outline">
+        <mat-label>Unit</mat-label>
+        <mat-select formControlName="unit">
+          @for (unit of units; track unit.id) {
+            <mat-option [value]="unit.id">
+              {{ unit.unit_number }}
+            </mat-option>
+          }
+        </mat-select>
+        @if (contractForm.get('unit')?.hasError('required')) {
+          <mat-error>Unit is required</mat-error>
+        }
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>Start Date</mat-label>
+        <input matInput type="date" formControlName="start_date" />
+        @if (contractForm.get('start_date')?.hasError('required')) {
+          <mat-error>Start date is required</mat-error>
+        }
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>End Date</mat-label>
+        <input matInput type="date" formControlName="end_date" />
+        @if (contractForm.get('end_date')?.hasError('required')) {
+          <mat-error>End date is required</mat-error>
+        }
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>Rent Amount</mat-label>
+        <input matInput type="number" formControlName="rent_amount" />
+        @if (contractForm.get('rent_amount')?.hasError('required')) {
+          <mat-error>Rent amount is required</mat-error>
+        }
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>Deposit Amount</mat-label>
+        <input matInput type="number" formControlName="deposit_amount" />
+        @if (contractForm.get('deposit_amount')?.hasError('required')) {
+          <mat-error>Deposit amount is required</mat-error>
+        }
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>Payment Frequency</mat-label>
+        <mat-select formControlName="payment_frequency">
+          <mat-option value="monthly">Monthly</mat-option>
+          <mat-option value="quarterly">Quarterly</mat-option>
+          <mat-option value="yearly">Yearly</mat-option>
+        </mat-select>
+        @if (contractForm.get('payment_frequency')?.hasError('required')) {
+          <mat-error>Payment frequency is required</mat-error>
+        }
+      </mat-form-field>
+    </form>
+  </mat-dialog-content>
+
+  <mat-dialog-actions align="end">
+    <button mat-stroked-button mat-dialog-close [disabled]="loadUpdating">Cancel</button>
+    <button mat-flat-button color="primary" (click)="updateContract()" [disabled]="loadUpdating">
+      @if (loadUpdating) {
+        <mat-spinner diameter="20" style="display: inline-block; margin-right: 8px;"></mat-spinner>
+      }
+      {{ loadUpdating ? 'Updating...' : 'Update' }}
+    </button>
+  </mat-dialog-actions>
+</ng-template>
+
+<!-- Delete Dialog -->
+<ng-template #deleteDialog>
+  <h2 mat-dialog-title>Delete Contract</h2>
+  <mat-dialog-content>
+    <p>Are you sure you want to delete this contract?</p>
+    
+    <!-- Loader -->
+    @if (loadDeleting) {
+      <div class="loader-container">
+        <mat-spinner diameter="40"></mat-spinner>
+        <p>Deleting...</p>
+      </div>
+    }
+  </mat-dialog-content>
+  
+  <mat-dialog-actions align="end">
+    <button mat-stroked-button mat-dialog-close [disabled]="loadDeleting">Cancel</button>
+    <button mat-flat-button color="warn" (click)="confirmDelete()" [disabled]="loadDeleting">
+      @if (loadDeleting) {
+        <mat-spinner diameter="20" style="display: inline-block; margin-right: 8px;"></mat-spinner>
+      }
+      {{ loadDeleting ? 'Deleting...' : 'Delete' }}
+    </button>
+  </mat-dialog-actions>
+</ng-template>
+
+<!-- Cancel Contract Dialog -->
+<ng-template #cancelDialog>
+  <h2 mat-dialog-title>Cancel Contract</h2>
+  <mat-dialog-content>
+    <p>Are you sure you want to cancel this contract? This action will mark the contract as inactive.</p>
+    
+    <!-- Loader -->
+    @if (loadCancelling) {
+      <div class="loader-container">
+        <mat-spinner diameter="40"></mat-spinner>
+        <p>Cancelling contract...</p>
+      </div>
+    }
+  </mat-dialog-content>
+  
+  <mat-dialog-actions align="end">
+    <button mat-stroked-button mat-dialog-close [disabled]="loadCancelling">No, Keep It</button>
+    <button mat-flat-button color="accent" (click)="confirmCancel()" [disabled]="loadCancelling">
+      @if (loadCancelling) {
+        <mat-spinner diameter="20" style="display: inline-block; margin-right: 8px;"></mat-spinner>
+      }
+      {{ loadCancelling ? 'Cancelling...' : 'Yes, Cancel Contract' }}
+    </button>
+  </mat-dialog-actions>
+</ng-template>

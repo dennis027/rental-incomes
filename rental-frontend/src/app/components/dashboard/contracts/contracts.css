@@ -1,0 +1,443 @@
+/* ========== Container & Layout ========== */
+.contracts-container {
+  padding: 24px;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+/* ========== Header Section ========== */
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.header h2 {
+  margin: 0;
+  font-size: 28px;
+  font-weight: 500;
+  color: #333;
+}
+
+.header mat-form-field {
+  min-width: 250px;
+  margin-left: auto;
+}
+
+/* ========== Table Styling ========== */
+table {
+  width: 100%;
+  background: white;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.mat-elevation-z8 {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+th.mat-header-cell {
+  font-weight: 600;
+  font-size: 14px;
+  color: #424242;
+  background-color: #f5f5f5;
+  padding: 16px 12px;
+}
+
+td.mat-cell {
+  padding: 16px 12px;
+  font-size: 14px;
+  color: #616161;
+}
+
+tr.mat-row:hover {
+  background-color: #f9f9f9;
+  transition: background-color 0.2s ease;
+}
+
+/* ========== Status Badge ========== */
+.mat-cell span {
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 500;
+  display: inline-block;
+}
+
+.mat-cell span.active {
+  background-color: #e8f5e9;
+  color: #2e7d32;
+}
+
+.mat-cell span:not(.active) {
+  background-color: #ffebee;
+  color: #c62828;
+}
+
+/* ========== Action Buttons ========== */
+.mat-cell button.mat-icon-button {
+  width: 36px;
+  height: 36px;
+  line-height: 36px;
+  margin: 0 2px;
+  transition: transform 0.2s ease;
+}
+
+.mat-cell button.mat-icon-button:hover {
+  transform: scale(1.1);
+}
+
+/* ========== Loading & Error States ========== */
+.loading-container,
+.error-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 80px 20px;
+  gap: 16px;
+  min-height: 400px;
+}
+
+.loading-container p,
+.error-container p {
+  margin: 0;
+  font-size: 16px;
+  color: #666;
+}
+
+.error-container mat-icon {
+  font-size: 48px;
+  width: 48px;
+  height: 48px;
+  color: #f44336;
+}
+
+/* ========== Dialog Styling ========== */
+::ng-deep .mat-mdc-dialog-container {
+  border-radius: 12px !important;
+}
+
+::ng-deep .mat-mdc-dialog-title {
+  font-size: 24px !important;
+  font-weight: 500 !important;
+  padding: 24px 24px 16px !important;
+  margin: 0 !important;
+}
+
+::ng-deep .mat-mdc-dialog-content {
+  padding: 0 24px !important;
+  max-height: 70vh !important;
+  overflow-y: auto !important;
+}
+
+::ng-deep .mat-mdc-dialog-actions {
+  padding: 16px 24px 24px !important;
+  gap: 12px !important;
+}
+
+/* ========== Form Fields in Dialog ========== */
+::ng-deep .mat-mdc-dialog-content form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 16px 0;
+}
+
+::ng-deep .mat-mdc-dialog-content mat-form-field {
+  width: 100%;
+}
+
+::ng-deep .mat-mdc-form-field {
+  font-size: 14px;
+}
+
+/* ========== Loader in Dialog ========== */
+.loader-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  gap: 12px;
+  background-color: #f5f5f5;
+  border-radius: 8px;
+  margin-top: 16px;
+}
+
+.loader-container p {
+  margin: 0;
+  font-size: 14px;
+  color: #666;
+}
+
+/* ========== Paginator ========== */
+::ng-deep .mat-mdc-paginator {
+  background: white;
+  border-radius: 0 0 8px 8px;
+  padding: 8px 16px;
+}
+
+/* ========== Button Spinner ========== */
+::ng-deep button mat-spinner {
+  display: inline-block;
+  margin-right: 8px;
+  vertical-align: middle;
+}
+
+::ng-deep button mat-spinner circle {
+  stroke: currentColor;
+}
+
+/* ========== Snackbar Styling ========== */
+::ng-deep .success-snackbar {
+  background-color: #4caf50 !important;
+  color: white !important;
+}
+
+::ng-deep .error-snackbar {
+  background-color: #f44336 !important;
+  color: white !important;
+}
+
+::ng-deep .mat-mdc-snack-bar-container {
+  border-radius: 8px !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
+}
+
+/* ========== Responsive Design ========== */
+@media (max-width: 768px) {
+  .contracts-container {
+    padding: 16px;
+  }
+
+  .header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .header mat-form-field {
+    width: 100%;
+    margin-left: 0;
+  }
+
+  .header h2 {
+    font-size: 24px;
+  }
+
+  table {
+    font-size: 12px;
+  }
+
+  th.mat-header-cell,
+  td.mat-cell {
+    padding: 12px 8px;
+  }
+
+  ::ng-deep .mat-mdc-dialog-container {
+    width: 95vw !important;
+    max-width: 95vw !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .header h2 {
+    font-size: 20px;
+  }
+
+  .mat-cell button.mat-icon-button {
+    width: 32px;
+    height: 32px;
+  }
+
+  ::ng-deep .mat-mdc-dialog-title {
+    font-size: 20px !important;
+  }
+}
+
+/* ========== Scrollbar Styling ========== */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #888;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #555;
+}
+
+/* ========== Table Empty State ========== */
+.mat-row:empty::after {
+  content: 'No contracts found';
+  display: block;
+  text-align: center;
+  padding: 40px;
+  color: #999;
+  font-size: 14px;
+}
+
+/* ========== Animation ========== */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.contracts-container {
+  animation: fadeIn 0.3s ease-out;
+}
+
+/* ========== Loading Spinner Animation ========== */
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* ========== Custom Loader (Alternative) ========== */
+.custom-spinner {
+  border: 4px solid #f3f3f3;
+  border-top: 4px solid #3f51b5;
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  animation: spin 1s linear infinite;
+}
+
+/* ========== Dialog Overlay ========== */
+.loader-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(255, 255, 255, 0.95);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  border-radius: 8px;
+}
+
+/* ========== Disabled State ========== */
+button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* ========== Focus States ========== */
+button:focus-visible,
+input:focus-visible,
+select:focus-visible {
+  outline: 2px solid #3f51b5;
+  outline-offset: 2px;
+}
+
+/* ========== Material Icon Sizing ========== */
+.mat-icon {
+  width: 24px;
+  height: 24px;
+  font-size: 24px;
+}
+
+/* ========== Table Row Transitions ========== */
+.mat-row {
+  transition: all 0.2s ease;
+}
+
+.mat-row:hover .mat-cell {
+  color: #333;
+}
+
+/* ========== Form Validation ========== */
+::ng-deep .mat-mdc-form-field-error {
+  font-size: 12px;
+  margin-top: 4px;
+}
+
+::ng-deep .mat-mdc-form-field.mat-form-field-invalid .mdc-notched-outline__leading,
+::ng-deep .mat-mdc-form-field.mat-form-field-invalid .mdc-notched-outline__notch,
+::ng-deep .mat-mdc-form-field.mat-form-field-invalid .mdc-notched-outline__trailing {
+  border-color: #f44336 !important;
+}
+
+
+/* ========== Spacing Utilities ========== */
+.mt-16 {
+  margin-top: 16px;
+}
+
+.mb-16 {
+  margin-bottom: 16px;
+}
+
+.p-16 {
+  padding: 16px;
+}
+
+/* ========== Print Styles ========== */
+@media print {
+  .header button,
+  .header mat-form-field,
+  .mat-paginator,
+  .mat-cell button {
+    display: none !important;
+  }
+
+  table {
+    box-shadow: none !important;
+  }
+}
+
+input.mat-mdc-input-element {
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+
+/* Row background colors */
+.active-row {
+  background-color: #e8f5e9; /* light green */
+}
+
+.inactive-row {
+  background-color: #ffebee; /* light red */
+}
+
+/* Status badge styling */
+.status-badge {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.status-badge.active {
+  background-color: #c8e6c9; /* pale green */
+  color: #2e7d32; /* dark green */
+}
+
+.status-badge.inactive {
+  background-color: #ffcdd2; /* pale red */
+  color: #c62828; /* dark red */
+}
