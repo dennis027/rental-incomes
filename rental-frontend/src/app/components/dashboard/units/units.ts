@@ -90,7 +90,7 @@ export class Units implements OnInit, AfterViewInit {
       rent_amount: ['', [Validators.required, Validators.min(0)]],
       water_meter_reading: ['', [Validators.required, Validators.min(0)]],
       electricity_meter_reading: ['', [Validators.required, Validators.min(0)]],
-      status: ['vacant', Validators.required],
+      // status: ['vacant', Validators.required],
     });
   }
 
@@ -109,7 +109,7 @@ export class Units implements OnInit, AfterViewInit {
       rent_amount: ['', [Validators.required, Validators.min(0)]],
       water_meter_reading: ['', [Validators.required, Validators.min(0)]],
       electricity_meter_reading: ['', [Validators.required, Validators.min(0)]],
-      status: ['vacant', Validators.required],
+      // status: ['vacant', Validators.required],
     });
   }
 
@@ -214,6 +214,7 @@ getProperties() {
   }
 
 addUnit() {
+  
   if (this.unitForm.invalid) {
     this.unitForm.markAllAsTouched();
     return;
@@ -222,7 +223,15 @@ addUnit() {
   this.loadAdding = true;
   this.cdr.detectChanges(); // ✅ inform Angular before HTTP call
 
-  const newUnit = this.unitForm.value;
+  const newUnit ={
+    property: this.selectedPropertyId,
+    unit_number: this.unitForm.value.unit_number,
+    unit_type: this.unitForm.value.unit_type,
+    rent_amount: this.unitForm.value.rent_amount,
+    water_meter_reading: this.unitForm.value.water_meter_reading,
+    electricity_meter_reading: this.unitForm.value.electricity_meter_reading,
+    // status: 'vacant'
+  }
 
   this.UnitsService.addUnit(newUnit).subscribe({
     next: (res) => {
@@ -235,7 +244,7 @@ addUnit() {
         rent_amount: '',
         water_meter_reading: '',
         electricity_meter_reading: '',
-        status: 'vacant'
+        // status: 'vacant'
       }
       this.unitForm.reset(resetValue);
       this.dialog.closeAll();

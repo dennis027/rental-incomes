@@ -82,6 +82,9 @@
       <ng-container matColumnDef="actions">
         <th mat-header-cell *matHeaderCellDef>Actions</th>
         <td mat-cell *matCellDef="let element">
+          <button mat-icon-button color="primary" (click)="printContract(element)" matTooltip="Print Contract">
+            <mat-icon>print</mat-icon>
+          </button>
           <button mat-icon-button color="primary" (click)="openEditDialog(element)" matTooltip="Edit">
             <mat-icon>edit</mat-icon>
           </button>
@@ -140,7 +143,7 @@
       <mat-select formControlName="property" (selectionChange)="onPropertyChange($event.value)">
         @for (prop of properties; track prop.id) {
           <mat-option [value]="prop.id">
-            {{ prop.property_name }}
+            {{ prop.name }}
           </mat-option>
         }
       </mat-select>
@@ -151,7 +154,7 @@
 
     <mat-form-field appearance="outline">
       <mat-label>Unit</mat-label>
-      <mat-select formControlName="unit">
+      <mat-select formControlName="unit" >
         @for (unit of filteredUnits; track unit.id) {
           <mat-option [value]="unit.id">
             {{ unit.unit_number }}
@@ -162,23 +165,33 @@
         <mat-error>Unit is required</mat-error>
       }
     </mat-form-field>
+    <mat-form-field appearance="outline">
+      <mat-label>Start Date</mat-label>
+      <input
+        matInput
+        formControlName="start_date"
+        [matDatepicker]="pickerStart">
+      <mat-hint>MM/DD/YYYY</mat-hint>
+      <mat-datepicker-toggle matIconSuffix [for]="pickerStart"></mat-datepicker-toggle>
+      <mat-datepicker #pickerStart></mat-datepicker>
+      @if (contractForm.get('start_date')?.hasError('required')) {
+        <mat-error>Start date is required</mat-error>
+      }
+    </mat-form-field>
 
-      <mat-form-field appearance="outline">
-        <mat-label>Start Date</mat-label>
-        <input matInput type="date" formControlName="start_date" />
-        @if (contractForm.get('start_date')?.hasError('required')) {
-          <mat-error>Start date is required</mat-error>
-        }
-      </mat-form-field>
-
-      <mat-form-field appearance="outline">
-        <mat-label>End Date</mat-label>
-        <input matInput type="date" formControlName="end_date" />
-        @if (contractForm.get('end_date')?.hasError('required')) {
-          <mat-error>End date is required</mat-error>
-        }
-      </mat-form-field>
-
+    <mat-form-field appearance="outline">
+      <mat-label>End Date</mat-label>
+      <input
+        matInput
+        formControlName="end_date"
+        [matDatepicker]="pickerEnd">
+      <mat-hint>MM/DD/YYYY</mat-hint>
+      <mat-datepicker-toggle matIconSuffix [for]="pickerEnd"></mat-datepicker-toggle>
+      <mat-datepicker #pickerEnd></mat-datepicker>
+      @if (contractForm.get('end_date')?.hasError('required')) {
+        <mat-error>End date is required</mat-error>
+      }
+    </mat-form-field>
       <mat-form-field appearance="outline">
         <mat-label>Rent Amount</mat-label>
         <input matInput type="number" formControlName="rent_amount" />
