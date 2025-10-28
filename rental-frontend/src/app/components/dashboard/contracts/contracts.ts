@@ -14,7 +14,6 @@ import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { MatDialog } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { Router } from '@angular/router';
-import { environment } from '../../../../environments/environment';
 import { ContractsService } from '../../../services/contract-service';
 import { CustomersService } from '../../../services/customer';
 import { UnitsService } from '../../../services/units';
@@ -45,7 +44,7 @@ export interface ContractObject {
   styleUrl: './contracts.css',
 })
 export class Contracts implements OnInit, AfterViewInit {
-  apiUrl = environment.apiUrl;
+
 
   private snackBar = inject(MatSnackBar);
   private dialog = inject(MatDialog);

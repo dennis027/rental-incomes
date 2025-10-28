@@ -11,6 +11,7 @@ import { Tenants } from './components/dashboard/tenants/tenants';
 import { Contracts } from './components/dashboard/contracts/contracts';
 import { Settings } from './components/dashboard/settings/settings';
 import { Units } from './components/dashboard/units/units';
+import { Expensemaintanace } from './components/dashboard/expensemaintanace/expensemaintanace';
 
 export const routes: Routes = [
   // 🌍 Public pages
@@ -32,6 +33,7 @@ export const routes: Routes = [
       { path: 'contracts', component: Contracts, canActivate: [AuthGuard] },
       { path: 'settings', component: Settings, canActivate: [AuthGuard] },
       { path: 'units', component: Units, canActivate: [AuthGuard] },
+      {path:'expensesmaintain', component:Expensemaintanace, canActivate:[AuthGuard]}
     ],
   },
 

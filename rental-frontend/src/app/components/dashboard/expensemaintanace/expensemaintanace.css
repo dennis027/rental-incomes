@@ -1,0 +1,21 @@
+/* ========== Header Section ========== */
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.header h2 {
+  margin: 0;
+  font-size: 28px;
+  font-weight: 500;
+  color: #333;
+}
+
+.header mat-form-field {
+  min-width: 250px;
+  margin-left: auto;
+}

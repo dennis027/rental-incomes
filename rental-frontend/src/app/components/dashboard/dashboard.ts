@@ -22,6 +22,7 @@ links = [
   { name: 'Receipts', route: '/dashboard/receipts', icon: 'fas fa-receipt' },
   { name: 'Tenants', route: '/dashboard/tenants', icon: 'fas fa-user-friends' },
   { name: 'Contracts', route: '/dashboard/contracts', icon: 'fas fa-file-signature' },
+  {name: 'Expense & Maintenance', route: '/dashboard/expensesmaintain', icon: 'fas fa-tools' },
   { name: 'Settings', route: '/dashboard/settings', icon: 'fas fa-cog' },
 ];
 
