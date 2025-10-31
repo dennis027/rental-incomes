@@ -18,11 +18,11 @@ links = [
   { name: 'Dashboard', route: '/dashboard/home', icon: 'fas fa-chart-pie' },
   { name: 'Properties', route: '/dashboard/properties', icon: 'fas fa-building' },
   { name: 'Units', route: '/dashboard/units', icon: 'fas fa-building' },
-  { name: 'Rental Collections', route: '/dashboard/rental-customers', icon: 'fas fa-money-bill-wave' },
+  { name: 'Rental Customers', route: '/dashboard/rental-customers', icon: 'fas fa-money-bill-wave' },
   { name: 'Receipts', route: '/dashboard/receipts', icon: 'fas fa-receipt' },
-  { name: 'Tenants', route: '/dashboard/tenants', icon: 'fas fa-user-friends' },
   { name: 'Contracts', route: '/dashboard/contracts', icon: 'fas fa-file-signature' },
   {name: 'Expense & Maintenance', route: '/dashboard/expensesmaintain', icon: 'fas fa-tools' },
+  { name: 'Payments', route: '/dashboard/payments', icon: 'fas fa-user-friends' },
   { name: 'Settings', route: '/dashboard/settings', icon: 'fas fa-cog' },
 ];
 

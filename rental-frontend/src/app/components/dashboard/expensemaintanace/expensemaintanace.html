@@ -1,10 +1,17 @@
+    
+    <div class="container">
+      
+
+    
     <div class="header">
       <h2>Maintanance and Expenses</h2>
     </div>
 
 
 
-    <div class="mat-elevation-z8">
+  <h4>Expenses</h4>
+  <div class="mat-elevation-z8">
+    <button matButton (click)="openAAddExpenseDialog()" >Add Expense</button>
   <table mat-table [dataSource]="dataExpenseSource">
 
 
@@ -25,6 +32,20 @@
       <td mat-cell *matCellDef="let element"> {{element.expense_date}} </td>
     </ng-container>
 
+    <ng-container matColumnDef="actions">
+        <th mat-header-cell *matHeaderCellDef>Actions</th>
+        <td mat-cell *matCellDef="let element">
+
+          <button mat-icon-button color="primary" (click)="openUpdateDial();openExpensesDialog(element)" matTooltip="Edit">
+            <mat-icon>edit</mat-icon>
+          </button>
+  
+          <button mat-icon-button color="warn" (click)="openDeleteDialog(element)" matTooltip="Delete">
+            <mat-icon>delete</mat-icon>
+          </button>
+        </td>
+    </ng-container>
+
 
     <tr mat-header-row *matHeaderRowDef="displayedExpensesColumns"></tr>
     <tr mat-row *matRowDef="let row; columns: displayedExpensesColumns;"></tr>
@@ -39,10 +60,12 @@
 
 
 
-<br><br><br>
+<br><br>
 
 
+<h4>Maintanance</h4>
 <div class="mat-elevation-z8">
+    <button matButton (click)="openAddMaintanaceDialog()" >Add Maintanance</button>
   <table mat-table [dataSource]="dataMaintanceSource">
 
  
@@ -69,6 +92,20 @@
       <td mat-cell *matCellDef="let element"> {{element.reported_date | date:'yyyy-MM-dd'}} </td>
     </ng-container>
 
+    <ng-container matColumnDef="actions">
+        <th mat-header-cell *matHeaderCellDef>Actions</th>
+        <td mat-cell *matCellDef="let element">
+
+          <button mat-icon-button color="primary" (click)="openMaintanaceDialog(element)" matTooltip="Edit">
+            <mat-icon>edit</mat-icon>
+          </button>
+  
+          <button mat-icon-button color="warn" (click)="openDeleteMainanceDialog(element)" matTooltip="Delete">
+            <mat-icon>delete</mat-icon>
+          </button>
+        </td>
+    </ng-container>
+
     <tr mat-header-row *matHeaderRowDef="displayedMaintanceColumns"></tr>
     <tr mat-row *matRowDef="let row; columns: displayedMaintanceColumns;"></tr>
   </table>
@@ -78,3 +115,348 @@
                  aria-label="Select page of periodic elements">
   </mat-paginator>
 </div>
+
+</div>
+
+
+<ng-template #addExpeDial> <br>
+  <div class="container-fluid dialog-header">
+    <h2 style="display: inline;" mat-dialog-title>Add Expense</h2>
+    <button style="display: inline;float: right;" mat-icon-button mat-dialog-close aria-label="Close dialog">
+      <mat-icon>close</mat-icon>
+    </button>
+  </div>
+  <div class="expense-form-container">
+   <br>
+
+  @if (expenseForm) {
+    <form [formGroup]="expenseForm" >
+
+      <div class = "container-fluid mb-3">
+        <div class="row">
+
+            <div class="col-md-4">
+              <mat-form-field appearance="outline" class="full-width">
+                <mat-label>Property</mat-label>
+                <mat-select formControlName="property" required>
+                  <mat-option value="">-- Select Property --</mat-option>
+                  <mat-option *ngFor="let prop of properties" [value]="prop.id">
+                    {{ prop.name || 'Property #' + prop.id }}
+                  </mat-option>
+                </mat-select>
+
+                @if (expenseForm.get('property')?.hasError('required')) {
+                  <mat-error>Property is required</mat-error>
+                }
+              </mat-form-field>
+            </div>
+
+            <div class="col-md-4">
+                <mat-form-field appearance="outline" class="full-width">
+                  <mat-label>Description</mat-label>
+                  <input matInput placeholder="Enter description" formControlName="description">
+
+                  @if (expenseForm.get('description')?.hasError('required')) {
+                    <mat-error>Description is required</mat-error>
+                  } @else if (expenseForm.get('description')?.hasError('minlength')) {
+                    <mat-error>Description must be at least 3 characters</mat-error>
+                  }
+                </mat-form-field>
+            </div>
+
+            <div class="col-md-4">
+              <mat-form-field appearance="outline" class="full-width">
+                <mat-label>Amount (KES)</mat-label>
+                <input matInput type="number" placeholder="0.00" formControlName="amount">
+
+                @if (expenseForm.get('amount')?.hasError('required')) {
+                  <mat-error>Amount is required</mat-error>
+                } @else if (expenseForm.get('amount')?.hasError('pattern')) {
+                  <mat-error>Enter a valid number</mat-error>
+                }
+              </mat-form-field>
+            </div>
+
+        </div>
+          <div class="row">
+
+            <div class="col">
+
+            </div>
+
+            <div class="col">
+              
+            </div>
+
+          </div>
+      </div>
+   
+    </form>
+  } @else {
+    <p>Loading form...</p>
+  }
+</div>
+
+    <mat-dialog-actions align="end">
+      <button matButton  (click)="addExpenses()" mat-raised-buttoncolor="primary"type="submit"  [disabled]="isSubmitting || expenseForm.invalid" >    {{ isSubmitting ? 'Saving...' : 'Save Expense' }}  </button>
+    </mat-dialog-actions>
+</ng-template>
+
+
+
+
+
+
+
+<ng-template #updateExpenseDial>  
+  <div class="container-fluid dialog-header">
+    <h2 style="display: inline;" mat-dialog-title>Update Expense</h2>
+    <button style="display: inline;float: right;" mat-icon-button mat-dialog-close aria-label="Close dialog">
+      <mat-icon>close</mat-icon>
+    </button> <br> <br>
+    <div class="expense-form-container">
+  @if (updateExpenseForm) {
+    <form [formGroup]="updateExpenseForm">
+      <div class="container-fluid mb-3">
+          <div class="row">
+            <div class="col-md-4">
+              <mat-form-field appearance="outline" class="full-width">
+                <mat-label>Property</mat-label>
+                <mat-select formControlName="property" required>
+                  <mat-option value="">-- Select Property --</mat-option>
+                  <mat-option *ngFor="let prop of properties" [value]="prop.id">
+                    {{ prop.name || 'Property #' + prop.id }}
+                  </mat-option>
+                </mat-select>
+
+                @if (updateExpenseForm.get('property')?.hasError('required')) {
+                  <mat-error>Property is required</mat-error>
+                }
+              </mat-form-field>
+
+            </div>
+
+
+            <div class="col-md-4">
+              <mat-form-field appearance="outline" class="full-width">
+                <mat-label>Description</mat-label>
+                <input matInput placeholder="Enter description" formControlName="description">
+
+                @if (updateExpenseForm.get('description')?.hasError('required')) {
+                  <mat-error>Description is required</mat-error>
+                } @else if (updateExpenseForm.get('description')?.hasError('minlength')) {
+                  <mat-error>Description must be at least 3 characters</mat-error>
+                }
+              </mat-form-field>
+
+            </div>
+
+
+            <div class="col-md-4">
+                <mat-form-field appearance="outline" class="full-width">
+                  <mat-label>Amount (KES)</mat-label>
+                  <input matInput type="number" placeholder="0.00" formControlName="amount">
+
+                  @if (updateExpenseForm.get('amount')?.hasError('required')) {
+                    <mat-error>Amount is required</mat-error>
+                  } @else if (updateExpenseForm.get('amount')?.hasError('pattern')) {
+                    <mat-error>Enter a valid number</mat-error>
+                  }
+                </mat-form-field>
+            </div>
+          </div>
+
+          <div class="row">
+
+            <div class="col">
+
+            </div>
+
+            <div class="col">
+              
+            </div>
+
+            <div class="col">
+              <button
+                mat-raised-button
+                color="primary"
+                (click)="updateExpense()"
+                type="submit"
+                [disabled]="isUpdateExpenseSubmit || updateExpenseForm.invalid"
+              >
+                {{ isUpdateExpenseSubmit ? 'Updating...' : 'Update Expense' }}
+              </button>
+            </div>
+
+          </div>
+      </div>
+
+ 
+
+
+
+    </form>
+  } @else {
+    <p>Loading form...</p>
+  }
+</div>
+  </div>
+
+    <mat-dialog-actions align="end">
+    </mat-dialog-actions>
+</ng-template>
+
+
+
+
+
+<ng-template #deleteExpensDial>
+    <div class="container-fluid dialog-header">
+      <h2 style="display: inline;" mat-dialog-title>Delete Expense</h2>
+      <button style="display: inline;float: right;" mat-icon-button mat-dialog-close aria-label="Close dialog">
+        <mat-icon>close</mat-icon>
+      </button> <br> <br>
+      <h5>Are you sure you want to delete <span style="color: blue;"><i>{{expenseName}}</i></span> </h5>
+      <mat-dialog-actions align="end">
+          <button mat-button matDialogClose="no">Cancel</button>
+          <button mat-button matDialogClose="yes">Delete</button>
+      </mat-dialog-actions>
+    </div>
+</ng-template>
+
+
+
+
+<ng-template #addMaintanceDial>
+     <div class="container-fluid dialog-header">
+      <h2 style="display: inline;" mat-dialog-title>Add Maintanance</h2>
+      <button style="display: inline;float: right;" mat-icon-button mat-dialog-close aria-label="Close dialog">
+        <mat-icon>close</mat-icon>
+      </button> <br> <br>
+        <div class="maintenance-form-container">
+
+          <form [formGroup]="maintanaceForm">
+
+            <!-- Unit -->
+
+            <div class = "container-fluid mb-3">
+              <div class="row">
+                <div class="col-md-4">
+                      <mat-form-field appearance="outline">
+                        <mat-label>Property</mat-label>
+                        <mat-select formControlName="property" (selectionChange)="onPropertyChange($event.value)">
+                          @for (prop of properties; track prop.id) {
+                            <mat-option [value]="prop.id">
+                              {{ prop.name }}
+                            </mat-option>
+                          }
+                        </mat-select>
+                        @if (maintanaceForm.get('property')?.hasError('required')) {
+                          <mat-error>Property is required</mat-error>
+                        }
+                      </mat-form-field>
+                  </div>
+                  <div class="col-md-4">
+                      
+                      <mat-form-field appearance="outline">
+                        <mat-label>Unit</mat-label>
+                        <mat-select formControlName="unit" >
+                          @for (unit of filteredUnits; track unit.id) {
+                            <mat-option [value]="unit.id">
+                              {{ unit.unit_number }}
+                            </mat-option>
+                          }
+                        </mat-select>
+                        @if (maintanaceForm.get('unit')?.hasError('required')) {
+                          <mat-error>Unit is required</mat-error>
+                        }
+                      </mat-form-field>
+                  </div>
+                  <div class="col-md-4">
+                          <!-- Customer -->
+                    <mat-form-field appearance="outline" class="full-width">
+                      <mat-label>Customer</mat-label>
+                      <mat-select formControlName="customer" required>
+                        <mat-option value="">-- Select Customer --</mat-option>
+                        <mat-option [value]="c.id" *ngFor="let c of customers">
+                          {{ c.name || (c.first_name + ' ' + c.last_name) }}
+                        </mat-option>
+                      </mat-select>
+
+                      @if (maintanaceForm.get('customer')?.hasError('required')) {
+                        <mat-error>Customer is required</mat-error>
+                      }
+                    </mat-form-field>
+                  </div>
+              </div>
+                    <div class="row">
+                <div class="col-md-8">
+                            <!-- Description -->
+                    <mat-form-field appearance="outline" class="full-width" style="width: 100%;">
+                      <mat-label>Description</mat-label>
+                      <textarea
+                        matInput
+                        formControlName="description"
+                        placeholder="Describe the issue..."
+                        rows="3">
+                      </textarea>
+
+                      @if (maintanaceForm.get('description')?.hasError('required')) {
+                        <mat-error>Description is required</mat-error>
+                      }
+                    </mat-form-field>
+
+                  </div>
+                
+                  <div class="col-md-4">
+
+                  </div>
+              </div>
+            </div>
+          
+
+
+
+
+
+
+
+
+          
+          </form>
+        </div>
+
+      </div>
+    <mat-dialog-actions align="end">
+              <!-- Submit Button -->
+            <button
+              mat-raised-button
+              color="primary"
+              type="submit"
+              (click)="addMaintanaceForm()"
+              [disabled]="maintanaceForm.invalid || isSubmitting">
+              {{ isSubmitting ? 'Submitting...' : 'Submit Request' }}
+            </button>
+    </mat-dialog-actions>
+</ng-template>
+
+
+
+<ng-template #deleteMaintanceDial>
+    <div class="container-fluid dialog-header">
+      <h2 style="display: inline;" mat-dialog-title>Delete Maintanance</h2>
+      <button style="display: inline;float: right;" mat-icon-button mat-dialog-close aria-label="Close dialog">
+        <mat-icon>close</mat-icon>
+      </button> <br> <br>
+      <h5>Are you sure you want to delete <span style="color: blue;"><i>{{maintanaceName}}</i></span> </h5>
+      <mat-dialog-actions align="end">
+          <button mat-button matDialogClose="no">Cancel</button>
+          <button mat-button matDialogClose="yes">Delete</button>
+      </mat-dialog-actions>
+    </div>
+</ng-template>
+
+
+
+
+
