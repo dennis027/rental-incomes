@@ -1,3 +1,349 @@
-<p>receipts works!</p>
+<div class="receipts-container">
+  <h2>Receipts</h2>
 
-<button (click)="testButton()">test this one</button>
+  <div class="filter-section">
+    <mat-form-field appearance="outline" class="month-filter">
+      <mat-label>Filter by Month</mat-label>
+      <mat-select [formControl]="selectedMonth">
+        <mat-option value="">All Months</mat-option>
+        <mat-option *ngFor="let month of availableMonths" [value]="month.value">
+          {{ month.display }}
+        </mat-option>
+      </mat-select>
+    </mat-form-field>
+
+    <button mat-raised-button color="primary" (click)="openAddReceiptDialog()">+ Add Receipt</button>
+  </div>
+
+  <div class="receipt-summary">
+    <span class="summary-text">
+      Showing {{ dataSource.data.length }} receipt(s)
+      @if (selectedMonth.value) {
+        <span> for {{ getSelectedMonthDisplay() }}</span>
+      }
+    </span>
+  </div>
+
+  <table mat-table [dataSource]="dataSource" class="mat-elevation-z8">
+    <ng-container matColumnDef="receipt_number">
+      <th mat-header-cell *matHeaderCellDef>Receipt No.</th>
+      <td mat-cell *matCellDef="let r">{{ r.receipt_number }}</td>
+    </ng-container>
+
+    <ng-container matColumnDef="contract_number">
+      <th mat-header-cell *matHeaderCellDef>Contract No.</th>
+      <td mat-cell *matCellDef="let r">{{ r.contract_number }}</td>
+    </ng-container>
+
+    <ng-container matColumnDef="issue_date">
+      <th mat-header-cell *matHeaderCellDef>Date</th>
+      <td mat-cell *matCellDef="let r">{{ r.issue_date | date:'mediumDate' }}</td>
+    </ng-container>
+
+    <ng-container matColumnDef="monthly_rent">
+      <th mat-header-cell *matHeaderCellDef>Rent</th>
+      <td mat-cell *matCellDef="let r">{{ r.monthly_rent }}</td>
+    </ng-container>
+
+    <ng-container matColumnDef="electricity_bill">
+      <th mat-header-cell *matHeaderCellDef>Electricity</th>
+      <td mat-cell *matCellDef="let r">{{ r.electricity_bill }}</td>
+    </ng-container>
+
+    <ng-container matColumnDef="water_bill">
+      <th mat-header-cell *matHeaderCellDef>Water</th>
+      <td mat-cell *matCellDef="let r">{{ r.water_bill }}</td>
+    </ng-container>
+
+    <ng-container matColumnDef="service_charge">
+      <th mat-header-cell *matHeaderCellDef>Service</th>
+      <td mat-cell *matCellDef="let r">{{ r.service_charge }}</td>
+    </ng-container>
+
+    <ng-container matColumnDef="total_amount">
+      <th mat-header-cell *matHeaderCellDef>Total</th>
+      <td mat-cell *matCellDef="let r">{{ r.total_amount }}</td>
+    </ng-container>
+
+    <ng-container matColumnDef="actions">
+      <th mat-header-cell *matHeaderCellDef>Actions</th>
+      <td mat-cell *matCellDef="let r">
+        <button mat-icon-button color="primary" (click)="openUpdateDialog(r)">
+          <mat-icon>edit</mat-icon>
+        </button>
+        <button mat-icon-button color="warn" (click)="deleteReceipt(r.id)">
+          <mat-icon>delete</mat-icon>
+        </button>
+      </td>
+    </ng-container>
+
+    <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+    <tr mat-row *matRowDef="let row; columns: displayedColumns"></tr>
+  </table>
+
+  <mat-paginator [pageSize]="10"></mat-paginator>
+</div>
+
+<!-- Add Receipt Dialog -->
+<ng-template #addReceiptDialog>
+  <h2 mat-dialog-title>Add Receipt</h2>
+  <mat-dialog-content>
+    <form [formGroup]="addReceiptForm">
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>Contract ID</mat-label>
+        <input matInput formControlName="contract" type="number" required />
+        @if (addReceiptForm.get('contract')?.hasError('required')) {
+          <mat-error>Contract ID is required</mat-error>
+        }
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>Monthly Rent</mat-label>
+        <input matInput formControlName="monthly_rent" type="number" step="0.01" required />
+        @if (addReceiptForm.get('monthly_rent')?.hasError('required')) {
+          <mat-error>Monthly rent is required</mat-error>
+        }
+        @if (addReceiptForm.get('monthly_rent')?.hasError('min')) {
+          <mat-error>Must be 0 or greater</mat-error>
+        }
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>Rental Deposit</mat-label>
+        <input matInput formControlName="rental_deposit" type="number" step="0.01" />
+        @if (addReceiptForm.get('rental_deposit')?.hasError('min')) {
+          <mat-error>Must be 0 or greater</mat-error>
+        }
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>Electricity Deposit</mat-label>
+        <input matInput formControlName="electricity_deposit" type="number" step="0.01" />
+        @if (addReceiptForm.get('electricity_deposit')?.hasError('min')) {
+          <mat-error>Must be 0 or greater</mat-error>
+        }
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>Electricity Bill</mat-label>
+        <input matInput formControlName="electricity_bill" type="number" step="0.01" required />
+        @if (addReceiptForm.get('electricity_bill')?.hasError('required')) {
+          <mat-error>Electricity bill is required</mat-error>
+        }
+        @if (addReceiptForm.get('electricity_bill')?.hasError('min')) {
+          <mat-error>Must be 0 or greater</mat-error>
+        }
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>Water Deposit</mat-label>
+        <input matInput formControlName="water_deposit" type="number" step="0.01" />
+        @if (addReceiptForm.get('water_deposit')?.hasError('min')) {
+          <mat-error>Must be 0 or greater</mat-error>
+        }
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>Water Bill</mat-label>
+        <input matInput formControlName="water_bill" type="number" step="0.01" required />
+        @if (addReceiptForm.get('water_bill')?.hasError('required')) {
+          <mat-error>Water bill is required</mat-error>
+        }
+        @if (addReceiptForm.get('water_bill')?.hasError('min')) {
+          <mat-error>Must be 0 or greater</mat-error>
+        }
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>Service Charge</mat-label>
+        <input matInput formControlName="service_charge" type="number" step="0.01" />
+        @if (addReceiptForm.get('service_charge')?.hasError('min')) {
+          <mat-error>Must be 0 or greater</mat-error>
+        }
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>Security Charge</mat-label>
+        <input matInput formControlName="security_charge" type="number" step="0.01" />
+        @if (addReceiptForm.get('security_charge')?.hasError('min')) {
+          <mat-error>Must be 0 or greater</mat-error>
+        }
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>Previous Balance</mat-label>
+        <input matInput formControlName="previous_balance" type="number" step="0.01" />
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>Other Charges</mat-label>
+        <input matInput formControlName="other_charges" type="number" step="0.01" />
+        @if (addReceiptForm.get('other_charges')?.hasError('min')) {
+          <mat-error>Must be 0 or greater</mat-error>
+        }
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>Previous Water Reading</mat-label>
+        <input matInput formControlName="previous_water_reading" type="number" step="0.01" required />
+        @if (addReceiptForm.get('previous_water_reading')?.hasError('required')) {
+          <mat-error>Previous water reading is required</mat-error>
+        }
+        @if (addReceiptForm.get('previous_water_reading')?.hasError('min')) {
+          <mat-error>Must be 0 or greater</mat-error>
+        }
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>Current Water Reading</mat-label>
+        <input matInput formControlName="current_water_reading" type="number" step="0.01" required />
+        @if (addReceiptForm.get('current_water_reading')?.hasError('required')) {
+          <mat-error>Current water reading is required</mat-error>
+        }
+        @if (addReceiptForm.get('current_water_reading')?.hasError('min')) {
+          <mat-error>Must be 0 or greater</mat-error>
+        }
+      </mat-form-field>
+    </form>
+  </mat-dialog-content>
+
+  <mat-dialog-actions align="end">
+    <button mat-button mat-dialog-close>Cancel</button>
+    <button mat-flat-button color="primary" (click)="addReceipt()" [disabled]="loadAdding || addReceiptForm.invalid">Save</button>
+  </mat-dialog-actions>
+</ng-template>
+
+<!-- Update Receipt Dialog -->
+<ng-template #updateReceiptDialog>
+  <h2 mat-dialog-title>Update Receipt</h2>
+  <mat-dialog-content>
+    <form [formGroup]="updateReceiptForm">
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>Contract ID</mat-label>
+        <input matInput formControlName="contract" type="number" required />
+        @if (updateReceiptForm.get('contract')?.hasError('required')) {
+          <mat-error>Contract ID is required</mat-error>
+        }
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>Monthly Rent</mat-label>
+        <input matInput formControlName="monthly_rent" type="number" step="0.01" required />
+        @if (updateReceiptForm.get('monthly_rent')?.hasError('required')) {
+          <mat-error>Monthly rent is required</mat-error>
+        }
+        @if (updateReceiptForm.get('monthly_rent')?.hasError('min')) {
+          <mat-error>Must be 0 or greater</mat-error>
+        }
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>Rental Deposit</mat-label>
+        <input matInput formControlName="rental_deposit" type="number" step="0.01" />
+        @if (updateReceiptForm.get('rental_deposit')?.hasError('min')) {
+          <mat-error>Must be 0 or greater</mat-error>
+        }
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>Electricity Deposit</mat-label>
+        <input matInput formControlName="electricity_deposit" type="number" step="0.01" />
+        @if (updateReceiptForm.get('electricity_deposit')?.hasError('min')) {
+          <mat-error>Must be 0 or greater</mat-error>
+        }
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>Electricity Bill</mat-label>
+        <input matInput formControlName="electricity_bill" type="number" step="0.01" required />
+        @if (updateReceiptForm.get('electricity_bill')?.hasError('required')) {
+          <mat-error>Electricity bill is required</mat-error>
+        }
+        @if (updateReceiptForm.get('electricity_bill')?.hasError('min')) {
+          <mat-error>Must be 0 or greater</mat-error>
+        }
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>Water Deposit</mat-label>
+        <input matInput formControlName="water_deposit" type="number" step="0.01" />
+        @if (updateReceiptForm.get('water_deposit')?.hasError('min')) {
+          <mat-error>Must be 0 or greater</mat-error>
+        }
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>Water Bill</mat-label>
+        <input matInput formControlName="water_bill" type="number" step="0.01" required />
+        @if (updateReceiptForm.get('water_bill')?.hasError('required')) {
+          <mat-error>Water bill is required</mat-error>
+        }
+        @if (updateReceiptForm.get('water_bill')?.hasError('min')) {
+          <mat-error>Must be 0 or greater</mat-error>
+        }
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>Service Charge</mat-label>
+        <input matInput formControlName="service_charge" type="number" step="0.01" required />
+        @if (updateReceiptForm.get('service_charge')?.hasError('required')) {
+          <mat-error>Service charge is required</mat-error>
+        }
+        @if (updateReceiptForm.get('service_charge')?.hasError('min')) {
+          <mat-error>Must be 0 or greater</mat-error>
+        }
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>Security Charge</mat-label>
+        <input matInput formControlName="security_charge" type="number" step="0.01" required />
+        @if (updateReceiptForm.get('security_charge')?.hasError('required')) {
+          <mat-error>Security charge is required</mat-error>
+        }
+        @if (updateReceiptForm.get('security_charge')?.hasError('min')) {
+          <mat-error>Must be 0 or greater</mat-error>
+        }
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>Previous Balance</mat-label>
+        <input matInput formControlName="previous_balance" type="number" step="0.01" required />
+        @if (updateReceiptForm.get('previous_balance')?.hasError('required')) {
+          <mat-error>Previous balance is required</mat-error>
+        }
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>Other Charges</mat-label>
+        <input matInput formControlName="other_charges" type="number" step="0.01" />
+        @if (updateReceiptForm.get('other_charges')?.hasError('min')) {
+          <mat-error>Must be 0 or greater</mat-error>
+        }
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>Previous Water Reading</mat-label>
+        <input matInput formControlName="previous_water_reading" type="number" step="0.01" />
+        @if (updateReceiptForm.get('previous_water_reading')?.hasError('min')) {
+          <mat-error>Must be 0 or greater</mat-error>
+        }
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>Current Water Reading</mat-label>
+        <input matInput formControlName="current_water_reading" type="number" step="0.01" required />
+        @if (updateReceiptForm.get('current_water_reading')?.hasError('required')) {
+          <mat-error>Current water reading is required</mat-error>
+        }
+        @if (updateReceiptForm.get('current_water_reading')?.hasError('min')) {
+          <mat-error>Must be 0 or greater</mat-error>
+        }
+      </mat-form-field>
+    </form>
+  </mat-dialog-content>
+
+  <mat-dialog-actions align="end">
+    <button mat-button mat-dialog-close>Cancel</button>
+    <button mat-flat-button color="primary" (click)="updateReceipt()" [disabled]="updateReceiptForm.invalid">Update</button>
+  </mat-dialog-actions>
+</ng-template>
