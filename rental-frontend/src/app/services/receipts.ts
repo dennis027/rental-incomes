@@ -42,7 +42,7 @@ export class ReceiptService {
 
   addMonthlyReceipts(data: any): Observable<any> {
     const headers = this.getAuthHeaders();
-    return this.http.post<any>(`${this.receiptsURL}generate-receipts/`, data, { headers });
+    return this.http.post<any>(`${this.receiptsURL}generate-monthly-receipts/`, data, { headers });
   }
 
   /** 🔹 Helper: Construct Headers with Bearer Token */

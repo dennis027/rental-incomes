@@ -64,10 +64,13 @@ export class Receipts implements OnInit, AfterViewInit {
   @ViewChild(MatPaginator) paginator!: MatPaginator;
   @ViewChild('addReceiptDialog') addReceiptDialog!: TemplateRef<any>;
   @ViewChild('updateReceiptDialog') updateReceiptDialog!: TemplateRef<any>;
+  @ViewChild('generateMonthlyDialog') generateMonthlyDialog!: TemplateRef<any>;
 
   addReceiptForm!: FormGroup;
   updateReceiptForm!: FormGroup;
+  generateMonthlyForm!: FormGroup;
   loadAdding = false;
+  loadGenerating = false;
   selectedReceiptId: number | null = null;
 
   ngOnInit() {
@@ -111,6 +114,11 @@ export class Receipts implements OnInit, AfterViewInit {
       other_charges: ['', Validators.min(0)],
       previous_water_reading: ['', Validators.min(0)],
       current_water_reading: ['', [Validators.required, Validators.min(0)]]
+    });
+
+    this.generateMonthlyForm = this.fb.group({
+      year: ['', [Validators.required, Validators.min(2000), Validators.max(2100)]],
+      month: ['', [Validators.required, Validators.min(1), Validators.max(12)]]
     });
   }
 
@@ -201,6 +209,15 @@ export class Receipts implements OnInit, AfterViewInit {
     this.dialog.open(this.addReceiptDialog);
   }
 
+  openGenerateMonthlyDialog() {
+    const now = new Date();
+    this.generateMonthlyForm.patchValue({
+      year: now.getFullYear(),
+      month: now.getMonth() + 1
+    });
+    this.dialog.open(this.generateMonthlyDialog);
+  }
+
   openUpdateDialog(receipt: Receipt) {
     this.selectedReceiptId = receipt.id;
     this.updateReceiptForm.patchValue(receipt);
@@ -232,6 +249,55 @@ export class Receipts implements OnInit, AfterViewInit {
       }
     });
   }
+generateMonthlyReceipts() {
+  if (this.generateMonthlyForm.invalid) {
+    this.generateMonthlyForm.markAllAsTouched();
+    return;
+  }
+
+  this.loadGenerating = true;
+
+  const rawValue = this.generateMonthlyForm.value.month;
+  let formattedMonthYear = '';
+
+  // 🧠 Handle all possible inputs (Date, string, or number)
+  if (typeof rawValue === 'string' && rawValue.includes('-')) {
+    // Example: "2025-11" → "2025-11"
+    const [year, month] = rawValue.split('-').map((v: string) => v.trim());
+    formattedMonthYear = `${parseInt(year, 10)}-${parseInt(month, 10)}`;
+  } else if (typeof rawValue === 'object' && rawValue instanceof Date) {
+    // Example: Date object → "2025-11"
+    const year = rawValue.getFullYear();
+    const month = rawValue.getMonth() + 1;
+    formattedMonthYear = `${year}-${month}`;
+  } else if (typeof rawValue === 'number') {
+    // Just a month number, fallback with current year
+    const year = new Date().getFullYear();
+    formattedMonthYear = `${year}-${rawValue}`;
+  } else {
+    this.showError('Invalid month format. Please use YYYY-MM.');
+    this.loadGenerating = false;
+    return;
+  }
+
+  const payload = { month: formattedMonthYear };
+  console.log('✅ Final payload:', payload);
+
+  this.receiptService.addMonthlyReceipts(payload).subscribe({
+    next: (response) => {
+      this.loadGenerating = false;
+      this.dialog.closeAll();
+      this.showSuccess(`Successfully generated ${response.count || 'monthly'} receipts!`);
+      this.getReceipts();
+      this.generateMonthlyForm.reset();
+    },
+    error: (err) => {
+      this.loadGenerating = false;
+      this.showError('Failed to generate monthly receipts. Please try again.');
+      console.error('❌ Error generating monthly receipts:', err);
+    },
+  });
+}
 
   updateReceipt() {
     if (this.updateReceiptForm.invalid || !this.selectedReceiptId) return;
