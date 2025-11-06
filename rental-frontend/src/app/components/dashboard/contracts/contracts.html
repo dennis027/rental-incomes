@@ -154,9 +154,9 @@
 
     <mat-form-field appearance="outline">
       <mat-label>Unit</mat-label>
-      <mat-select formControlName="unit" >
+      <mat-select formControlName="unit"  >
         @for (unit of filteredUnits; track unit.id) {
-          <mat-option [value]="unit.id">
+          <mat-option [value]="unit.id" (click)="onUnitChange(unit.id)">
             {{ unit.unit_number }}
           </mat-option>
         }

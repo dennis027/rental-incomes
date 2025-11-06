@@ -18,6 +18,7 @@ import { ContractsService } from '../../../services/contract-service';
 import { CustomersService } from '../../../services/customer';
 import { UnitsService } from '../../../services/units';
 import { PropertiesService } from '../../../services/properties';
+import { SystemParametersServices } from '../../../services/system-parameters-services';
 
 
 export interface ContractObject {
@@ -54,6 +55,7 @@ export class Contracts implements OnInit, AfterViewInit {
   private customersService = inject(CustomersService);
   private unitsService = inject(UnitsService);
   private propertyService = inject(PropertiesService);
+  private systemParametersService = inject(SystemParametersServices);
   private fb = inject(FormBuilder);
 
   @ViewChild('openAddDialog') openAddDialog!: TemplateRef<any>;
@@ -99,6 +101,7 @@ export class Contracts implements OnInit, AfterViewInit {
   
 
   searchText = '';
+  systemParameters:any
 
   formatToYMD(dateString: string): string {
   const date = new Date(dateString);
@@ -139,7 +142,7 @@ export class Contracts implements OnInit, AfterViewInit {
       end_date: ['', Validators.required],
       rent_amount: ['', Validators.required],
       deposit_amount: ['', Validators.required],
-      payment_frequency: ['', Validators.required],
+      payment_frequency: ['monthly', Validators.required],
     });
   }
 
@@ -181,11 +184,37 @@ export class Contracts implements OnInit, AfterViewInit {
     });
   }
 
+  onUnitChange(id: number) {  
+    console.log('Selected Unit ID:', id);  
+    const test = this.units.find(u => u.id === id);
+    console.log('Selected Unit Details:', test);
+    this.cdr.detectChanges();
+    this.contractForm.patchValue({ 
+      rent_amount: test ? test.rent_amount : '',
+      deposit_amount: test ? Number(test.rent_amount)  * this.systemParameters.rent_deposit_months  : '',
+      payment_frequency:'monthly'
+     });
+  }
+
+  getSystemParameters(propertyId: number) {
+    this.systemParametersService.getSystemParams(propertyId).subscribe({
+      next: (res) => {  
+        console.log('✅ System Parameters loaded:', res); 
+           this.systemParameters = res
+      },
+      error: (err) => {
+        if (err.status === 401) this.router.navigate(['/login']);
+      },
+    });
+  }
+
   loadProperties() {
       this.propertyService.getProperties().subscribe({
       next: (res) => {
+        this.systemParameters = res
         this.properties = res;
         console.log('✅ Properties loaded:', this.properties);
+        
       },
       error: (err) => {
         if (err.status === 401) this.router.navigate(['/login']);
@@ -195,7 +224,7 @@ export class Contracts implements OnInit, AfterViewInit {
 
     onPropertyChange(propertyId: number) {
     // 🟢 Filter units based on the selected property
-
+   this.getSystemParameters(propertyId);
     console.log('Selected Property ID:', propertyId);
     setTimeout(() => {
     this.filteredUnits = this.units.filter(u => u.property === propertyId);
@@ -212,31 +241,31 @@ export class Contracts implements OnInit, AfterViewInit {
   // }
 
   /** 🔹 Fetch all contracts */
- loadContracts() {
+loadContracts() {
   this.isLoading = true;
   this.contractsService.getContracts().subscribe({
     next: (res) => {
+      this.contracts = res;
+      this.dataSource.data = this.contracts;
+      this.isLoading = false;
       setTimeout(() => {
-        this.contracts = res;
-        this.dataSource.data = this.contracts;
-        this.isLoading = false;
-
-        console.log('✅ Contracts loaded:', this.contracts);
-        if (this.paginator) {
-          this.dataSource.paginator = this.paginator;
-        }
+      if (this.paginator) {
+        this.dataSource.paginator = this.paginator;
+      }
       });
+
+      this.cdr.detectChanges(); // ✅ Run after all template-related updates
     },
     error: (err) => {
       console.error('❌ Error loading contracts:', err);
-      setTimeout(() => {
-        this.isLoading = false;
-        this.error = 'Failed to load contracts.';
-      });
+      this.isLoading = false;
+      this.error = 'Failed to load contracts.';
       if (err.status === 401) this.router.navigate(['/login']);
+      this.cdr.detectChanges();
     },
   });
 }
+
 
 
   /** 🔹 Open Add Contract Dialog */
@@ -298,11 +327,13 @@ export class Contracts implements OnInit, AfterViewInit {
         this.dialog.closeAll();
         this.contractForm.reset();
         this.loadContracts();
+        this.cdr.detectChanges();
       },
       error: (err) => {
         this.loadAdding = false;
         console.error('❌ Error adding contract:', err);
         this.showError('Failed to add contract.');
+        this.cdr.detectChanges();
         if (err.status === 401) {
           this.router.navigate(['/login']);
           this.dialog.closeAll();
@@ -340,11 +371,13 @@ export class Contracts implements OnInit, AfterViewInit {
         this.dialog.closeAll();
         this.updateContractForm.reset();
         this.loadContracts();
+        this.cdr.detectChanges();
       },
       error: (err) => {
         this.loadUpdating = false;
         console.error('❌ Error updating contract:', err);
         this.showError('Failed to update contract.');
+        this.cdr.detectChanges();
         if (err.status === 401) {
           this.router.navigate(['/login']);
           this.dialog.closeAll();

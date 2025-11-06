@@ -8,6 +8,7 @@ import { MatPaginator } from '@angular/material/paginator';
 import { MatTableDataSource } from '@angular/material/table';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
+import { SystemParametersServices } from '../../../services/system-parameters-services';
 
 export interface UnitsTable {
   id: string;
@@ -30,6 +31,7 @@ export interface UnitsTable {
 export class Units implements OnInit, AfterViewInit {
   private snackBar = inject(MatSnackBar);
   private cdr = inject(ChangeDetectorRef);
+  private systemsParamsService = inject(SystemParametersServices);
 
   // ViewChild for the dialog templates
   @ViewChild('openAddDialog') openAddDialog!: TemplateRef<any>;
@@ -46,6 +48,8 @@ export class Units implements OnInit, AfterViewInit {
 
   displayedColumns: string[] = ['unit_number', 'unit_type', 'rent_amount', 'status', 'actions'];
   unitsObject: UnitsTable[] = [];
+
+  systemParameters: any 
 
   showSuccess(message: string) {
     this.snackBar.open(message, 'Close', {
@@ -76,6 +80,9 @@ export class Units implements OnInit, AfterViewInit {
   selectedPropertyId: number | null = null;
   selectedPropertyName: string = '';
 
+  showElectricityMeter: boolean = true;
+  showWaterMeter: boolean = true;
+
   constructor(
     private UnitsService: UnitsService,
     private PropertiesService: PropertiesService,
@@ -88,8 +95,8 @@ export class Units implements OnInit, AfterViewInit {
       unit_number: ['', [Validators.required, Validators.minLength(1)]],
       unit_type: ['', [Validators.required, Validators.minLength(2)]],
       rent_amount: ['', [Validators.required, Validators.min(0)]],
-      water_meter_reading: ['', [Validators.required, Validators.min(0)]],
-      electricity_meter_reading: ['', [Validators.required, Validators.min(0)]],
+      water_meter_reading: [0, [Validators.required, Validators.min(0)]],
+      electricity_meter_reading: [0, [Validators.required, Validators.min(0)]],
       // status: ['vacant', Validators.required],
     });
   }
@@ -98,7 +105,22 @@ export class Units implements OnInit, AfterViewInit {
   
     this.getProperties();
     setTimeout(() => {  this.initializeForm(); }, 1000);
+
+ 
       
+  }
+
+  getSystemParameters(propertyId: number) {
+    this.systemsParamsService.getSystemParams(propertyId).subscribe({
+      next: (res) => {
+        this.systemParameters = res
+        this.showElectricityMeter = this.systemParameters.has_electricity_bill;
+        this.showWaterMeter = this.systemParameters.has_water_bill;
+      },
+      error: (err) => {
+        console.error('Error fetching system parameters:', err);
+      }
+    });
   }
 
   initializeForm() {
@@ -107,8 +129,8 @@ export class Units implements OnInit, AfterViewInit {
       unit_number: ['', [Validators.required, Validators.minLength(1)]],
       unit_type: ['', [Validators.required, Validators.minLength(2)]],
       rent_amount: ['', [Validators.required, Validators.min(0)]],
-      water_meter_reading: ['', [Validators.required, Validators.min(0)]],
-      electricity_meter_reading: ['', [Validators.required, Validators.min(0)]],
+      water_meter_reading: [0, [Validators.required, Validators.min(0)]],
+      electricity_meter_reading: [0, [Validators.required, Validators.min(0)]],
       // status: ['vacant', Validators.required],
     });
   }
@@ -148,7 +170,6 @@ getProperties() {
           this.selectedPropertyId = this.properties[0].id;
           this.selectedPropertyName = this.properties[0].name;
         }
-
         // 🔥 Tell Angular to re-run change detection safely
         this.cdr.detectChanges();
 
@@ -175,6 +196,7 @@ getProperties() {
 
   /** Filter units by selected property */
   filterUnitsByProperty() {
+    this.getSystemParameters(this.selectedPropertyId!);
     this.selectedPropertyName = this.properties.find(
       (prop) => prop.id === Number(this.selectedPropertyId)
     )?.name || '';

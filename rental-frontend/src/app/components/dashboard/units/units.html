@@ -151,6 +151,8 @@
           <mat-error>Rent amount must be at least 0</mat-error>
         }
       </mat-form-field>
+      @if (showWaterMeter) {
+
 
       <mat-form-field appearance="outline">
         <mat-label>Water Meter Reading</mat-label>
@@ -162,7 +164,8 @@
           <mat-error>Reading must be at least 0</mat-error>
         }
       </mat-form-field>
-
+      }
+      @if (showElectricityMeter) {
       <mat-form-field appearance="outline">
         <mat-label>Electricity Meter Reading</mat-label>
         <input matInput type="number" formControlName="electricity_meter_reading" placeholder="0">
@@ -173,7 +176,7 @@
           <mat-error>Reading must be at least 0</mat-error>
         }
       </mat-form-field>
-
+      }
       <!-- <mat-form-field appearance="outline">
         <mat-label>Status</mat-label>
         <mat-select formControlName="status">
@@ -246,6 +249,8 @@
         }
       </mat-form-field>
 
+      @if(showWaterMeter) {
+
       <mat-form-field appearance="outline">
         <mat-label>Water Meter Reading</mat-label>
         <input matInput type="number" formControlName="water_meter_reading" placeholder="0">
@@ -256,7 +261,9 @@
           <mat-error>Reading must be at least 0</mat-error>
         }
       </mat-form-field>
+        }
 
+        @if(showElectricityMeter) {
       <mat-form-field appearance="outline">
         <mat-label>Electricity Meter Reading</mat-label>
         <input matInput type="number" formControlName="electricity_meter_reading" placeholder="0">
@@ -268,7 +275,8 @@
         }
       </mat-form-field>
 
-      <!-- <mat-form-field appearance="outline">
+       }
+       <!-- <mat-form-field appearance="outline">
         <mat-label>Status</mat-label>
         <mat-select formControlName="status">
           <mat-option value="vacant">Vacant</mat-option>
