@@ -387,21 +387,36 @@ addCustomer() {
         this.cdr.detectChanges();
       }, 0);
     },
-    error: (err) => {
-      this.loadAdding = false;
-      this.showError('Failed to add customer. Please try again.');
+      error: (err) => {
+        this.loadAdding = false;
 
-      if (err.status === 0) {
-        console.warn('🌐 Network error while adding customer.');
-      } else if (err.status === 401) {
-        this.dialog.closeAll();
-        this.router.navigate(['/login']);
-      } else {
-        console.error('❌ Error adding customer:', err);
+        if (err.status === 0) {
+          console.warn('🌐 Network error while adding customer.');
+          this.showError('Network error. Please check your internet connection.');
+        } 
+        else if (err.status === 401) {
+          this.dialog.closeAll();
+          this.router.navigate(['/login']);
+        } 
+        else if (err.error && typeof err.error === 'object') {
+          // Extract the first available error message from the backend
+          const firstKey = Object.keys(err.error)[0];
+          const firstMessage = Array.isArray(err.error[firstKey])
+            ? err.error[firstKey][0]
+            : err.error[firstKey];
+
+          this.showError(firstMessage);
+          console.error('❌ Validation error:', firstKey, firstMessage);
+        } 
+        else {
+          this.showError('Failed to add customer. Please try again.');
+          console.error('❌ Error adding customer:', err);
+        }
+
+        setTimeout(() => this.cdr.detectChanges(), 0);
       }
 
-      setTimeout(() => this.cdr.detectChanges(), 0);
-    },
+
   });
 }
 

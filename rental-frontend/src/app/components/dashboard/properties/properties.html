@@ -1,9 +1,9 @@
 
 
 
-  <div class="container">
+  <div class="container"> <br>
       <h2 class="mb-4">Property or Flats Management</h2>
-        <div class="table-container">
+        <div class="table-container"> <br>
      <button style="float: right;" (click)="openAddPropertyDialog()" matButton="elevated">Add Property</button> <br>
      <div class="mat-elevation-z8">
     <table  mat-table [dataSource]="dataSource">
@@ -62,180 +62,184 @@
 
 
 <!-- 🧩 ADD PROPERTY DIALOG TEMPLATE -->
-<ng-template #openAddDialog>
+<ng-template #openAddDialog> <br>
+    <div class="container-fluid dialog-header">
+        <h2 style="display: inline;" mat-dialog-title>Add Property</h2>
+        <button style="display: inline;float: right;" mat-icon-button mat-dialog-close aria-label="Close dialog">
+            <mat-icon>close</mat-icon>
+        </button> <br> 
 
-    <div class="dialog-header container-fluid">
-        <h2 matDialogTitle style="display:inline;">Add New Property</h2> 
-        <mat-icon matDialogClose  class="closeIcon">close</mat-icon> 
-    </div>
+        <mat-dialog-content>
+            <form [formGroup]="propertyForm" class="property-form">
 
-  <mat-dialog-content>
-    <form [formGroup]="propertyForm" class="property-form">
+                <div class="container-fluid">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <mat-form-field appearance="outline" class="full-width">
+                                <mat-label>Property Name</mat-label>
+                                <input matInput formControlName="name" placeholder="Enter property name" />
+                                @if (propertyForm.get('name')?.hasError('required')) {
+                                <mat-error>Name is required</mat-error>
+                                }
+                                @if (propertyForm.get('name')?.hasError('minlength')) {
+                                <mat-error>At least 3 characters</mat-error>
+                                }
+                            </mat-form-field>
 
-        <div class="container-fluid">
-            <div class="row">
-                <div class="col-md-6">
-                    <mat-form-field appearance="outline" class="full-width">
-                        <mat-label>Property Name</mat-label>
-                        <input matInput formControlName="name" placeholder="Enter property name" />
-                        @if (propertyForm.get('name')?.hasError('required')) {
-                        <mat-error>Name is required</mat-error>
-                        }
-                        @if (propertyForm.get('name')?.hasError('minlength')) {
-                        <mat-error>At least 3 characters</mat-error>
-                        }
-                    </mat-form-field>
+                        </div>
+                        <div class="col-md-6 ">
+                            <mat-form-field appearance="outline" class="full-width">
+                                <mat-label>Address</mat-label>
+                                <input matInput formControlName="address" placeholder="Enter property address" />
+                                @if (propertyForm.get('address')?.hasError('required')) {
+                                <mat-error>Address is required</mat-error>
+                                }
+                                @if (propertyForm.get('address')?.hasError('minlength')) {
+                                <mat-error>At least 5 characters</mat-error>
+                                }
+                            </mat-form-field>
 
-                </div>
-                <div class="col-md-6 ">
-                    <mat-form-field appearance="outline" class="full-width">
-                        <mat-label>Address</mat-label>
-                        <input matInput formControlName="address" placeholder="Enter property address" />
-                        @if (propertyForm.get('address')?.hasError('required')) {
-                        <mat-error>Address is required</mat-error>
-                        }
-                        @if (propertyForm.get('address')?.hasError('minlength')) {
-                        <mat-error>At least 5 characters</mat-error>
-                        }
-                    </mat-form-field>
+                        </div>  
 
-                </div>  
+                        <div class="row">
+                            <div class="col-md-10">
+                            <mat-form-field appearance="outline" style="width: 100%;" class="full-width">
+                                <mat-label>Description</mat-label>
+                                <textarea
+                                matInput
+                                formControlName="description"
+                                rows="3"
+                                placeholder="Enter description">
+                                </textarea>
 
-                <div class="row">
-                    <div class="col-md-10">
-                    <mat-form-field appearance="outline" style="width: 100%;" class="full-width">
-                        <mat-label>Description</mat-label>
-                        <textarea
-                        matInput
-                        formControlName="description"
-                        rows="3"
-                        placeholder="Enter description">
-                        </textarea>
-
-                        @if (propertyForm.get('description')?.hasError('required')) {
-                        <mat-error>Description is required</mat-error>
-                        }
-                        @if (propertyForm.get('description')?.hasError('minlength')) {
-                        <mat-error>At least 5 characters</mat-error>
-                        }
-                    </mat-form-field>
+                                @if (propertyForm.get('description')?.hasError('required')) {
+                                <mat-error>Description is required</mat-error>
+                                }
+                                @if (propertyForm.get('description')?.hasError('minlength')) {
+                                <mat-error>At least 5 characters</mat-error>
+                                }
+                            </mat-form-field>
+                            </div>
+                            <div class="col-md-">
+                                
+                            </div>
+                        </div>
                     </div>
-                    <div class="col-md-">
-                        
-                    </div>
                 </div>
-            </div>
-        </div>
-      
+            
 
-    </form>
-  </mat-dialog-content>
+            </form>
+        </mat-dialog-content>
 
-  <mat-dialog-actions align="end">
-    <button mat-button mat-dialog-close>Cancel</button>
-        @if (!loadAdding) {
-        <button 
-            mat-raised-button 
-            color="primary" 
-            (click)="addProperty()">
-            Add Property
-        </button>
-        } @else {
-        <button 
-            mat-raised-button 
-            color="primary" 
-            disabled>
-            Adding Property ...
-        </button>
-        }
-  </mat-dialog-actions>
+        <mat-dialog-actions align="end">
+            <button mat-button mat-dialog-close>Cancel</button>
+                @if (!loadAdding) {
+                <button 
+                    mat-raised-button 
+                    color="primary" 
+                    (click)="addProperty()">
+                    Add Property
+                </button>
+                } @else {
+                <button 
+                    mat-raised-button 
+                    color="primary" 
+                    disabled>
+                    Adding Property ...
+                </button>
+                }
+        </mat-dialog-actions>
+  </div>
 </ng-template>
 
 
 
 
-<ng-template #updateDialog>
-    <div class="dialog-header container-fluid">
-        <h2 matDialogTitle style="display:inline;"> Update Property</h2> 
-        <mat-icon matDialogClose  class="closeIcon">close</mat-icon> 
-    </div>
-  <mat-dialog-content>
-    <form [formGroup]="updatePropertyForm" class="property-form">
+<ng-template #updateDialog> <br>
+    <div class="container-fluid dialog-header">
+            <h2 style="display: inline;" mat-dialog-title>Update Property</h2>
+            <button style="display: inline;float: right;" mat-icon-button mat-dialog-close aria-label="Close dialog">
+                <mat-icon>close</mat-icon>
+            </button> <br> 
+        <mat-dialog-content>
+            <form [formGroup]="updatePropertyForm" class="property-form">
 
-    <div class="container-fluid">
-        <div class="row">
-                <div class="col-md-6">
-                <mat-form-field appearance="outline" class="full-width">
-                    <mat-label>Property Name</mat-label>
-                    <input matInput formControlName="name" />
-                    @if (updatePropertyForm.get('name')?.hasError('required')) {
-                    <mat-error>Name is required</mat-error>
-                    }
-                    @if (updatePropertyForm.get('name')?.hasError('minlength')) {
-                    <mat-error>At least 3 characters</mat-error>
-                    }
-                </mat-form-field>
+            <div class="container-fluid">
+                <div class="row">
+                        <div class="col-md-6">
+                        <mat-form-field appearance="outline" class="full-width">
+                            <mat-label>Property Name</mat-label>
+                            <input matInput formControlName="name" />
+                            @if (updatePropertyForm.get('name')?.hasError('required')) {
+                            <mat-error>Name is required</mat-error>
+                            }
+                            @if (updatePropertyForm.get('name')?.hasError('minlength')) {
+                            <mat-error>At least 3 characters</mat-error>
+                            }
+                        </mat-form-field>
+                        </div>
+
+                        <div class="col-md-6 ">
+                            <mat-form-field appearance="outline" class="full-width">
+                                <mat-label>Address</mat-label>
+                                <input matInput formControlName="address" />
+                                @if (updatePropertyForm.get('address')?.hasError('required')) {
+                                <mat-error>Address is required</mat-error>
+                                }
+                                @if (updatePropertyForm.get('address')?.hasError('minlength')) {
+                                <mat-error>At least 5 characters</mat-error>
+                                }
+                            </mat-form-field>
+                        </div>  
                 </div>
+                <div class="row">
+                    <div class="col-md-10">
+                        <mat-form-field style="width: 100%;" appearance="outline" class="full-width">
+                            <mat-label>Description</mat-label>
+                            <textarea matInput formControlName="description"></textarea>
+                            @if (updatePropertyForm.get('description')?.hasError('required')) {
+                            <mat-error>Description is required</mat-error>
+                            }
+                            @if (updatePropertyForm.get('description')?.hasError('minlength')) {
+                            <mat-error>At least 5 characters</mat-error>
+                            }
+                        </mat-form-field>
+                    </div>
+                    <div class="col-md-2">
 
-                <div class="col-md-6 ">
-                    <mat-form-field appearance="outline" class="full-width">
-                        <mat-label>Address</mat-label>
-                        <input matInput formControlName="address" />
-                        @if (updatePropertyForm.get('address')?.hasError('required')) {
-                        <mat-error>Address is required</mat-error>
-                        }
-                        @if (updatePropertyForm.get('address')?.hasError('minlength')) {
-                        <mat-error>At least 5 characters</mat-error>
-                        }
-                    </mat-form-field>
-                </div>  
-        </div>
-        <div class="row">
-            <div class="col-md-10">
-                <mat-form-field style="width: 100%;" appearance="outline" class="full-width">
-                    <mat-label>Description</mat-label>
-                    <textarea matInput formControlName="description"></textarea>
-                    @if (updatePropertyForm.get('description')?.hasError('required')) {
-                    <mat-error>Description is required</mat-error>
-                    }
-                    @if (updatePropertyForm.get('description')?.hasError('minlength')) {
-                    <mat-error>At least 5 characters</mat-error>
-                    }
-                </mat-form-field>
+                    </div>
+                </div>
             </div>
-            <div class="col-md-2">
 
-            </div>
-        </div>
-    </div>
+        
 
- 
+        
 
-  
+        
+            </form>
+        </mat-dialog-content>
 
-   
-    </form>
-  </mat-dialog-content>
+        <mat-dialog-actions align="end">
+            <button mat-button mat-dialog-close>Cancel</button>
 
-  <mat-dialog-actions align="end">
-    <button mat-button mat-dialog-close>Cancel</button>
+                @if (!loadUpdating) {
+                <button 
+                    mat-raised-button 
+                    color="primary" 
+                    (click)="updateProperty()">
+                    Update Property
+                </button>
+                } @else {
+                <button 
+                    mat-raised-button 
+                    color="primary" 
+                    disabled>
+                    Updating Property ...
+                </button>
+                }
+        </mat-dialog-actions>
 
-        @if (!loadUpdating) {
-        <button 
-            mat-raised-button 
-            color="primary" 
-            (click)="updateProperty()">
-            Update Property
-        </button>
-        } @else {
-        <button 
-            mat-raised-button 
-            color="primary" 
-            disabled>
-            Updating Property ...
-        </button>
-        }
-  </mat-dialog-actions>
+  </div>
 </ng-template>
 
 
@@ -243,10 +247,11 @@
 
 
 <ng-template #deleteDialog>
-    <div class="dialog-header container-fluid">
-        <h2 matDialogTitle style="display:inline;">Delete Property</h2> 
-        <mat-icon matDialogClose  class="closeIcon">close</mat-icon> <br> 
-    </div>
+    <div class="container-fluid dialog-header">
+        <h2 style="display: inline;" mat-dialog-title>Delete Property</h2>
+        <button style="display: inline;float: right;" mat-icon-button mat-dialog-close aria-label="Close dialog">
+            <mat-icon>close</mat-icon>
+        </button> <br> 
 
     <mat-dialog-content>
         <p>Are you sure you want to delete this property?</p>
@@ -269,4 +274,5 @@
         </button>
         }
     </mat-dialog-actions>
+    </div>
 </ng-template>

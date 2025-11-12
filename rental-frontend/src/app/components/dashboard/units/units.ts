@@ -116,9 +116,11 @@ export class Units implements OnInit, AfterViewInit {
         this.systemParameters = res
         this.showElectricityMeter = this.systemParameters.has_electricity_bill;
         this.showWaterMeter = this.systemParameters.has_water_bill;
+        this.cdr.detectChanges();
       },
       error: (err) => {
         console.error('Error fetching system parameters:', err);
+         this.cdr.detectChanges();
       }
     });
   }
@@ -145,6 +147,7 @@ export class Units implements OnInit, AfterViewInit {
         if (this.selectedPropertyId) {
           this.filterUnitsByProperty();
         }
+         this.cdr.detectChanges();
       },
       error: (err) => {
         if (err.status === 0) {
@@ -280,10 +283,13 @@ addUnit() {
     error: (err) => {
       this.loadAdding = false;
       this.showError('Failed to add unit. Please try again.');
-
-      if (err.status === 0) {
-        // Network error
+      if (err.error.non_field_errors[0] == "The fields property, unit_number must make a unique set."){
+        this.showError("Check Unit Number, It should be unique to the property")
       }
+      if (err.status === 0) {
+        this.showError("Check your network connection")
+      }
+
       if (err.status === 401) {
         this.dialog.closeAll();
         this.router.navigate(['/login']);
