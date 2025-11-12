@@ -1,443 +1,329 @@
-/* ========== Container & Layout ========== */
-.contracts-container {
-  padding: 24px;
-  max-width: 1400px;
-  margin: 0 auto;
+/* Contract Preview Dialog Styles */
+.contract-preview-container {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  color: #2c3e50;
+  line-height: 1.6;
+  font-size: 11pt;
+  background: white;
+  padding: 20px;
 }
 
-/* ========== Header Section ========== */
-.header {
+.contract-header {
+  text-align: center;
+  padding: 40px 20px;
+  border-bottom: 4px double #3f51b5;
+  margin-bottom: 30px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border-radius: 8px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.contract-header h1 {
+  font-size: 32pt;
+  font-weight: 700;
+  letter-spacing: 2px;
+  margin-bottom: 10px;
+  text-transform: uppercase;
+  margin: 0;
+}
+
+.contract-number {
+  font-size: 14pt;
+  font-weight: 600;
+  background: rgba(255, 255, 255, 0.2);
+  padding: 8px 20px;
+  border-radius: 20px;
+  display: inline-block;
+  margin-top: 10px;
+}
+
+.contract-meta {
   display: flex;
   justify-content: space-between;
-  align-items: center;
-  margin-bottom: 24px;
-  gap: 16px;
-  flex-wrap: wrap;
+  margin-top: 15px;
+  font-size: 10pt;
+  opacity: 0.95;
+  padding: 0 20px;
 }
 
-.header h2 {
-  margin: 0;
-  font-size: 28px;
+.status-section {
+  text-align: center;
+  margin: 25px 0;
+}
+
+.status-badge {
+  display: inline-block;
+  padding: 12px 30px;
+  border-radius: 25px;
+  font-weight: 700;
+  font-size: 12pt;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.15);
+}
+
+.status-active {
+  background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+  color: white;
+}
+
+.status-inactive {
+  background: linear-gradient(135deg, #eb3349 0%, #f45c43 100%);
+  color: white;
+}
+
+.contract-section {
+  margin-bottom: 30px;
+  page-break-inside: avoid;
+}
+
+.section-title {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  padding: 12px 20px;
+  font-size: 14pt;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  border-radius: 6px;
+  margin-bottom: 20px;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.15);
+}
+
+.subsection-title {
+  color: #667eea;
+  margin: 25px 0 15px 0;
+  font-size: 12pt;
+  font-weight: 600;
+}
+
+.info-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 15px;
+  margin-bottom: 15px;
+}
+
+.info-item {
+  background: #f8f9fa;
+  padding: 15px;
+  border-left: 4px solid #667eea;
+  border-radius: 6px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.info-item.full-width {
+  grid-column: 1 / -1;
+}
+
+.info-label {
+  font-weight: 700;
+  color: #6c757d;
+  font-size: 9pt;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 5px;
+}
+
+.info-value {
+  font-size: 11pt;
+  color: #2c3e50;
   font-weight: 500;
-  color: #333;
 }
 
-.header mat-form-field {
-  min-width: 250px;
-  margin-left: auto;
+.highlight-amount {
+  font-size: 14pt !important;
+  color: #667eea !important;
+  font-weight: 700 !important;
 }
 
-/* ========== Table Styling ========== */
-table {
+.payment-table {
   width: 100%;
-  background: white;
+  border-collapse: collapse;
+  margin-top: 15px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   border-radius: 8px;
   overflow: hidden;
 }
 
-.mat-elevation-z8 {
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-}
-
-th.mat-header-cell {
-  font-weight: 600;
-  font-size: 14px;
-  color: #424242;
-  background-color: #f5f5f5;
-  padding: 16px 12px;
-}
-
-td.mat-cell {
-  padding: 16px 12px;
-  font-size: 14px;
-  color: #616161;
-}
-
-tr.mat-row:hover {
-  background-color: #f9f9f9;
-  transition: background-color 0.2s ease;
-}
-
-/* ========== Status Badge ========== */
-.mat-cell span {
-  padding: 4px 12px;
-  border-radius: 12px;
-  font-size: 12px;
-  font-weight: 500;
-  display: inline-block;
-}
-
-.mat-cell span.active {
-  background-color: #e8f5e9;
-  color: #2e7d32;
-}
-
-.mat-cell span:not(.active) {
-  background-color: #ffebee;
-  color: #c62828;
-}
-
-/* ========== Action Buttons ========== */
-.mat-cell button.mat-icon-button {
-  width: 36px;
-  height: 36px;
-  line-height: 36px;
-  margin: 0 2px;
-  transition: transform 0.2s ease;
-}
-
-.mat-cell button.mat-icon-button:hover {
-  transform: scale(1.1);
-}
-
-/* ========== Loading & Error States ========== */
-.loading-container,
-.error-container {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 80px 20px;
-  gap: 16px;
-  min-height: 400px;
-}
-
-.loading-container p,
-.error-container p {
-  margin: 0;
-  font-size: 16px;
-  color: #666;
-}
-
-.error-container mat-icon {
-  font-size: 48px;
-  width: 48px;
-  height: 48px;
-  color: #f44336;
-}
-
-/* ========== Dialog Styling ========== */
-::ng-deep .mat-mdc-dialog-container {
-  border-radius: 12px !important;
-}
-
-::ng-deep .mat-mdc-dialog-title {
-  font-size: 24px !important;
-  font-weight: 500 !important;
-  padding: 24px 24px 16px !important;
-  margin: 0 !important;
-}
-
-::ng-deep .mat-mdc-dialog-content {
-  padding: 0 24px !important;
-  max-height: 70vh !important;
-  overflow-y: auto !important;
-}
-
-::ng-deep .mat-mdc-dialog-actions {
-  padding: 16px 24px 24px !important;
-  gap: 12px !important;
-}
-
-/* ========== Form Fields in Dialog ========== */
-::ng-deep .mat-mdc-dialog-content form {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-  padding: 16px 0;
-}
-
-::ng-deep .mat-mdc-dialog-content mat-form-field {
-  width: 100%;
-}
-
-::ng-deep .mat-mdc-form-field {
-  font-size: 14px;
-}
-
-/* ========== Loader in Dialog ========== */
-.loader-container {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 20px;
-  gap: 12px;
-  background-color: #f5f5f5;
-  border-radius: 8px;
-  margin-top: 16px;
-}
-
-.loader-container p {
-  margin: 0;
-  font-size: 14px;
-  color: #666;
-}
-
-/* ========== Paginator ========== */
-::ng-deep .mat-mdc-paginator {
-  background: white;
-  border-radius: 0 0 8px 8px;
-  padding: 8px 16px;
-}
-
-/* ========== Button Spinner ========== */
-::ng-deep button mat-spinner {
-  display: inline-block;
-  margin-right: 8px;
-  vertical-align: middle;
-}
-
-::ng-deep button mat-spinner circle {
-  stroke: currentColor;
-}
-
-/* ========== Snackbar Styling ========== */
-::ng-deep .success-snackbar {
-  background-color: #4caf50 !important;
-  color: white !important;
-}
-
-::ng-deep .error-snackbar {
-  background-color: #f44336 !important;
-  color: white !important;
-}
-
-::ng-deep .mat-mdc-snack-bar-container {
-  border-radius: 8px !important;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
-}
-
-/* ========== Responsive Design ========== */
-@media (max-width: 768px) {
-  .contracts-container {
-    padding: 16px;
-  }
-
-  .header {
-    flex-direction: column;
-    align-items: flex-start;
-  }
-
-  .header mat-form-field {
-    width: 100%;
-    margin-left: 0;
-  }
-
-  .header h2 {
-    font-size: 24px;
-  }
-
-  table {
-    font-size: 12px;
-  }
-
-  th.mat-header-cell,
-  td.mat-cell {
-    padding: 12px 8px;
-  }
-
-  ::ng-deep .mat-mdc-dialog-container {
-    width: 95vw !important;
-    max-width: 95vw !important;
-  }
-}
-
-@media (max-width: 480px) {
-  .header h2 {
-    font-size: 20px;
-  }
-
-  .mat-cell button.mat-icon-button {
-    width: 32px;
-    height: 32px;
-  }
-
-  ::ng-deep .mat-mdc-dialog-title {
-    font-size: 20px !important;
-  }
-}
-
-/* ========== Scrollbar Styling ========== */
-::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
-}
-
-::-webkit-scrollbar-track {
-  background: #f1f1f1;
-  border-radius: 4px;
-}
-
-::-webkit-scrollbar-thumb {
-  background: #888;
-  border-radius: 4px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: #555;
-}
-
-/* ========== Table Empty State ========== */
-.mat-row:empty::after {
-  content: 'No contracts found';
-  display: block;
-  text-align: center;
-  padding: 40px;
-  color: #999;
-  font-size: 14px;
-}
-
-/* ========== Animation ========== */
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.contracts-container {
-  animation: fadeIn 0.3s ease-out;
-}
-
-/* ========== Loading Spinner Animation ========== */
-@keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
-}
-
-/* ========== Custom Loader (Alternative) ========== */
-.custom-spinner {
-  border: 4px solid #f3f3f3;
-  border-top: 4px solid #3f51b5;
-  border-radius: 50%;
-  width: 40px;
-  height: 40px;
-  animation: spin 1s linear infinite;
-}
-
-/* ========== Dialog Overlay ========== */
-.loader-overlay {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(255, 255, 255, 0.95);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
-  border-radius: 8px;
-}
-
-/* ========== Disabled State ========== */
-button:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-/* ========== Focus States ========== */
-button:focus-visible,
-input:focus-visible,
-select:focus-visible {
-  outline: 2px solid #3f51b5;
-  outline-offset: 2px;
-}
-
-/* ========== Material Icon Sizing ========== */
-.mat-icon {
-  width: 24px;
-  height: 24px;
-  font-size: 24px;
-}
-
-/* ========== Table Row Transitions ========== */
-.mat-row {
-  transition: all 0.2s ease;
-}
-
-.mat-row:hover .mat-cell {
-  color: #333;
-}
-
-/* ========== Form Validation ========== */
-::ng-deep .mat-mdc-form-field-error {
-  font-size: 12px;
-  margin-top: 4px;
-}
-
-::ng-deep .mat-mdc-form-field.mat-form-field-invalid .mdc-notched-outline__leading,
-::ng-deep .mat-mdc-form-field.mat-form-field-invalid .mdc-notched-outline__notch,
-::ng-deep .mat-mdc-form-field.mat-form-field-invalid .mdc-notched-outline__trailing {
-  border-color: #f44336 !important;
-}
-
-
-/* ========== Spacing Utilities ========== */
-.mt-16 {
-  margin-top: 16px;
-}
-
-.mb-16 {
-  margin-bottom: 16px;
-}
-
-.p-16 {
-  padding: 16px;
-}
-
-/* ========== Print Styles ========== */
-@media print {
-  .header button,
-  .header mat-form-field,
-  .mat-paginator,
-  .mat-cell button {
-    display: none !important;
-  }
-
-  table {
-    box-shadow: none !important;
-  }
-}
-
-input.mat-mdc-input-element {
-  border: none !important;
-  outline: none !important;
-  box-shadow: none !important;
-}
-
-
-/* Row background colors */
-.active-row {
-  background-color: #e8f5e9; /* light green */
-}
-
-.inactive-row {
-  background-color: #ffebee; /* light red */
-}
-
-/* Status badge styling */
-.status-badge {
-  display: inline-block;
-  padding: 4px 12px;
-  border-radius: 12px;
-  font-size: 12px;
-  font-weight: 600;
+.payment-table th {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  padding: 12px;
+  text-align: left;
+  font-size: 10pt;
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
 
-.status-badge.active {
-  background-color: #c8e6c9; /* pale green */
-  color: #2e7d32; /* dark green */
+.payment-table td {
+  padding: 12px;
+  border-bottom: 1px solid #e9ecef;
+  background: white;
 }
 
-.status-badge.inactive {
-  background-color: #ffcdd2; /* pale red */
-  color: #c62828; /* dark red */
+.payment-table tr:last-child td {
+  border-bottom: none;
+}
+
+.payment-table tr:hover td {
+  background: #f8f9fa;
+}
+
+.payment-table .total-row {
+  background: #f8f9fa;
+  font-weight: 700;
+}
+
+.highlight-total {
+  color: #667eea;
+  font-size: 12pt;
+}
+
+.terms-list {
+  list-style: none;
+  padding-left: 0;
+}
+
+.terms-list li {
+  padding: 10px 15px;
+  margin-bottom: 8px;
+  background: #f8f9fa;
+  border-left: 3px solid #667eea;
+  border-radius: 4px;
+  position: relative;
+  padding-left: 35px;
+}
+
+.terms-list li:before {
+  content: "✓";
+  position: absolute;
+  left: 12px;
+  color: #667eea;
+  font-weight: bold;
+  font-size: 14pt;
+}
+
+.notice-box {
+  background: #fff3cd;
+  border: 2px solid #ffc107;
+  border-radius: 8px;
+  padding: 15px;
+  margin: 20px 0;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.notice-box strong {
+  color: #856404;
+  font-size: 11pt;
+  display: block;
+  margin-bottom: 8px;
+}
+
+.notice-box p {
+  color: #856404;
+  font-size: 10pt;
+  margin: 0;
+}
+
+.signature-section {
+  margin-top: 60px;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 40px;
+  page-break-inside: avoid;
+}
+
+.signature-box {
+  text-align: center;
+  padding: 20px;
+  border: 2px solid #e9ecef;
+  border-radius: 8px;
+  background: #f8f9fa;
+}
+
+.signature-title {
+  font-weight: 700;
+  color: #667eea;
+  margin-bottom: 10px;
+  font-size: 11pt;
+}
+
+.signature-line {
+  border-top: 2px solid #2c3e50;
+  margin-top: 60px;
+  padding-top: 10px;
+  font-weight: 600;
+  color: #2c3e50;
+}
+
+.signature-date {
+  margin-top: 15px;
+  color: #6c757d;
+  font-size: 9pt;
+}
+
+.signature-name {
+  margin-top: 15px;
+  color: #6c757d;
+  font-size: 9pt;
+}
+
+.contract-footer {
+  margin-top: 50px;
+  padding-top: 20px;
+  border-top: 2px solid #e9ecef;
+  text-align: center;
+  color: #6c757d;
+  font-size: 9pt;
+}
+
+.footer-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.footer-note {
+  margin-top: 15px;
+  font-size: 8pt;
+  color: #adb5bd;
+}
+
+
+
+/* Print Styles */
+@media print {
+  .contract-preview-container {
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+  
+  .contract-section {
+    page-break-inside: avoid;
+  }
+  
+  .signature-section {
+    page-break-before: auto;
+  }
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .info-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .signature-section {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+  
+  .footer-content {
+    flex-direction: column;
+    text-align: center;
+  }
 }

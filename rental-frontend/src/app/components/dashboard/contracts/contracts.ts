@@ -6,6 +6,7 @@ import {
   TemplateRef,
   ViewChild,
   ChangeDetectorRef,
+  ElementRef,
 } from '@angular/core';
 import { MatPaginator } from '@angular/material/paginator';
 import { MatTableDataSource } from '@angular/material/table';
@@ -19,7 +20,9 @@ import { CustomersService } from '../../../services/customer';
 import { UnitsService } from '../../../services/units';
 import { PropertiesService } from '../../../services/properties';
 import { SystemParametersServices } from '../../../services/system-parameters-services';
-
+import jsPDF from 'jspdf';
+import html2canvas from 'html2canvas';
+import { environment } from '../../../../environments/environment';
 
 export interface ContractObject {
   id: number;
@@ -35,6 +38,9 @@ export interface ContractObject {
   is_active: boolean;
   customer: number;
   unit: number;
+  id_photo_front:any;
+  id_photo_back:any;
+
 }
 
 @Component({
@@ -57,10 +63,14 @@ export class Contracts implements OnInit, AfterViewInit {
   private systemParametersService = inject(SystemParametersServices);
   private fb = inject(FormBuilder);
 
+  apiUrl= environment.apiUrl
+
   @ViewChild('openAddDialog') openAddDialog!: TemplateRef<any>;
   @ViewChild('editDialog') editDialog!: TemplateRef<any>;
   @ViewChild('deleteDialog') deleteDialog!: TemplateRef<any>;
   @ViewChild('cancelDialog') cancelDialog!: TemplateRef<any>;
+  @ViewChild('contractPreviewDialog') contractPreviewDialog!: TemplateRef<any>;
+  @ViewChild('contractPreview', { static: false }) contractPreview!: ElementRef;
   @ViewChild('activePaginator') activePaginator!: MatPaginator;
   @ViewChild('inactivePaginator') inactivePaginator!: MatPaginator;
 
@@ -88,7 +98,7 @@ export class Contracts implements OnInit, AfterViewInit {
   loadUpdating = false;
   loadDeleting = false;
   loadCancelling = false;
-  selectedPropertyId:any
+  selectedPropertyId: any;
   error: string | null = null;
   
   customers: any[] = [];
@@ -98,6 +108,13 @@ export class Contracts implements OnInit, AfterViewInit {
   
   searchText = '';
   systemParameters: any;
+
+  // Contract preview data
+  selectedContract: ContractObject | null = null;
+  contractStartDate: string = '';
+  contractEndDate: string = '';
+  contractDuration: string = '';
+  totalInitialPayment: string = '';
 
   formatToYMD(dateString: string): string {
     const date = new Date(dateString);
@@ -115,7 +132,6 @@ export class Contracts implements OnInit, AfterViewInit {
     this.loadProperties();
     this.loadContracts();
     this.isLoading = false;
-
   }
 
   ngAfterViewInit(): void {
@@ -132,10 +148,8 @@ export class Contracts implements OnInit, AfterViewInit {
   initForm() {
     this.contractForm = this.fb.group({
       customer: ['', Validators.required],
-      // property: [this.selectedPropertyId, Validators.required],
       unit: ['', Validators.required],
       start_date: ['', Validators.required],
-      // end_date: ['', Validators.required],
       rent_amount: ['', Validators.required],
       deposit_amount: ['', Validators.required],
       payment_frequency: ['monthly', Validators.required],
@@ -147,7 +161,6 @@ export class Contracts implements OnInit, AfterViewInit {
       customer: ['', Validators.required],
       unit: ['', Validators.required],
       start_date: ['', Validators.required],
-      // end_date: ['', Validators.required],
       rent_amount: ['', Validators.required],
       deposit_amount: ['', Validators.required],
       payment_frequency: ['', Validators.required],
@@ -232,101 +245,92 @@ export class Contracts implements OnInit, AfterViewInit {
     this.contractForm.patchValue({ unit: '' });
   }
 
-loadContracts() {
-  this.isLoading = true;
+  loadContracts() {
+    this.isLoading = true;
 
-  this.contractsService.getContracts().subscribe({
-    next: (res) => {
-      this.contracts = res;
+    this.contractsService.getContracts().subscribe({
+      next: (res) => {
+        this.contracts = res;
 
-      // ✅ Auto-select first property if none selected
-      if (!this.selectedPropertyId && this.properties?.length > 0) {
-        this.selectedPropertyId = this.properties[0].id;
-        console.log('🔄 Defaulted to first property:', this.selectedPropertyId);
-      }
+        if (!this.selectedPropertyId && this.properties?.length > 0) {
+          this.selectedPropertyId = this.properties[0].id;
+          console.log('🔄 Defaulted to first property:', this.selectedPropertyId);
+        }
 
-      let filteredContracts = this.contracts;
+        let filteredContracts = this.contracts;
 
-      // ✅ Filter by selected property if available
-      if (this.selectedPropertyId) {
-        filteredContracts = this.contracts.filter(contract => {
-          const unit = this.units.find(u => u.id === contract.unit);
-          return unit && unit.property === this.selectedPropertyId;
-        });
-      }
+        if (this.selectedPropertyId) {
+          filteredContracts = this.contracts.filter(contract => {
+            const unit = this.units.find(u => u.id === contract.unit);
+            return unit && unit.property === this.selectedPropertyId;
+          });
+        }
 
-      // ✅ Split filtered contracts into active and inactive
-      const activeContracts = filteredContracts.filter(c => c.is_active);
-      const inactiveContracts = filteredContracts.filter(c => !c.is_active);
+        const activeContracts = filteredContracts.filter(c => c.is_active);
+        const inactiveContracts = filteredContracts.filter(c => !c.is_active);
 
+        this.activeDataSource.data = activeContracts;
+        this.inactiveDataSource.data = inactiveContracts;
+
+        this.isLoading = false;
+
+        setTimeout(() => {
+          if (this.activePaginator) {
+            this.activeDataSource.paginator = this.activePaginator;
+          }
+          if (this.inactivePaginator) {
+            this.inactiveDataSource.paginator = this.inactivePaginator;
+          }
+        },100);
+
+        this.cdr.detectChanges();
+
+        console.log('✅ Contracts loaded and filtered:', this.contracts);
+      },
+      error: (err) => {
+        console.error('❌ Error loading contracts:', err);
+        this.isLoading = false;
+        this.error = 'Failed to load contracts.';
+        if (err.status === 401) this.router.navigate(['/login']);
+        this.cdr.detectChanges();
+      },
+    });
+  }
+
+  filterContractsByProperty() {
+    console.log('Filtering contracts for property ID:', this.selectedPropertyId);
+    this.onPropertyChange(this.selectedPropertyId);
+    if (!this.selectedPropertyId) {
+      const activeContracts = this.contracts.filter(c => c.is_active);
+      const inactiveContracts = this.contracts.filter(c => !c.is_active);
+      
       this.activeDataSource.data = activeContracts;
       this.inactiveDataSource.data = inactiveContracts;
-
-      this.isLoading = false;
-
-      // ✅ Reset paginators
-    setTimeout(() => {
-    if (this.activePaginator) {
-          this.activeDataSource.paginator = this.activePaginator;
-        }
-    if (this.inactivePaginator) {
-      this.inactiveDataSource.paginator = this.inactivePaginator;
+      return;
     }
+    
+    const filteredContracts = this.contracts.filter(contract => {
+      const unit = this.units.find(u => u.id === contract.unit);
+      return unit && unit.property === this.selectedPropertyId;
     });
-
-      this.cdr.detectChanges();
-
-      console.log('✅ Contracts loaded and filtered:', this.contracts);
-    },
-    error: (err) => {
-      console.error('❌ Error loading contracts:', err);
-      this.isLoading = false;
-      this.error = 'Failed to load contracts.';
-      if (err.status === 401) this.router.navigate(['/login']);
-      this.cdr.detectChanges();
-    },
-  });
-}
-
-
-filterContractsByProperty() {
-  console.log('Filtering contracts for property ID:', this.selectedPropertyId);
-   this.onPropertyChange(this.selectedPropertyId);
-  if (!this.selectedPropertyId) {
-    // If no property selected, show all contracts
-    const activeContracts = this.contracts.filter(c => c.is_active);
-    const inactiveContracts = this.contracts.filter(c => !c.is_active);
+    
+    const activeContracts = filteredContracts.filter(c => c.is_active);
+    const inactiveContracts = filteredContracts.filter(c => !c.is_active);
     
     this.activeDataSource.data = activeContracts;
     this.inactiveDataSource.data = inactiveContracts;
-    return;
-  }
-  
-  // Filter contracts where the unit belongs to the selected property
-  const filteredContracts = this.contracts.filter(contract => {
-    const unit = this.units.find(u => u.id === contract.unit);
-    return unit && unit.property === this.selectedPropertyId;
-  });
-  
-  // Split filtered contracts into active and inactive
-  const activeContracts = filteredContracts.filter(c => c.is_active);
-  const inactiveContracts = filteredContracts.filter(c => !c.is_active);
-  
-  this.activeDataSource.data = activeContracts;
-  this.inactiveDataSource.data = inactiveContracts;
-  
-  // Reset paginators to first page
-  setTimeout(() => {
-  if (this.activePaginator) {
+    
+    setTimeout(() => {
+      if (this.activePaginator) {
         this.activeDataSource.paginator = this.activePaginator;
       }
-  if (this.inactivePaginator) {
-    this.inactiveDataSource.paginator = this.inactivePaginator;
+      if (this.inactivePaginator) {
+        this.inactiveDataSource.paginator = this.inactivePaginator;
+      }
+    });
+    
+    this.cdr.detectChanges();
   }
-  });
-  
-  this.cdr.detectChanges();
-}
 
   openAddDialogForm() {
     this.isEditMode = false;
@@ -345,7 +349,6 @@ filterContractsByProperty() {
       customer: contract.customer,
       unit: contract.unit,
       start_date: contract.start_date,
-      // end_date: contract.end_date,
       rent_amount: contract.rent_amount,
       deposit_amount: contract.deposit_amount,
       payment_frequency: contract.payment_frequency,
@@ -357,9 +360,10 @@ filterContractsByProperty() {
     });
   }
 
-  testData(){
-   console.log( this.contractForm.value)
+  testData() {
+    console.log(this.contractForm.value);
   }
+
   addContract() {
     if (this.contractForm.invalid) {
       this.contractForm.markAllAsTouched();
@@ -373,7 +377,6 @@ filterContractsByProperty() {
       customer: formValues.customer,
       unit: formValues.unit,
       start_date: this.formatToYMD(formValues.start_date),
-      // end_date: this.formatToYMD(formValues.end_date),
       rent_amount: formValues.rent_amount,
       deposit_amount: formValues.deposit_amount,
       payment_frequency: formValues.payment_frequency,
@@ -527,493 +530,103 @@ filterContractsByProperty() {
     });
   }
 
+  // Contract Preview and PDF Generation
   printContract(contract: ContractObject) {
-    const printContent = `
-      <!DOCTYPE html>
-      <html>
-        <head>
-          <meta charset="UTF-8">
-          <title>Rental Contract #${contract.contract_number || 'N/A'}</title>
-          <style>
-            @page { 
-              margin: 15mm 20mm; 
-              size: A4;
-            }
-            
-            * {
-              margin: 0;
-              padding: 0;
-              box-sizing: border-box;
-            }
-            
-            body { 
-              font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-              color: #2c3e50;
-              line-height: 1.6;
-              font-size: 11pt;
-            }
-            
-            .container {
-              max-width: 100%;
-              margin: 0 auto;
-            }
-            
-            .header {
-              text-align: center;
-              padding: 30px 0;
-              border-bottom: 4px double #3f51b5;
-              margin-bottom: 30px;
-              background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-              color: white;
-              padding: 40px 20px;
-              border-radius: 8px;
-              box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-            }
-            
-            .header h1 {
-              font-size: 32pt;
-              font-weight: 700;
-              letter-spacing: 2px;
-              margin-bottom: 10px;
-              text-transform: uppercase;
-            }
-            
-            .contract-meta {
-              display: flex;
-              justify-content: space-between;
-              margin-top: 15px;
-              font-size: 10pt;
-              opacity: 0.95;
-            }
-            
-            .contract-number {
-              font-size: 14pt;
-              font-weight: 600;
-              background: rgba(255,255,255,0.2);
-              padding: 8px 20px;
-              border-radius: 20px;
-              display: inline-block;
-              margin-top: 10px;
-            }
-            
-            .status-section {
-              text-align: center;
-              margin: 25px 0;
-            }
-            
-            .status-badge {
-              display: inline-block;
-              padding: 12px 30px;
-              border-radius: 25px;
-              font-weight: 700;
-              font-size: 12pt;
-              text-transform: uppercase;
-              letter-spacing: 1px;
-              box-shadow: 0 3px 10px rgba(0,0,0,0.15);
-            }
-            
-            .status-active {
-              background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
-              color: white;
-            }
-            
-            .status-inactive {
-              background: linear-gradient(135deg, #eb3349 0%, #f45c43 100%);
-              color: white;
-            }
-            
-            .section {
-              margin-bottom: 30px;
-              page-break-inside: avoid;
-            }
-            
-            .section-title {
-              background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-              color: white;
-              padding: 12px 20px;
-              font-size: 14pt;
-              font-weight: 700;
-              text-transform: uppercase;
-              letter-spacing: 1px;
-              border-radius: 6px;
-              margin-bottom: 20px;
-              box-shadow: 0 3px 8px rgba(0,0,0,0.15);
-            }
-            
-            .info-grid {
-              display: grid;
-              grid-template-columns: repeat(2, 1fr);
-              gap: 15px;
-              margin-bottom: 15px;
-            }
-            
-            .info-item {
-              background: #f8f9fa;
-              padding: 15px;
-              border-left: 4px solid #667eea;
-              border-radius: 6px;
-              box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-            }
-            
-            .info-item.full-width {
-              grid-column: 1 / -1;
-            }
-            
-            .info-label {
-              font-weight: 700;
-              color: #6c757d;
-              font-size: 9pt;
-              text-transform: uppercase;
-              letter-spacing: 0.5px;
-              margin-bottom: 5px;
-            }
-            
-            .info-value {
-              font-size: 11pt;
-              color: #2c3e50;
-              font-weight: 500;
-            }
-            
-            .terms-list {
-              list-style: none;
-              padding-left: 0;
-            }
-            
-            .terms-list li {
-              padding: 10px 15px;
-              margin-bottom: 8px;
-              background: #f8f9fa;
-              border-left: 3px solid #667eea;
-              border-radius: 4px;
-              position: relative;
-              padding-left: 35px;
-            }
-            
-            .terms-list li:before {
-              content: "✓";
-              position: absolute;
-              left: 12px;
-              color: #667eea;
-              font-weight: bold;
-              font-size: 14pt;
-            }
-            
-            .payment-table {
-              width: 100%;
-              border-collapse: collapse;
-              margin-top: 15px;
-              box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-              border-radius: 8px;
-              overflow: hidden;
-            }
-            
-            .payment-table th {
-              background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-              color: white;
-              padding: 12px;
-              text-align: left;
-              font-size: 10pt;
-              text-transform: uppercase;
-              letter-spacing: 0.5px;
-            }
-            
-            .payment-table td {
-              padding: 12px;
-              border-bottom: 1px solid #e9ecef;
-              background: white;
-            }
-            
-            .payment-table tr:last-child td {
-              border-bottom: none;
-            }
-            
-            .payment-table tr:hover td {
-              background: #f8f9fa;
-            }
-            
-            .signature-section {
-              margin-top: 60px;
-              display: grid;
-              grid-template-columns: repeat(2, 1fr);
-              gap: 40px;
-              page-break-inside: avoid;
-            }
-            
-            .signature-box {
-              text-align: center;
-              padding: 20px;
-              border: 2px solid #e9ecef;
-              border-radius: 8px;
-              background: #f8f9fa;
-            }
-            
-            .signature-line {
-              border-top: 2px solid #2c3e50;
-              margin-top: 60px;
-              padding-top: 10px;
-              font-weight: 600;
-              color: #2c3e50;
-            }
-            
-            .signature-date {
-              margin-top: 15px;
-              color: #6c757d;
-              font-size: 9pt;
-            }
-            
-            .footer {
-              margin-top: 50px;
-              padding-top: 20px;
-              border-top: 2px solid #e9ecef;
-              text-align: center;
-              color: #6c757d;
-              font-size: 9pt;
-            }
-            
-            .footer-content {
-              display: flex;
-              justify-content: space-between;
-              align-items: center;
-              flex-wrap: wrap;
-              gap: 10px;
-            }
-            
-            .notice-box {
-              background: #fff3cd;
-              border: 2px solid #ffc107;
-              border-radius: 8px;
-              padding: 15px;
-              margin: 20px 0;
-              box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            }
-            
-            .notice-box strong {
-              color: #856404;
-              font-size: 11pt;
-            }
-            
-            .notice-box p {
-              margin-top: 8px;
-              color: #856404;
-              font-size: 10pt;
-            }
-            
-            @media print {
-              body {
-                print-color-adjust: exact;
-                -webkit-print-color-adjust: exact;
-              }
-              
-              .section {
-                page-break-inside: avoid;
-              }
-              
-              .signature-section {
-                page-break-before: auto;
-              }
-            }
-          </style>
-        </head>
-        <body>
-          <div class="container">
-            <div class="header">
-              <h1>Rental Contract Agreement</h1>
-              <div class="contract-number">Contract #${contract.contract_number || 'N/A'}</div>
-              <div class="contract-meta">
-                <span>📅 Generated: ${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</span>
-                <span>📄 Legal Document</span>
-              </div>
-            </div>
-
-            <div class="status-section">
-              <div class="status-badge ${contract.is_active ? 'status-active' : 'status-inactive'}">
-                ${contract.is_active ? '✓ Active Contract' : '✗ Inactive Contract'}
-              </div>
-            </div>
-
-            <div class="section">
-              <div class="section-title">👥 Parties to the Agreement</div>
-              
-              <h3 style="color: #667eea; margin-bottom: 15px; font-size: 12pt;">Tenant Information</h3>
-              <div class="info-grid">
-                <div class="info-item">
-                  <div class="info-label">Full Name</div>
-                  <div class="info-value">${contract.customer_name}</div>
-                </div>
-                <div class="info-item">
-                  <div class="info-label">Contact Number</div>
-                  <div class="info-value">${contract.customer_phone}</div>
-                </div>
-              </div>
-            </div>
-
-            <div class="section">
-              <div class="section-title">🏠 Property Details</div>
-              <div class="info-grid">
-                <div class="info-item full-width">
-                  <div class="info-label">Rental Unit</div>
-                  <div class="info-value">${contract.unit_info}</div>
-                </div>
-              </div>
-            </div>
-
-            <div class="section">
-              <div class="section-title">📅 Contract Period</div>
-              <div class="info-grid">
-                <div class="info-item">
-                  <div class="info-label">Commencement Date</div>
-                  <div class="info-value">${new Date(contract.start_date).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</div>
-                </div>
-                <div class="info-item">
-                  <div class="info-label">Expiration Date</div>
-                  <div class="info-value">${new Date(contract.end_date).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</div>
-                </div>
-                <div class="info-item full-width">
-                  <div class="info-label">Contract Duration</div>
-                  <div class="info-value">${this.calculateDuration(contract.start_date, contract.end_date)}</div>
-                </div>
-              </div>
-            </div>
-
-            <div class="section">
-              <div class="section-title">💰 Financial Terms</div>
-              <div class="info-grid">
-                <div class="info-item">
-                  <div class="info-label">Monthly Rent Amount</div>
-                  <div class="info-value" style="font-size: 14pt; color: #667eea; font-weight: 700;">KES ${this.formatCurrency(contract.rent_amount)}</div>
-                </div>
-                <div class="info-item">
-                  <div class="info-label">Security Deposit</div>
-                  <div class="info-value" style="font-size: 14pt; color: #667eea; font-weight: 700;">KES ${this.formatCurrency(contract.deposit_amount)}</div>
-                </div>
-                <div class="info-item">
-                  <div class="info-label">Payment Frequency</div>
-                  <div class="info-value">${contract.payment_frequency.toUpperCase()}</div>
-                </div>
-                <div class="info-item">
-                  <div class="info-label">Payment Due Date</div>
-                  <div class="info-value">1st of every month</div>
-                </div>
-              </div>
-              
-              <h3 style="color: #667eea; margin: 25px 0 15px 0; font-size: 12pt;">Payment Breakdown</h3>
-              <table class="payment-table">
-                <thead>
-                  <tr>
-                    <th>Description</th>
-                    <th>Amount (KES)</th>
-                    <th>Due Date</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr>
-                    <td>Monthly Rent</td>
-                    <td>${this.formatCurrency(contract.rent_amount)}</td>
-                    <td>${contract.payment_frequency === 'monthly' ? 'Monthly' : contract.payment_frequency === 'quarterly' ? 'Quarterly' : 'Yearly'}</td>
-                  </tr>
-                  <tr>
-                    <td>Security Deposit (Refundable)</td>
-                    <td>${this.formatCurrency(contract.deposit_amount)}</td>
-                    <td>Upon Contract Signing</td>
-                  </tr>
-                  <tr style="background: #f8f9fa; font-weight: 700;">
-                    <td>Total Initial Payment</td>
-                    <td style="color: #667eea; font-size: 12pt;">KES ${this.formatCurrency((parseFloat(contract.rent_amount) + parseFloat(contract.deposit_amount)).toString())}</td>
-                    <td>Before Move-in</td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-
-            <div class="section">
-              <div class="section-title">📋 Terms & Conditions</div>
-              <ul class="terms-list">
-                <li>The tenant agrees to pay rent on or before the 1st day of each month.</li>
-                <li>Late payment charges of 5% will be applied after 5 days from the due date.</li>
-                <li>The security deposit will be refunded within 30 days after lease termination, subject to property inspection.</li>
-                <li>The tenant is responsible for maintaining the property in good condition.</li>
-                <li>Any structural modifications require prior written consent from the landlord.</li>
-                <li>The tenant must not sublet the property without landlord's written permission.</li>
-                <li>Either party may terminate this agreement by providing 30 days written notice.</li>
-                <li>The tenant must maintain adequate insurance for personal belongings.</li>
-              </ul>
-            </div>
-
-            <div class="notice-box">
-              <strong>⚠️ Important Notice</strong>
-              <p>This is a legally binding contract. Both parties should read and understand all terms before signing. It is recommended to seek legal advice if needed.</p>
-            </div>
-
-            <div class="signature-section">
-              <div class="signature-box">
-                <div style="font-weight: 700; color: #667eea; margin-bottom: 10px; font-size: 11pt;">LANDLORD / AGENT</div>
-                <div class="signature-line">
-                  Signature
-                </div>
-                <div class="signature-date">
-                  Date: _____________________
-                </div>
-                <div style="margin-top: 15px; color: #6c757d; font-size: 9pt;">
-                  Print Name: _____________________
-                </div>
-              </div>
-              
-              <div class="signature-box">
-                <div style="font-weight: 700; color: #667eea; margin-bottom: 10px; font-size: 11pt;">TENANT</div>
-                <div class="signature-line">
-                  Signature
-                </div>
-                <div class="signature-date">
-                  Date: _____________________
-                </div>
-                <div style="margin-top: 15px; color: #6c757d; font-size: 9pt;">
-                  Print Name: ${contract.customer_name}
-                </div>
-              </div>
-            </div>
-
-            <div class="footer">
-              <div class="footer-content">
-                <span>© ${new Date().getFullYear()} Property Management System</span>
-                <span>Contract ID: ${contract.contract_number || 'N/A'}</span>
-                <span>Page 1 of 1</span>
-              </div>
-              <p style="margin-top: 15px; font-size: 8pt; color: #adb5bd;">
-                This document is computer-generated and valid without signature if electronically signed.
-              </p>
-            </div>
-          </div>
-        </body>
-      </html>
-    `;
-
-    const iframe = document.createElement('iframe');
-    iframe.style.position = 'fixed';
-    iframe.style.right = '0';
-    iframe.style.bottom = '0';
-    iframe.style.width = '0';
-    iframe.style.height = '0';
-    iframe.style.border = '0';
-    document.body.appendChild(iframe);
+    console.log('Generating contract for:', contract);
     
-    const doc = iframe.contentWindow?.document;
-    if (doc) {
-      doc.open();
-      doc.write(printContent);
-      doc.close();
-
-      setTimeout(() => {
-        iframe.contentWindow?.focus();
-        iframe.contentWindow?.print();
-        setTimeout(() => document.body.removeChild(iframe), 1000);
-      }, 500);
-
-    } else {
-      this.showError('Failed to open print document.');
-    }
+    this.selectedContract = contract;
+    this.contractStartDate = new Date(contract.start_date).toLocaleDateString('en-US', { 
+      year: 'numeric', 
+      month: 'long', 
+      day: 'numeric' 
+    });
+    this.contractEndDate = new Date(contract.end_date).toLocaleDateString('en-US', { 
+      year: 'numeric', 
+      month: 'long', 
+      day: 'numeric' 
+    });
+    this.contractDuration = this.calculateDuration(contract.start_date, contract.end_date);
+    this.totalInitialPayment = this.formatCurrency(
+      (parseFloat(contract.rent_amount) + parseFloat(contract.deposit_amount)).toString()
+    );
+    
+    this.openContractPreview();
   }
 
-  private calculateDuration(startDate: string, endDate: string): string {
+  openContractPreview() {
+    const dialogRef = this.dialog.open(this.contractPreviewDialog, {
+      width: '900px',
+      maxHeight: '90vh',
+      panelClass: 'contract-preview-dialog'
+    });
+    
+    dialogRef.afterClosed().subscribe(result => {
+      if (result !== undefined) {
+        console.log('Dialog closed with result:', result);
+      }
+    });
+  }
+
+  generateContractPDF() {
+    const element = this.contractPreview.nativeElement;
+    html2canvas(element, { scale: 2 }).then(canvas => {
+      const imgData = canvas.toDataURL('image/png');
+      
+      // A4 dimensions
+      const pdf = new jsPDF('p', 'mm', 'a4');
+      const pageWidth = 210;
+      const pageHeight = 297;
+      const margin = 15;
+      const contentWidth = pageWidth - (2 * margin);
+      
+      const imgWidth = contentWidth;
+      const imgHeight = (canvas.height * imgWidth) / canvas.width;
+      
+      const availableHeight = pageHeight - (2 * margin);
+      
+      let position = margin;
+      let remainingHeight = imgHeight;
+      
+      if (imgHeight <= availableHeight) {
+        pdf.addImage(imgData, 'PNG', margin, position, imgWidth, imgHeight);
+      } else {
+        let currentPage = 0;
+        
+        while (remainingHeight > 0) {
+          if (currentPage > 0) {
+            pdf.addPage();
+          }
+          
+          const heightToShow = Math.min(availableHeight, remainingHeight);
+          const sourceY = currentPage * availableHeight * (canvas.height / imgHeight);
+          const sourceHeight = heightToShow * (canvas.height / imgHeight);
+          
+          const pageCanvas = document.createElement('canvas');
+          pageCanvas.width = canvas.width;
+          pageCanvas.height = sourceHeight;
+          const pageCtx = pageCanvas.getContext('2d');
+          
+          if (pageCtx) {
+            pageCtx.drawImage(
+              canvas,
+              0, sourceY, canvas.width, sourceHeight,
+              0, 0, canvas.width, sourceHeight
+            );
+            
+            const pageImgData = pageCanvas.toDataURL('image/png');
+            pdf.addImage(pageImgData, 'PNG', margin, margin, imgWidth, heightToShow);
+          }
+          
+          remainingHeight -= availableHeight;
+          currentPage++;
+        }
+      }
+      
+      pdf.save(`contract_${this.selectedContract?.contract_number}.pdf`);
+    });
+  }
+
+  calculateDuration(startDate: string, endDate: string): string {
     const start = new Date(startDate);
     const end = new Date(endDate);
     const diffTime = Math.abs(end.getTime() - start.getTime());
@@ -1029,7 +642,10 @@ filterContractsByProperty() {
     }
   }
 
-  private formatCurrency(amount: string): string {
-    return parseFloat(amount).toLocaleString('en-KE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  formatCurrency(amount: string): string {
+    return parseFloat(amount).toLocaleString('en-KE', { 
+      minimumFractionDigits: 2, 
+      maximumFractionDigits: 2 
+    });
   }
 }

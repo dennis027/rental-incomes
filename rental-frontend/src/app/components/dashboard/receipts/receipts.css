@@ -56,3 +56,42 @@ mat-dialog-content {
     max-width: 100%;
   }
 }
+
+.receipt-container {
+    font-family: Arial, sans-serif;
+    padding: 20px;
+    background: #fff;
+    border: 1px solid #ddd;
+    width: 80%;
+    margin: auto;
+  }
+  
+.table-receipt {
+  border-collapse: collapse;
+  width: 100%;
+  text-align: right;
+}
+
+.table-receipt th,
+.table-receipt td {
+  padding: 6px 8px;
+  border: 1px solid #ccc;
+  vertical-align: middle;
+}
+
+.table-receipt th:first-child,
+.table-receipt td:first-child {
+  text-align: left;
+  width: 60%;
+}
+
+.table-receipt th:nth-child(2),
+.table-receipt td:nth-child(2) {
+  width: 20%;
+}
+
+.table-receipt th:nth-child(3),
+.table-receipt td:nth-child(3) {
+  width: 20%;
+  text-align: center;
+}

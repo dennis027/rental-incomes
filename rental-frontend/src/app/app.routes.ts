@@ -24,7 +24,7 @@ export const routes: Routes = [
     component: Dashboard,
     canActivate: [AuthGuard],
     children: [
-      { path: '', redirectTo: 'contracts', pathMatch: 'full' }, // ✅ redirect default /dashboard → /dashboard/home
+      { path: '', redirectTo: 'home', pathMatch: 'full' }, // ✅ redirect default /dashboard → /dashboard/home
       { path: 'home', component: DashHome, canActivate: [AuthGuard] },
       { path: 'rental-customers', component: RentalCustomers, canActivate: [AuthGuard] },
       { path: 'receipts', component: Receipts, canActivate: [AuthGuard] },

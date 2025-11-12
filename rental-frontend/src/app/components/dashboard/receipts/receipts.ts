@@ -1,4 +1,4 @@
-import { Component, OnInit, AfterViewInit, ViewChild, inject, TemplateRef, ChangeDetectorRef } from '@angular/core';
+import { Component, OnInit, AfterViewInit, ViewChild, inject, TemplateRef, ChangeDetectorRef, ElementRef } from '@angular/core';
 import { MatDialog } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatPaginator } from '@angular/material/paginator';
@@ -9,6 +9,8 @@ import { ReceiptService } from '../../../services/receipts';
 import { PropertiesService } from '../../../services/properties';
 import { Router } from '@angular/router';
 import { forkJoin } from 'rxjs';
+import jsPDF from 'jspdf';
+import html2canvas from 'html2canvas';
 
 export interface Receipt {
   id: number;
@@ -66,7 +68,7 @@ export class Receipts implements OnInit, AfterViewInit {
   private snackBar = inject(MatSnackBar);
   private cdr = inject(ChangeDetectorRef);
   private receiptService = inject(ReceiptService);
-  private propertyService = inject(PropertiesService); // Add this
+  private propertyService = inject(PropertiesService);
 
   displayedColumns: string[] = [
     'receipt_number', 'contract_number', 'property', 'unit', 'customer', 'issue_date', 
@@ -84,6 +86,8 @@ export class Receipts implements OnInit, AfterViewInit {
   @ViewChild('addReceiptDialog') addReceiptDialog!: TemplateRef<any>;
   @ViewChild('updateReceiptDialog') updateReceiptDialog!: TemplateRef<any>;
   @ViewChild('generateMonthlyDialog') generateMonthlyDialog!: TemplateRef<any>;
+  @ViewChild('receiptPreviewDialog') receiptPreviewDialog!: TemplateRef<any>;
+  @ViewChild('receiptPreview', { static: false }) receiptPreview!: ElementRef;
 
   addReceiptForm!: FormGroup;
   updateReceiptForm!: FormGroup;
@@ -92,9 +96,15 @@ export class Receipts implements OnInit, AfterViewInit {
   loadGenerating = false;
   selectedReceiptId: number | null = null;
 
+  receipt: Receipt | null = null;
+  receiptItems: { label: string; amount: number }[] = [];
+  formattedDate: string = '';
+  receiptClientName: string = '';
+  houseNameNo: string = '';
+
   ngOnInit() {
     this.initializeForms();
-    this.loadProperties()
+    this.loadProperties();
     this.loadData();
     this.setupFilters();
   }
@@ -103,20 +113,19 @@ export class Receipts implements OnInit, AfterViewInit {
     this.dataSource.paginator = this.paginator;
   }
 
-loadProperties() {
-  this.propertyService.getProperties().subscribe(
-    (res) => {
-      this.properties = res;
-
-      if (this.properties && this.properties.length > 0) {
-        this.selectedProperty.setValue(String(this.properties[0].id)); // or the whole object if your <mat-select> binds to object
+  loadProperties() {
+    this.propertyService.getProperties().subscribe(
+      (res) => {
+        this.properties = res;
+        if (this.properties && this.properties.length > 0) {
+          this.selectedProperty.setValue(String(this.properties[0].id));
+        }
+      },
+      (err) => {
+        console.error('Failed to load properties', err);
       }
-    },
-    (err) => {
-      console.error('Failed to load properties', err);
-    }
-  );
-}
+    );
+  }
 
   initializeForms() {
     this.addReceiptForm = this.fb.group({
@@ -157,30 +166,29 @@ loadProperties() {
     });
   }
 
-loadData() {
-  forkJoin({
-    receipts: this.receiptService.getReceipts(),
-    properties: this.propertyService.getProperties()
-  }).subscribe({
-    next: ({ receipts, properties }) => {
-      this.receipts = receipts;
-      this.properties = properties.filter((p: Property) => p.is_active);
-      this.updateAvailableMonths();
-      
-      // Apply filters after initial load
-      this.applyFilters();
-      
-      setTimeout(() => {
-        this.dataSource.paginator = this.paginator;
-      });
-      this.cdr.detectChanges();
-    },
-    error: (err) => {
-      if (err.status === 401) this.router.navigate(['/login']);
-      console.error('❌ Error loading data:', err);
-    }
-  });
-}
+  loadData() {
+    forkJoin({
+      receipts: this.receiptService.getReceipts(),
+      properties: this.propertyService.getProperties()
+    }).subscribe({
+      next: ({ receipts, properties }) => {
+        this.receipts = receipts;
+        this.properties = properties.filter((p: Property) => p.is_active);
+        this.updateAvailableMonths();
+        this.applyFilters();
+        
+        setTimeout(() => {
+          this.dataSource.paginator = this.paginator;
+        });
+        this.cdr.detectChanges();
+      },
+      error: (err) => {
+        if (err.status === 401) this.router.navigate(['/login']);
+        console.error('❌ Error loading data:', err);
+      }
+    });
+  }
+
   setupFilters() {
     this.selectedMonth.valueChanges.subscribe(() => {
       this.applyFilters();
@@ -191,36 +199,33 @@ loadData() {
     });
   }
 
+  applyFilters() {
+    let filtered = [...this.receipts];
 
-applyFilters() {
-  let filtered = [...this.receipts];
+    const propertyId = this.selectedProperty.value;
+    if (propertyId) {
+      filtered = filtered.filter(receipt => 
+        String(receipt.property_id) === String(propertyId)
+      );
+    }
 
-  // Filter by property - FIX: Convert both to strings for comparison
-  const propertyId = this.selectedProperty.value;
-  if (propertyId) {
-    filtered = filtered.filter(receipt => 
-      String(receipt.property_id) === String(propertyId)
-    );
+    const monthYear = this.selectedMonth.value;
+    if (monthYear) {
+      filtered = filtered.filter(receipt => {
+        const receiptMonthYear = this.extractMonthYearFromReceipt(receipt);
+        return receiptMonthYear === monthYear;
+      });
+    }
+
+    this.filteredReceipts = filtered;
+    this.dataSource.data = filtered;
+
+    if (this.paginator) {
+      this.paginator.firstPage();
+    }
   }
 
-  // Filter by month
-  const monthYear = this.selectedMonth.value;
-  if (monthYear) {
-    filtered = filtered.filter(receipt => {
-      const receiptMonthYear = this.extractMonthYearFromReceipt(receipt);
-      return receiptMonthYear === monthYear;
-    });
-  }
-
-  this.filteredReceipts = filtered;
-  this.dataSource.data = filtered;
-
-  if (this.paginator) {
-    this.paginator.firstPage();
-  }
-}
   extractMonthYearFromReceipt(receipt: Receipt): string {
-    // Extract from receipt_number: RCT-18-202307-1 -> 202307
     const match = receipt.receipt_number.match(/\d{6}/);
     return match ? match[0] : '';
   }
@@ -235,76 +240,66 @@ applyFilters() {
     return property ? property.name : 'Unknown';
   }
 
-updateAvailableMonths(previouslySelected?: any) {
-  const monthsSet = new Set<string>();
+  updateAvailableMonths(previouslySelected?: any) {
+    const monthsSet = new Set<string>();
 
-  this.receipts.forEach(receipt => {
-    const monthYear = this.extractMonthYearFromReceipt(receipt);
-    if (monthYear) {
-      monthsSet.add(monthYear);
-    }
-  });
-
-  this.availableMonths = Array.from(monthsSet)
-    .sort((a, b) => b.localeCompare(a))
-    .map(monthYear => {
-      const year = parseInt(monthYear.substring(0, 4));
-      const month = parseInt(monthYear.substring(4, 6));
-      const date = new Date(year, month - 1);
-      return {
-        year,
-        month,
-        display: date.toLocaleDateString('en-US', { year: 'numeric', month: 'long' }),
-        value: monthYear
-      };
+    this.receipts.forEach(receipt => {
+      const monthYear = this.extractMonthYearFromReceipt(receipt);
+      if (monthYear) {
+        monthsSet.add(monthYear);
+      }
     });
 
-  // Only set default if no previous value exists or it's invalid
-  if (!previouslySelected || !this.availableMonths.some(m => m.value === previouslySelected)) {
-    if (this.availableMonths.length > 0) {
-      this.selectedMonth.setValue(this.availableMonths[0].value, { emitEvent: false });
+    this.availableMonths = Array.from(monthsSet)
+      .sort((a, b) => b.localeCompare(a))
+      .map(monthYear => {
+        const year = parseInt(monthYear.substring(0, 4));
+        const month = parseInt(monthYear.substring(4, 6));
+        const date = new Date(year, month - 1);
+        return {
+          year,
+          month,
+          display: date.toLocaleDateString('en-US', { year: 'numeric', month: 'long' }),
+          value: monthYear
+        };
+      });
+
+    if (!previouslySelected || !this.availableMonths.some(m => m.value === previouslySelected)) {
+      if (this.availableMonths.length > 0) {
+        this.selectedMonth.setValue(this.availableMonths[0].value, { emitEvent: false });
+      }
     }
   }
-}
 
+  getReceipts() {
+    const prevSelectedMonth = this.selectedMonth.value;
+    const prevSelectedProperty = this.selectedProperty.value;
 
-// Also update getReceipts to handle initial load better
-getReceipts() {
-  // Store current filter selections before reload
-  const prevSelectedMonth = this.selectedMonth.value;
-  const prevSelectedProperty = this.selectedProperty.value;
+    this.receiptService.getReceipts().subscribe({
+      next: (res: Receipt[]) => {
+        this.receipts = res;
+        this.updateAvailableMonths(prevSelectedMonth);
 
-  this.receiptService.getReceipts().subscribe({
-    next: (res: Receipt[]) => {
-      this.receipts = res;
+        if (prevSelectedMonth) {
+          this.selectedMonth.setValue(prevSelectedMonth, { emitEvent: false });
+        }
+        if (prevSelectedProperty) {
+          this.selectedProperty.setValue(prevSelectedProperty, { emitEvent: false });
+        }
+        
+        this.applyFilters();
 
-      // Refresh available months but keep the selected one if it still exists
-      this.updateAvailableMonths(prevSelectedMonth);
-
-      // Reapply filters using preserved selections
-      // Only set if there was a previous value
-      if (prevSelectedMonth) {
-        this.selectedMonth.setValue(prevSelectedMonth, { emitEvent: false });
+        setTimeout(() => {
+          this.dataSource.paginator = this.paginator;
+        });
+        this.cdr.detectChanges();
+      },
+      error: (err) => {
+        if (err.status === 401) this.router.navigate(['/login']);
+        console.error('❌ Error fetching receipts:', err);
       }
-      if (prevSelectedProperty) {
-        this.selectedProperty.setValue(prevSelectedProperty, { emitEvent: false });
-      }
-      
-      this.applyFilters();
-
-      setTimeout(() => {
-        this.dataSource.paginator = this.paginator;
-      });
-      this.cdr.detectChanges();
-    },
-    error: (err) => {
-      if (err.status === 401) this.router.navigate(['/login']);
-      console.error('❌ Error fetching receipts:', err);
-    }
-  });
-}
-
-
+    });
+  }
 
   openAddReceiptDialog() {
     this.dialog.open(this.addReceiptDialog);
@@ -362,7 +357,7 @@ getReceipts() {
     const payload = {
        month: formattedMonthYear,
        property_id: this.selectedProperty.value
-      };
+    };
 
     this.receiptService.addMonthlyReceipts(payload).subscribe({
       next: (response) => {
@@ -427,6 +422,120 @@ getReceipts() {
       panelClass: ['error-snackbar'],
       horizontalPosition: 'right',
       verticalPosition: 'top'
+    });
+  }
+
+  // Receipt Preview and PDF Generation
+  generateReceipt(receipt: Receipt) {
+    console.log('Generating receipt for:', receipt);
+    
+    // Set the main receipt object
+    this.receipt = receipt;
+    
+    // Set client information
+    this.receiptClientName = receipt.customer;
+    this.houseNameNo = receipt.unit;
+    
+    // Format date correctly
+    this.formattedDate = new Date(receipt.issue_date).toLocaleDateString();
+    
+    // Format the receipt items dynamically (excluding total - shown separately)
+    this.receiptItems = [
+      { label: 'Monthly Rent', amount: parseFloat(receipt.monthly_rent) || 0 },
+      { label: 'Rental Deposit', amount: parseFloat(receipt.rental_deposit) || 0 },
+      { label: 'Electricity Deposit', amount: parseFloat(receipt.electricity_deposit) || 0 },
+      { label: 'Electricity Bill', amount: parseFloat(receipt.electricity_bill) || 0 },
+      { label: 'Water Deposit', amount: parseFloat(receipt.water_deposit) || 0 },
+      { label: 'Water Bill', amount: parseFloat(receipt.water_bill) || 0 },
+      { label: 'Service Charge', amount: parseFloat(receipt.service_charge) || 0 },
+      { label: 'Security Charge', amount: parseFloat(receipt.security_charge) || 0 },
+      { label: 'Previous Balance', amount: parseFloat(receipt.previous_balance) || 0 },
+      { label: 'Other Charges', amount: parseFloat(receipt.other_charges) || 0 }
+    ].filter(item => item.amount > 0); // Only show non-zero amounts
+  }
+
+  openReceiptReview() {
+    const dialogRef = this.dialog.open(this.receiptPreviewDialog, {
+      width: '800px',
+      height: 'auto',
+      panelClass: 'receipt-preview-dialog'
+    });
+    
+    dialogRef.afterClosed().subscribe(result => {
+      if (result !== undefined) {
+        if (result === 'yes') {
+          // Handle yes action if needed
+        } else if (result === 'no') {
+          // Handle no action if needed
+        }
+      }
+    });
+  }
+
+  generatePDF() {
+    const element = this.receiptPreview.nativeElement;
+    html2canvas(element, { scale: 2 }).then(canvas => {
+      const imgData = canvas.toDataURL('image/png');
+      
+      // A5 dimensions in portrait mode (148mm x 210mm)
+      const pdf = new jsPDF('p', 'mm', 'a5');
+      const pageWidth = 148;
+      const pageHeight = 210;
+      const margin = 10;
+      const contentWidth = pageWidth - (2 * margin);
+      
+      // Calculate the height of the content
+      const imgWidth = contentWidth;
+      const imgHeight = (canvas.height * imgWidth) / canvas.width;
+      
+      // Available height per page (minus margins)
+      const availableHeight = pageHeight - (2 * margin);
+      
+      let position = margin;
+      let remainingHeight = imgHeight;
+      
+      // If content fits on one page
+      if (imgHeight <= availableHeight) {
+        pdf.addImage(imgData, 'PNG', margin, position, imgWidth, imgHeight);
+      } else {
+        // Content spans multiple pages
+        let currentPage = 0;
+        
+        while (remainingHeight > 0) {
+          if (currentPage > 0) {
+            pdf.addPage();
+          }
+          
+          // Calculate how much of the image to show on this page
+          const heightToShow = Math.min(availableHeight, remainingHeight);
+          
+          // Calculate the source Y position (which part of the image to capture)
+          const sourceY = currentPage * availableHeight * (canvas.height / imgHeight);
+          const sourceHeight = heightToShow * (canvas.height / imgHeight);
+          
+          // Create a temporary canvas for this page's content
+          const pageCanvas = document.createElement('canvas');
+          pageCanvas.width = canvas.width;
+          pageCanvas.height = sourceHeight;
+          const pageCtx = pageCanvas.getContext('2d');
+          
+          if (pageCtx) {
+            pageCtx.drawImage(
+              canvas,
+              0, sourceY, canvas.width, sourceHeight,
+              0, 0, canvas.width, sourceHeight
+            );
+            
+            const pageImgData = pageCanvas.toDataURL('image/png');
+            pdf.addImage(pageImgData, 'PNG', margin, margin, imgWidth, heightToShow);
+          }
+          
+          remainingHeight -= availableHeight;
+          currentPage++;
+        }
+      }
+      
+      pdf.save(`receipt_${this.receipt?.receipt_number}.pdf`);
     });
   }
 }

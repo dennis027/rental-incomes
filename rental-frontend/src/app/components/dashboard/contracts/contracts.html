@@ -1,17 +1,14 @@
 @if (!isLoading && !error) {
   <div class="contracts-container">
     <div class="header">
-
-  
-      
       <h2>Contracts</h2>
       <button mat-raised-button color="primary" (click)="openAddDialogForm()">Add Contract</button>
-      <mat-form-field appearance="outline" class="search-field" >
+      <mat-form-field appearance="outline" class="search-field">
         <input matInput placeholder="Search" [(ngModel)]="searchText" (keyup)="applyFilter()" />
       </mat-form-field>
     </div>
 
-      <mat-form-field appearance="outline" class="full-width mt-3">
+    <mat-form-field appearance="outline" class="full-width mt-3">
       <mat-label>Select Property</mat-label>
       <mat-select [(ngModel)]="selectedPropertyId" (selectionChange)="filterContractsByProperty()">
         @for (property of properties; track property.id) {
@@ -29,49 +26,41 @@
         Active Contracts ({{ activeDataSource.data.length }})
       </h3>
       <table mat-table [dataSource]="activeDataSource" class="mat-elevation-z8">
-        <!-- Contract Number -->
         <ng-container matColumnDef="contract_number">
           <th mat-header-cell *matHeaderCellDef>Contract #</th>
           <td mat-cell *matCellDef="let element">{{ element.contract_number || '—' }}</td>
         </ng-container>
 
-        <!-- Customer -->
         <ng-container matColumnDef="customer_name">
           <th mat-header-cell *matHeaderCellDef>Customer</th>
           <td mat-cell *matCellDef="let element">{{ element.customer_name }}</td>
         </ng-container>
 
-        <!-- Unit -->
         <ng-container matColumnDef="unit_info">
           <th mat-header-cell *matHeaderCellDef>Unit</th>
           <td mat-cell *matCellDef="let element">{{ element.unit_info }}</td>
         </ng-container>
 
-        <!-- Start Date -->
         <ng-container matColumnDef="start_date">
           <th mat-header-cell *matHeaderCellDef>Start</th>
           <td mat-cell *matCellDef="let element">{{ element.start_date }}</td>
         </ng-container>
 
-        <!-- Rent -->
         <ng-container matColumnDef="rent_amount">
           <th mat-header-cell *matHeaderCellDef>Rent</th>
           <td mat-cell *matCellDef="let element">{{ element.rent_amount }}</td>
         </ng-container>
 
-        <!-- Deposit -->
         <ng-container matColumnDef="deposit_amount">
           <th mat-header-cell *matHeaderCellDef>Deposit</th>
           <td mat-cell *matCellDef="let element">{{ element.deposit_amount }}</td>
         </ng-container>
 
-        <!-- Frequency -->
         <ng-container matColumnDef="payment_frequency">
           <th mat-header-cell *matHeaderCellDef>Frequency</th>
           <td mat-cell *matCellDef="let element">{{ element.payment_frequency }}</td>
         </ng-container>
 
-        <!-- Actions -->
         <ng-container matColumnDef="actions">
           <th mat-header-cell *matHeaderCellDef>Actions</th>
           <td mat-cell *matCellDef="let element">
@@ -100,49 +89,41 @@
         Inactive Contracts ({{ inactiveDataSource.data.length }})
       </h3>
       <table mat-table [dataSource]="inactiveDataSource" class="mat-elevation-z8">
-        <!-- Contract Number -->
         <ng-container matColumnDef="contract_number">
           <th mat-header-cell *matHeaderCellDef>Contract #</th>
           <td mat-cell *matCellDef="let element">{{ element.contract_number || '—' }}</td>
         </ng-container>
 
-        <!-- Customer -->
         <ng-container matColumnDef="customer_name">
           <th mat-header-cell *matHeaderCellDef>Customer</th>
           <td mat-cell *matCellDef="let element">{{ element.customer_name }}</td>
         </ng-container>
 
-        <!-- Unit -->
         <ng-container matColumnDef="unit_info">
           <th mat-header-cell *matHeaderCellDef>Unit</th>
           <td mat-cell *matCellDef="let element">{{ element.unit_info }}</td>
         </ng-container>
 
-        <!-- Start Date -->
         <ng-container matColumnDef="start_date">
           <th mat-header-cell *matHeaderCellDef>Start</th>
           <td mat-cell *matCellDef="let element">{{ element.start_date }}</td>
         </ng-container>
 
-        <!-- Rent -->
         <ng-container matColumnDef="rent_amount">
           <th mat-header-cell *matHeaderCellDef>Rent</th>
           <td mat-cell *matCellDef="let element">{{ element.rent_amount }}</td>
         </ng-container>
 
-        <!-- Deposit -->
         <ng-container matColumnDef="deposit_amount">
           <th mat-header-cell *matHeaderCellDef>Deposit</th>
           <td mat-cell *matCellDef="let element">{{ element.deposit_amount }}</td>
         </ng-container>
 
-        <!-- Frequency -->
         <ng-container matColumnDef="payment_frequency">
           <th mat-header-cell *matHeaderCellDef>Frequency</th>
           <td mat-cell *matCellDef="let element">{{ element.payment_frequency }}</td>
         </ng-container>
 
-        <!-- Actions -->
         <ng-container matColumnDef="actions">
           <th mat-header-cell *matHeaderCellDef>Actions</th>
           <td mat-cell *matCellDef="let element">
@@ -179,15 +160,16 @@
 <!-- Add Contract Dialog -->
 <ng-template #openAddDialog>
   <div class="container-fluid dialog-header">
-    <h2 style="display: inline;" mat-dialog-title>Add  Contract</h2>
+    <h2 style="display: inline;" mat-dialog-title>Add Contract</h2>
     <button style="display: inline;float: right;" mat-icon-button mat-dialog-close aria-label="Close dialog">
       <mat-icon>close</mat-icon>
-    </button> <br> 
+    </button><br>
+  
   <mat-dialog-content>
     <form [formGroup]="contractForm">
       <div class="row">
         <div class="col-md-4">
-           <mat-form-field appearance="outline">
+          <mat-form-field appearance="outline">
             <mat-label>Customer</mat-label>
             <mat-select formControlName="customer">
               @for (customer of customers; track customer.id) {
@@ -199,36 +181,36 @@
             @if (contractForm.get('customer')?.hasError('required')) {
               <mat-error>Customer is required</mat-error>
             }
-         </mat-form-field>
+          </mat-form-field>
         </div>
 
         <div class="col-md-4">
-            <mat-form-field appearance="outline">
-              <mat-label>Unit</mat-label>
-              <mat-select formControlName="unit">
-                @for (unit of filteredUnits; track unit.id) {
-                  <mat-option [value]="unit.id" (click)="onUnitChange(unit.id)">
-                    {{ unit.unit_number }}
-                  </mat-option>
-                }
-              </mat-select>
-              @if (contractForm.get('unit')?.hasError('required')) {
-                <mat-error>Unit is required</mat-error>
+          <mat-form-field appearance="outline">
+            <mat-label>Unit</mat-label>
+            <mat-select formControlName="unit">
+              @for (unit of filteredUnits; track unit.id) {
+                <mat-option [value]="unit.id" (click)="onUnitChange(unit.id)">
+                  {{ unit.unit_number }}
+                </mat-option>
               }
-            </mat-form-field>
+            </mat-select>
+            @if (contractForm.get('unit')?.hasError('required')) {
+              <mat-error>Unit is required</mat-error>
+            }
+          </mat-form-field>
         </div>
 
         <div class="col-md-4">
-            <mat-form-field appearance="outline">
-              <mat-label>Start Date</mat-label>
-              <input matInput formControlName="start_date" [matDatepicker]="pickerStart">
-              <mat-hint>MM/DD/YYYY</mat-hint>
-              <mat-datepicker-toggle matIconSuffix [for]="pickerStart"></mat-datepicker-toggle>
-              <mat-datepicker #pickerStart></mat-datepicker>
-              @if (contractForm.get('start_date')?.hasError('required')) {
-                <mat-error>Start date is required</mat-error>
-              }
-            </mat-form-field>
+          <mat-form-field appearance="outline" style="width: 100%;">
+            <mat-label>Start Date</mat-label>
+            <input matInput formControlName="start_date" [matDatepicker]="pickerStart">
+            <mat-hint>MM/DD/YYYY</mat-hint>
+            <mat-datepicker-toggle matIconSuffix [for]="pickerStart"></mat-datepicker-toggle>
+            <mat-datepicker #pickerStart></mat-datepicker>
+            @if (contractForm.get('start_date')?.hasError('required')) {
+              <mat-error>Start date is required</mat-error>
+            }
+          </mat-form-field>
         </div>
       </div>
 
@@ -254,7 +236,7 @@
         </div>
 
         <div class="col-md-4">
-         <mat-form-field appearance="outline">
+          <mat-form-field appearance="outline">
             <mat-label>Payment Frequency</mat-label>
             <mat-select formControlName="payment_frequency">
               <mat-option value="monthly">Monthly</mat-option>
@@ -267,8 +249,6 @@
           </mat-form-field>
         </div>
       </div>
-
-
     </form>
   </mat-dialog-content>
 
@@ -290,86 +270,88 @@
     <h2 style="display: inline;" mat-dialog-title>Edit Contract</h2>
     <button style="display: inline;float: right;" mat-icon-button mat-dialog-close aria-label="Close dialog">
       <mat-icon>close</mat-icon>
-    </button> <br> 
+    </button><br>
+  
   <mat-dialog-content>
     <form [formGroup]="updateContractForm">
-
-
       <div class="row">
-          <div class="col-md-4">
-            <mat-form-field appearance="outline">
-              <mat-label>Customer</mat-label>
-              <mat-select formControlName="customer">
-                @for (customer of customers; track customer.id) {
-                  <mat-option [value]="customer.id">
-                    {{ customer.first_name }} {{ customer.last_name }}
-                  </mat-option>
-                }
-              </mat-select>
-              @if (contractForm.get('customer')?.hasError('required')) {
-                <mat-error>Customer is required</mat-error>
+        <div class="col-md-4">
+          <mat-form-field appearance="outline">
+            <mat-label>Customer</mat-label>
+            <mat-select formControlName="customer">
+              @for (customer of customers; track customer.id) {
+                <mat-option [value]="customer.id">
+                  {{ customer.first_name }} {{ customer.last_name }}
+                </mat-option>
               }
-            </mat-form-field>
-          </div>
-          <div class="col-md-4">
-              <mat-form-field appearance="outline">
-                <mat-label>Unit</mat-label>
-                <mat-select formControlName="unit">
-                  @for (unit of units; track unit.id) {
-                    <mat-option [value]="unit.id">
-                      {{ unit.unit_number }}
-                    </mat-option>
-                  }
-                </mat-select>
-                @if (contractForm.get('unit')?.hasError('required')) {
-                  <mat-error>Unit is required</mat-error>
-                }
-              </mat-form-field>
-          </div>
-          <div class="col-md-4">
-            <mat-form-field appearance="outline">
-              <mat-label>Start Date</mat-label>
-              <input matInput type="date" formControlName="start_date" />
-              @if (contractForm.get('start_date')?.hasError('required')) {
-                <mat-error>Start date is required</mat-error>
+            </mat-select>
+            @if (contractForm.get('customer')?.hasError('required')) {
+              <mat-error>Customer is required</mat-error>
+            }
+          </mat-form-field>
+        </div>
+        
+        <div class="col-md-4">
+          <mat-form-field appearance="outline">
+            <mat-label>Unit</mat-label>
+            <mat-select formControlName="unit">
+              @for (unit of units; track unit.id) {
+                <mat-option [value]="unit.id">
+                  {{ unit.unit_number }}
+                </mat-option>
               }
-            </mat-form-field>
-          </div>
+            </mat-select>
+            @if (contractForm.get('unit')?.hasError('required')) {
+              <mat-error>Unit is required</mat-error>
+            }
+          </mat-form-field>
+        </div>
+        
+        <div class="col-md-4">
+          <mat-form-field appearance="outline">
+            <mat-label>Start Date</mat-label>
+            <input matInput type="date" formControlName="start_date" />
+            @if (contractForm.get('start_date')?.hasError('required')) {
+              <mat-error>Start date is required</mat-error>
+            }
+          </mat-form-field>
+        </div>
       </div>
 
-
       <div class="row">
-          <div class="col-md-4">
-              <mat-form-field appearance="outline">
-                <mat-label>Rent Amount</mat-label>
-                <input matInput type="number" formControlName="rent_amount" />
-                @if (contractForm.get('rent_amount')?.hasError('required')) {
-                  <mat-error>Rent amount is required</mat-error>
-                }
-              </mat-form-field>
-          </div>
-          <div class="col-md-4">
-              <mat-form-field appearance="outline">
-                <mat-label>Deposit Amount</mat-label>
-                <input matInput type="number" formControlName="deposit_amount" />
-                @if (contractForm.get('deposit_amount')?.hasError('required')) {
-                  <mat-error>Deposit amount is required</mat-error>
-                }
-              </mat-form-field>
-          </div>
-          <div class="col-md-4">
-            <mat-form-field appearance="outline">
-              <mat-label>Payment Frequency</mat-label>
-              <mat-select formControlName="payment_frequency">
-                <mat-option value="monthly">Monthly</mat-option>
-                <mat-option value="quarterly">Quarterly</mat-option>
-                <mat-option value="yearly">Yearly</mat-option>
-              </mat-select>
-              @if (contractForm.get('payment_frequency')?.hasError('required')) {
-                <mat-error>Payment frequency is required</mat-error>
-              }
-            </mat-form-field>
-          </div>
+        <div class="col-md-4">
+          <mat-form-field appearance="outline">
+            <mat-label>Rent Amount</mat-label>
+            <input matInput type="number" formControlName="rent_amount" />
+            @if (contractForm.get('rent_amount')?.hasError('required')) {
+              <mat-error>Rent amount is required</mat-error>
+            }
+          </mat-form-field>
+        </div>
+        
+        <div class="col-md-4">
+          <mat-form-field appearance="outline">
+            <mat-label>Deposit Amount</mat-label>
+            <input matInput type="number" formControlName="deposit_amount" />
+            @if (contractForm.get('deposit_amount')?.hasError('required')) {
+              <mat-error>Deposit amount is required</mat-error>
+            }
+          </mat-form-field>
+        </div>
+        
+        <div class="col-md-4">
+          <mat-form-field appearance="outline">
+            <mat-label>Payment Frequency</mat-label>
+            <mat-select formControlName="payment_frequency">
+              <mat-option value="monthly">Monthly</mat-option>
+              <mat-option value="quarterly">Quarterly</mat-option>
+              <mat-option value="yearly">Yearly</mat-option>
+            </mat-select>
+            @if (contractForm.get('payment_frequency')?.hasError('required')) {
+              <mat-error>Payment frequency is required</mat-error>
+            }
+          </mat-form-field>
+        </div>
       </div>
     </form>
   </mat-dialog-content>
@@ -434,4 +416,211 @@
       {{ loadCancelling ? 'Cancelling...' : 'Yes, Cancel Contract' }}
     </button>
   </mat-dialog-actions>
+</ng-template>
+
+<!-- Contract Preview Dialog -->
+<ng-template #contractPreviewDialog> <br>
+    <div class="container-fluid dialog-header">
+  <h2 style="display: inline;" mat-dialog-title>PDF Preview</h2>
+    <button style="display: inline;float: right;" mat-icon-button mat-dialog-close aria-label="Close dialog">
+      <mat-icon>close</mat-icon>
+    </button> <br>
+
+  <mat-dialog-content>
+    <div #contractPreview class="contract-preview-container">
+      <!-- Header -->
+      <div class="contract-header">
+        <h1>Rental Contract Agreement</h1>
+        <div class="contract-number">Contract #{{ selectedContract?.contract_number || 'N/A' }}</div>
+        <div class="contract-meta">
+          <span>📅 Generated: {{ contractStartDate }}</span>
+          <span>📄 Legal Document</span>
+        </div>
+      </div>
+
+      <!-- Status Badge -->
+      <div class="status-section">
+        <div class="status-badge" [ngClass]="selectedContract?.is_active ? 'status-active' : 'status-inactive'">
+          {{ selectedContract?.is_active ? '✓ Active Contract' : '✗ Inactive Contract' }}
+        </div>
+      </div>
+
+      <!-- Parties Section -->
+      <div class="contract-section">
+        <div class="section-title">👥 Parties to the Agreement</div>
+        
+        <h3 class="subsection-title">Tenant Information</h3>
+        <div class="info-grid">
+          <div class="info-item">
+            <div class="info-label">Full Name</div>
+            <div class="info-value">{{ selectedContract?.customer_name }}</div>
+          </div>
+          <div class="info-item">
+            <div class="info-label">Contact Number</div>
+            <div class="info-value">{{ selectedContract?.customer_phone }}</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Property Details -->
+      <div class="contract-section">
+        <div class="section-title">🏠 Property Details</div>
+        <div class="info-grid">
+          <div class="info-item full-width">
+            <div class="info-label">Rental Unit</div>
+            <div class="info-value">{{ selectedContract?.unit_info }}</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Legal Documents -->
+
+      <div class="contract-section">
+        <div class="section-title"> Legal Documents</div>
+        <div class="info-grid">
+          <div class="info-item full-width">
+            <div class="info-label">ID/Passport Front</div>
+            <div class="info-value">
+              <img style="width: 100%;" src="{{apiUrl+selectedContract?.id_photo_front }}" alt="">
+              </div>
+          </div>
+
+          <div class="info-item full-width">
+            <div class="info-label">ID/Passport Back</div>
+            <div class="info-value">
+                  <img style="width: 100%;" src="{{apiUrl+selectedContract?.id_photo_back }}" alt="">
+              </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Contract Period -->
+      <div class="contract-section">
+        <div class="section-title">📅 Contract Period</div>
+        <div class="info-grid">
+          <div class="info-item">
+            <div class="info-label">Commencement Date</div>
+            <div class="info-value">{{ contractStartDate }}</div>
+          </div>
+          <div class="info-item">
+            <div class="info-label">Expiration Date</div>
+            <div class="info-value">{{ contractEndDate }}</div>
+          </div>
+          <div class="info-item full-width">
+            <div class="info-label">Contract Duration</div>
+            <div class="info-value">{{ contractDuration }}</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Financial Terms -->
+      <div class="contract-section">
+        <div class="section-title">💰 Financial Terms</div>
+        <div class="info-grid">
+          <div class="info-item">
+            <div class="info-label">Monthly Rent Amount</div>
+            <div class="info-value highlight-amount">KES {{ formatCurrency(selectedContract?.rent_amount || '0') }}</div>
+          </div>
+          <div class="info-item">
+            <div class="info-label">Security Deposit</div>
+            <div class="info-value highlight-amount">KES {{ formatCurrency(selectedContract?.deposit_amount || '0') }}</div>
+          </div>
+          <div class="info-item">
+            <div class="info-label">Payment Frequency</div>
+            <div class="info-value">{{ selectedContract?.payment_frequency?.toUpperCase() }}</div>
+          </div>
+          <div class="info-item">
+            <div class="info-label">Payment Due Date</div>
+            <div class="info-value">1st of every month</div>
+          </div>
+        </div>
+        
+        <h3 class="subsection-title">Payment Breakdown</h3>
+        <table class="payment-table">
+          <thead>
+            <tr>
+              <th>Description</th>
+              <th>Amount (KES)</th>
+              <th>Due Date</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Monthly Rent</td>
+              <td>{{ formatCurrency(selectedContract?.rent_amount || '0') }}</td>
+              <td>{{ selectedContract?.payment_frequency === 'monthly' ? 'Monthly' : selectedContract?.payment_frequency === 'quarterly' ? 'Quarterly' : 'Yearly' }}</td>
+            </tr>
+            <tr>
+              <td>Security Deposit (Refundable)</td>
+              <td>{{ formatCurrency(selectedContract?.deposit_amount || '0') }}</td>
+              <td>Upon Contract Signing</td>
+            </tr>
+            <tr class="total-row">
+              <td><strong>Total Initial Payment</strong></td>
+              <td class="highlight-total"><strong>KES {{ totalInitialPayment }}</strong></td>
+              <td><strong>Before Move-in</strong></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Terms & Conditions -->
+      <div class="contract-section">
+        <div class="section-title">📋 Terms & Conditions</div>
+        <ul class="terms-list">
+          <li>The tenant agrees to pay rent on or before the 1st day of each month.</li>
+          <li>Late payment charges of 5% will be applied after 5 days from the due date.</li>
+          <li>The security deposit will be refunded within 30 days after lease termination, subject to property inspection.</li>
+          <li>The tenant is responsible for maintaining the property in good condition.</li>
+          <li>Any structural modifications require prior written consent from the landlord.</li>
+          <li>The tenant must not sublet the property without landlord's written permission.</li>
+          <li>Either party may terminate this agreement by providing 30 days written notice.</li>
+          <li>The tenant must maintain adequate insurance for personal belongings.</li>
+        </ul>
+      </div>
+
+      <!-- Important Notice -->
+      <div class="notice-box">
+        <strong>⚠️ Important Notice</strong>
+        <p>This is a legally binding contract. Both parties should read and understand all terms before signing. It is recommended to seek legal advice if needed.</p>
+      </div>
+
+      <!-- Signature Section -->
+      <div class="signature-section">
+        <div class="signature-box">
+          <div class="signature-title">LANDLORD / AGENT</div>
+          <div class="signature-line">Signature</div>
+          <div class="signature-date">Date: _____________________</div>
+          <div class="signature-name">Print Name: _____________________</div>
+        </div>
+        
+        <div class="signature-box">
+          <div class="signature-title">TENANT</div>
+          <div class="signature-line">Signature</div>
+          <div class="signature-date">Date: _____________________</div>
+          <div class="signature-name">Print Name: {{ selectedContract?.customer_name }}</div>
+        </div>
+      </div>
+
+      <!-- Footer -->
+      <div class="contract-footer">
+        <div class="footer-content">
+          <span>© {{ contractStartDate | date:'yyyy' }} Property Management System</span>
+          <span>Contract ID: {{ selectedContract?.contract_number || 'N/A' }}</span>
+        </div>
+        <p class="footer-note">
+          This document is computer-generated and valid without signature if electronically signed.
+        </p>
+      </div>
+    </div>
+  </mat-dialog-content>
+
+  <mat-dialog-actions align="end">
+    <button mat-button mat-dialog-close>Close</button>
+    <button mat-raised-button color="primary" (click)="generateContractPDF()">
+      <mat-icon>download</mat-icon>
+      Download PDF
+    </button>
+  </mat-dialog-actions>
+  </div>
 </ng-template>
