@@ -1,10 +1,49 @@
-    
-    <div class="container">
+<div class="container">
       
 
     
     <div class="header">
       <h2>Maintanance and Expenses</h2>
+    </div>
+
+    <!-- Filters Section -->
+    <div class="filters-section">
+      <div class="row">
+        <div class="col-md-3">
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Filter by Property</mat-label>
+            <mat-select [(value)]="selectedPropertyId" (selectionChange)="onPropertyFilterChange($event.value)">
+              <mat-option *ngFor="let prop of properties" [value]="prop.id">
+                {{ prop.name || 'Property #' + prop.id }}
+              </mat-option>
+            </mat-select>
+          </mat-form-field>
+        </div>
+
+        <div class="col-md-3">
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Start Date</mat-label>
+            <input matInput [matDatepicker]="startPicker" [(ngModel)]="startDate" (dateChange)="onDateFilterChange()">
+            <mat-datepicker-toggle matSuffix [for]="startPicker"></mat-datepicker-toggle>
+            <mat-datepicker #startPicker></mat-datepicker>
+          </mat-form-field>
+        </div>
+
+        <div class="col-md-3">
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>End Date</mat-label>
+            <input matInput [matDatepicker]="endPicker" [(ngModel)]="endDate" (dateChange)="onDateFilterChange()">
+            <mat-datepicker-toggle matSuffix [for]="endPicker"></mat-datepicker-toggle>
+            <mat-datepicker #endPicker></mat-datepicker>
+          </mat-form-field>
+        </div>
+
+        <div class="col-md-3">
+          <button mat-raised-button color="warn" (click)="clearDateFilters()" style="margin-top: 8px;">
+            Clear Dates
+          </button>
+        </div>
+      </div>
     </div>
 
 
@@ -133,23 +172,10 @@
     <form [formGroup]="expenseForm" >
 
       <div class = "container-fluid mb-3">
+        <div class="container-fluid">
         <div class="row">
+          
 
-            <div class="col-md-4">
-              <mat-form-field appearance="outline" class="full-width">
-                <mat-label>Property</mat-label>
-                <mat-select formControlName="property" required>
-                  <mat-option value="">-- Select Property --</mat-option>
-                  <mat-option *ngFor="let prop of properties" [value]="prop.id">
-                    {{ prop.name || 'Property #' + prop.id }}
-                  </mat-option>
-                </mat-select>
-
-                @if (expenseForm.get('property')?.hasError('required')) {
-                  <mat-error>Property is required</mat-error>
-                }
-              </mat-form-field>
-            </div>
 
             <div class="col-md-4">
                 <mat-form-field appearance="outline" class="full-width">
@@ -177,6 +203,21 @@
               </mat-form-field>
             </div>
 
+            <div class="col-md-4">
+              <mat-form-field appearance="outline" class="full-width" style="width: 100%;">
+                <mat-label>Date</mat-label>
+                <input
+                  matInput
+                  [matDatepicker]="picker"
+                  [value]="today"
+                  disabled
+                />
+                <mat-datepicker-toggle matIconSuffix [for]="picker"></mat-datepicker-toggle>
+                <mat-datepicker #picker></mat-datepicker>
+              </mat-form-field>
+            </div>
+
+
         </div>
           <div class="row">
 
@@ -189,6 +230,7 @@
             </div>
 
           </div>
+      </div>
       </div>
    
     </form>
@@ -219,22 +261,7 @@
     <form [formGroup]="updateExpenseForm">
       <div class="container-fluid mb-3">
           <div class="row">
-            <div class="col-md-4">
-              <mat-form-field appearance="outline" class="full-width">
-                <mat-label>Property</mat-label>
-                <mat-select formControlName="property" required>
-                  <mat-option value="">-- Select Property --</mat-option>
-                  <mat-option *ngFor="let prop of properties" [value]="prop.id">
-                    {{ prop.name || 'Property #' + prop.id }}
-                  </mat-option>
-                </mat-select>
 
-                @if (updateExpenseForm.get('property')?.hasError('required')) {
-                  <mat-error>Property is required</mat-error>
-                }
-              </mat-form-field>
-
-            </div>
 
 
             <div class="col-md-4">
@@ -263,6 +290,20 @@
                     <mat-error>Enter a valid number</mat-error>
                   }
                 </mat-form-field>
+            </div>
+
+            <div class="col-md-4">
+              <mat-form-field appearance="outline" class="full-width" style="width: 100%;">
+                <mat-label>Date</mat-label>
+                <input
+                  matInput
+                  [matDatepicker]="picker"
+                  [value]="today"
+                  disabled
+                />
+                <mat-datepicker-toggle matIconSuffix [for]="picker"></mat-datepicker-toggle>
+                <mat-datepicker #picker></mat-datepicker>
+              </mat-form-field>
             </div>
           </div>
 
@@ -341,21 +382,7 @@
 
             <div class = "container-fluid mb-3">
               <div class="row">
-                <div class="col-md-4">
-                      <mat-form-field appearance="outline">
-                        <mat-label>Property</mat-label>
-                        <mat-select formControlName="property" (selectionChange)="onPropertyChange($event.value)">
-                          @for (prop of properties; track prop.id) {
-                            <mat-option [value]="prop.id">
-                              {{ prop.name }}
-                            </mat-option>
-                          }
-                        </mat-select>
-                        @if (maintanaceForm.get('property')?.hasError('required')) {
-                          <mat-error>Property is required</mat-error>
-                        }
-                      </mat-form-field>
-                  </div>
+
                   <div class="col-md-4">
                       
                       <mat-form-field appearance="outline">
@@ -386,6 +413,20 @@
                       @if (maintanaceForm.get('customer')?.hasError('required')) {
                         <mat-error>Customer is required</mat-error>
                       }
+                    </mat-form-field>
+                  </div>
+
+                  <div class="col-md-4">
+                    <mat-form-field appearance="outline" class="full-width" style="width: 100%;">
+                          <mat-label>Date</mat-label>
+                          <input
+                            matInput
+                            [matDatepicker]="picker"
+                            [value]="today"
+                            disabled
+                          />
+                          <mat-datepicker-toggle matIconSuffix [for]="picker"></mat-datepicker-toggle>
+                          <mat-datepicker #picker></mat-datepicker>
                     </mat-form-field>
                   </div>
               </div>
@@ -455,7 +496,6 @@
       </mat-dialog-actions>
     </div>
 </ng-template>
-
 
 
 

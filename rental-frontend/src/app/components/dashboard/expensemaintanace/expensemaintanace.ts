@@ -1,6 +1,7 @@
 import {
   Component,AfterViewInit, ViewChild,inject,
-  TemplateRef} from '@angular/core';
+  TemplateRef,
+  ChangeDetectorRef} from '@angular/core';
 import { SharedImports } from '../../../shared-imports/imports';
 import { MatDialog } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
@@ -50,7 +51,11 @@ export class Expensemaintanace {
     private unitsService = inject(UnitsService);
     private fb = inject(FormBuilder);
     private snackbar = inject(MatSnackBar);
+    private cdr = inject(ChangeDetectorRef);
     private customerService =inject(CustomersService)
+
+
+    today = new Date();
 
 
     //expenses dialogs
@@ -78,6 +83,12 @@ export class Expensemaintanace {
     customers:any[] =[]
     maintananceId:any
     maintanaceName:any
+    selectedPropertyId: any = null;
+    allExpenses: any[] = [];
+    allMaintenance: any[] = [];
+    startDate: Date | null = null;
+    endDate: Date | null = null;
+    selectedProperty:any;
 
   
   expenseObject: expensesObject[] = [];
@@ -112,6 +123,15 @@ export class Expensemaintanace {
       this.getProperties();
       this.getUnits();
       this.getCustomers();
+
+
+       // ✅ Automatically select the first property after data loads
+      setTimeout(() => {
+        if (this.properties?.length && !this.selectedProperty?.value) {
+          const firstPropertyId = this.properties[0].id;
+          this.onPropertyChange(firstPropertyId);
+        }
+      }, 300);
    }
 
    getCustomers(){
@@ -152,7 +172,7 @@ export class Expensemaintanace {
 
   expenseSForm(): void {
     this.expenseForm = this.fb.group({
-      property: ['', Validators.required],
+      // property: ['', Validators.required],
       description: ['', [Validators.required, Validators.minLength(3)]],
       amount: ['', [Validators.required, Validators.pattern(/^\d+(\.\d{1,2})?$/)]],
     });
@@ -160,7 +180,7 @@ export class Expensemaintanace {
 
   updateExpensesForm(): void {
     this.updateExpenseForm = this.fb.group({
-      property: ['', Validators.required],
+      // property: ['', Validators.required],
       description: ['', [Validators.required, Validators.minLength(3)]],
       amount: ['', [Validators.required, Validators.pattern(/^\d+(\.\d{1,2})?$/)]],
     });
@@ -172,6 +192,12 @@ export class Expensemaintanace {
           next: (data) => {
             console.log('Properties data:', data);
             this.properties = data;
+            
+            // Set default to first property
+            if (this.properties.length > 0 && !this.selectedPropertyId) {
+              this.selectedPropertyId = this.properties[0].id;
+              this.filterDataByProperty();
+            }
           },
           error: (error) => {
             this.showError('Failed to load properties.');
@@ -202,13 +228,20 @@ export class Expensemaintanace {
       )
     }
 
-  onPropertyChange(propertyId: number) {
-  
-    setTimeout(() => {
-    this.filteredUnits = this.units.filter(u => u.property === propertyId);
-    }, 100);
- 
+onPropertyChange(propertyId?: number) {
+  const selectedPropertyId = propertyId || this.properties[0]?.id;
+
+  if (!selectedPropertyId) return; // handle case when properties array is empty
+
+  // Optional: also update selectedProperty FormControl if you’re using one
+  if (this.selectedProperty) {
+    this.selectedProperty.setValue(selectedPropertyId);
   }
+
+  setTimeout(() => {
+    this.filteredUnits = this.units.filter(u => u.property === selectedPropertyId);
+  }, 100);
+}
 
 
    getExpenses() {
@@ -217,12 +250,8 @@ export class Expensemaintanace {
       {
         next: (data) => {
           console.log('Expenses data:', data);
-          this.expenseObject = data;
-          setTimeout(() => {
-              this.dataExpenseSource.data = this.expenseObject;
-               this.dataExpenseSource.paginator = this.expensePaginator;
-          });
-        
+          this.allExpenses = data;
+          this.filterDataByProperty();
         },
         error: (error) => {
           this.showError('Failed to load expenses.');
@@ -242,12 +271,9 @@ export class Expensemaintanace {
       {
         next: (data) => {
           console.log('Maintenance data:', data);
-          this.maintainanceObject = data;
-          setTimeout(() => {
-            this.dataMaintanceSource.data = this.maintainanceObject;
-            this.dataMaintanceSource.paginator = this.maintancePaginator;
-          });
-   
+          this.allMaintenance = data;
+          this.filterDataByProperty();
+          this.cdr.detectChanges();
         },
         error: (error) => {
           this.showError('Failed to load maintenance records.');
@@ -268,11 +294,14 @@ export class Expensemaintanace {
       return;
     }
 
+    const data = {
+      property: this.selectedPropertyId,
+      description: this.expenseForm.value.description,
+      amount: this.expenseForm.value.amount,
+    }
     this.isSubmitting = true;
-    const payload = this.expenseForm.value;
-    console.log('Submitting expense:', payload);
 
-    this.expenseService.addExpense(payload).subscribe({
+    this.expenseService.addExpense(data).subscribe({
       next: (res) => {
         this.showSuccess('Expense added successfully ✅')
         this.getExpenses();
@@ -342,12 +371,16 @@ export class Expensemaintanace {
       return;
     }
 
+    const data ={
+      property: this.selectedPropertyId,
+      description: this.updateExpenseForm.value.description,
+      amount: this.updateExpenseForm.value.amount,
+    }
+
     this.isUpdateExpenseSubmit = true;
-    const payload = this.updateExpenseForm.value;
-    console.log('Updating expense:', payload);
 
 
-    this.expenseService.updateExpense(this.expenseId, payload).subscribe({
+    this.expenseService.updateExpense(this.expenseId, data).subscribe({
       next: (res) => {
         this.showSuccess('Expense updated successfully ✅')
         this.getExpenses();
@@ -357,7 +390,7 @@ export class Expensemaintanace {
       },
       error: (err) => {
         console.error('Error updating expense:', err);
-        this.showSuccess('Failed to update expense ❌');
+        this.showError('Failed to update expense ❌');
         this.isUpdateExpenseSubmit = false;
       }
     });
@@ -465,7 +498,80 @@ export class Expensemaintanace {
     }
 
 
+  onPropertyFilterChange(propertyId: any) {
+    this.selectedPropertyId = propertyId;
+    this.filterDataByProperty();
+    this.onPropertyChange(propertyId);
+  }
 
+  onDateFilterChange() {
+    this.filterDataByProperty();
+  }
+
+  clearDateFilters() {
+    this.startDate = null;
+    this.endDate = null;
+    this.filterDataByProperty();
+  }
+
+  filterDataByProperty() {
+    if (!this.selectedPropertyId) return;
+
+    // Filter expenses by property
+    let filteredExpenses = this.allExpenses.filter(
+      expense => expense.property === this.selectedPropertyId
+    );
+
+    // Filter expenses by date range if dates are set
+    if (this.startDate || this.endDate) {
+      filteredExpenses = filteredExpenses.filter(expense => {
+        const expenseDate = new Date(expense.expense_date);
+        
+        if (this.startDate && this.endDate) {
+          return expenseDate >= this.startDate && expenseDate <= this.endDate;
+        } else if (this.startDate) {
+          return expenseDate >= this.startDate;
+        } else if (this.endDate) {
+          return expenseDate <= this.endDate;
+        }
+        return true;
+      });
+    }
+
+    this.expenseObject = filteredExpenses;
+    
+    // Filter maintenance by property_id (string in the API response)
+    let filteredMaintenance = this.allMaintenance.filter(
+      maintenance => parseInt(maintenance.property_id) === this.selectedPropertyId
+    );
+
+    // Filter maintenance by date range if dates are set
+    if (this.startDate || this.endDate) {
+      filteredMaintenance = filteredMaintenance.filter(maintenance => {
+        const reportedDate = new Date(maintenance.reported_date);
+        
+        if (this.startDate && this.endDate) {
+          return reportedDate >= this.startDate && reportedDate <= this.endDate;
+        } else if (this.startDate) {
+          return reportedDate >= this.startDate;
+        } else if (this.endDate) {
+          return reportedDate <= this.endDate;
+        }
+        return true;
+      });
+    }
+
+    this.maintainanceObject = filteredMaintenance;
+
+    // Update table data sources
+    setTimeout(() => {
+      this.dataExpenseSource.data = this.expenseObject;
+      this.dataExpenseSource.paginator = this.expensePaginator;
+      
+      this.dataMaintanceSource.data = this.maintainanceObject;
+      this.dataMaintanceSource.paginator = this.maintancePaginator;
+    });
+  }
 
   
 
