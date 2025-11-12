@@ -116,114 +116,146 @@
 
 <!-- Add Customer Dialog Template -->
 <ng-template #openAddDialog>
-  <h2 mat-dialog-title>Add New Customer</h2>
+  <div class="container-fluid dialog-header">
+  <h2 style="display: inline;" mat-dialog-title>Add Customer</h2>
+  <button style="display: inline;float: right;" mat-icon-button mat-dialog-close aria-label="Close dialog">
+    <mat-icon>close</mat-icon>
+  </button> <br> 
   <mat-dialog-content>
     <form [formGroup]="customerForm" class="customer-form">
+      <div class="container-fluid">
+        <div class="row">
+          <div class="col-md-4">
+            <mat-form-field appearance="outline">
+              <mat-label>First Name</mat-label>
+              <input matInput formControlName="first_name" placeholder="Enter first name">
+              @if (customerForm.get('first_name')?.hasError('required')) {
+                <mat-error>First name is required</mat-error>
+              }
+              @if (customerForm.get('first_name')?.hasError('minlength')) {
+                <mat-error>First name must be at least 2 characters</mat-error>
+              }
+            </mat-form-field>
+          </div>
 
-      <mat-form-field appearance="outline">
-        <mat-label>First Name</mat-label>
-        <input matInput formControlName="first_name" placeholder="Enter first name">
-        @if (customerForm.get('first_name')?.hasError('required')) {
-          <mat-error>First name is required</mat-error>
-        }
-        @if (customerForm.get('first_name')?.hasError('minlength')) {
-          <mat-error>First name must be at least 2 characters</mat-error>
-        }
-      </mat-form-field>
+          <div class="col-md-4">
+            <mat-form-field appearance="outline">
+              <mat-label>Last Name</mat-label>
+              <input matInput formControlName="last_name" placeholder="Enter last name">
+              @if (customerForm.get('last_name')?.hasError('required')) {
+                <mat-error>Last name is required</mat-error>
+              }
+              @if (customerForm.get('last_name')?.hasError('minlength')) {
+                <mat-error>Last name must be at least 2 characters</mat-error>
+              }
+            </mat-form-field>
+          </div>
 
-      <mat-form-field appearance="outline">
-        <mat-label>Last Name</mat-label>
-        <input matInput formControlName="last_name" placeholder="Enter last name">
-        @if (customerForm.get('last_name')?.hasError('required')) {
-          <mat-error>Last name is required</mat-error>
-        }
-        @if (customerForm.get('last_name')?.hasError('minlength')) {
-          <mat-error>Last name must be at least 2 characters</mat-error>
-        }
-      </mat-form-field>
-
-      <mat-form-field appearance="outline">
-        <mat-label>Phone Number</mat-label>
-        <input matInput formControlName="phone_number" placeholder="e.g., 0712345678">
-        @if (customerForm.get('phone_number')?.hasError('required')) {
-          <mat-error>Phone number is required</mat-error>
-        }
-        @if (customerForm.get('phone_number')?.hasError('pattern')) {
-          <mat-error>Phone number must be 10-15 digits</mat-error>
-        }
-      </mat-form-field>
-
-      <mat-form-field appearance="outline">
-        <mat-label>Email</mat-label>
-        <input matInput type="email" formControlName="email" placeholder="customer@example.com">
-        @if (customerForm.get('email')?.hasError('required')) {
-          <mat-error>Email is required</mat-error>
-        }
-        @if (customerForm.get('email')?.hasError('email')) {
-          <mat-error>Invalid email format</mat-error>
-        }
-      </mat-form-field>
-
-      <mat-form-field appearance="outline">
-        <mat-label>ID Number</mat-label>
-        <input matInput formControlName="id_number" placeholder="Enter ID/Passport number">
-        @if (customerForm.get('id_number')?.hasError('required')) {
-          <mat-error>ID number is required</mat-error>
-        }
-        @if (customerForm.get('id_number')?.hasError('minlength')) {
-          <mat-error>ID number must be at least 5 characters</mat-error>
-        }
-      </mat-form-field>
-
-      <!-- ID Photo Front Upload -->
-      <div class="image-upload-section">
-        <label class="upload-label">ID Photo (Front) *</label>
-        <div class="upload-container">
-          @if (!frontImagePreview) {
-            <button type="button" mat-stroked-button color="primary" (click)="frontFileInput.click()">
-              <mat-icon>cloud_upload</mat-icon>
-              Choose Front Image
-            </button>
-            <input #frontFileInput type="file" accept="image/*" hidden (change)="onFrontImageSelected($event)">
-          }
-          @if (frontImagePreview) {
-            <div class="image-preview">
-              <img [src]="frontImagePreview" alt="Front ID Preview">
-              <button type="button" mat-icon-button color="warn" (click)="removeFrontImage()" class="remove-btn">
-                <mat-icon>close</mat-icon>
-              </button>
-            </div>
-          }
+          <div class="col-md-4">
+            <mat-form-field appearance="outline">
+              <mat-label>Phone Number</mat-label>
+              <input matInput formControlName="phone_number" placeholder="e.g., 0712345678">
+              @if (customerForm.get('phone_number')?.hasError('required')) {
+                <mat-error>Phone number is required</mat-error>
+              }
+              @if (customerForm.get('phone_number')?.hasError('pattern')) {
+                <mat-error>Phone number must be 10-15 digits</mat-error>
+              }
+            </mat-form-field>
+          </div>
         </div>
-        @if (customerForm.get('id_photo_front')?.hasError('required') && customerForm.get('id_photo_front')?.touched) {
-          <mat-error class="file-error">Front ID photo is required</mat-error>
-        }
+
+
+        <div class="row">
+          <div class="col-md-4">
+            <mat-form-field appearance="outline">
+              <mat-label>Email</mat-label>
+              <input matInput type="email" formControlName="email" placeholder="customer@example.com">
+              @if (customerForm.get('email')?.hasError('required')) {
+                <mat-error>Email is required</mat-error>
+              }
+              @if (customerForm.get('email')?.hasError('email')) {
+                <mat-error>Invalid email format</mat-error>
+              }
+            </mat-form-field>
+          </div>
+
+          <div class="col-md-4">
+            <mat-form-field appearance="outline">
+              <mat-label>ID Number</mat-label>
+              <input matInput formControlName="id_number" placeholder="Enter ID/Passport number">
+              @if (customerForm.get('id_number')?.hasError('required')) {
+                <mat-error>ID number is required</mat-error>
+              }
+              @if (customerForm.get('id_number')?.hasError('minlength')) {
+                <mat-error>ID number must be at least 5 characters</mat-error>
+              }
+            </mat-form-field>
+
+          </div>
+
+          <div class="col-md-4">
+            
+          </div>
+        </div>
+
+        <div class="row">
+          <div class="col-md-6">
+            <div class="image-upload-section">
+              <label class="upload-label">ID Photo (Front) *</label>
+              <div class="upload-container">
+                @if (!frontImagePreview) {
+                  <button type="button" mat-stroked-button color="primary" (click)="frontFileInput.click()">
+                    <mat-icon>cloud_upload</mat-icon>
+                    Choose Front Image
+                  </button>
+                  <input #frontFileInput type="file" accept="image/*" hidden (change)="onFrontImageSelected($event)">
+                }
+                @if (frontImagePreview) {
+                  <div class="image-preview">
+                    <img [src]="frontImagePreview" alt="Front ID Preview">
+                    <button type="button" mat-icon-button color="warn" (click)="removeFrontImage()" class="remove-btn">
+                      <mat-icon>close</mat-icon>
+                    </button>
+                  </div>
+                }
+              </div>
+              @if (customerForm.get('id_photo_front')?.hasError('required') && customerForm.get('id_photo_front')?.touched) {
+                <mat-error class="file-error">Front ID photo is required</mat-error>
+              }
+            </div>
+          </div>
+
+          <div class="col-md-6">
+            <div class="image-upload-section">
+                <label class="upload-label">ID Photo (Back) *</label>
+                <div class="upload-container">
+                  @if (!backImagePreview) {
+                    <button type="button" mat-stroked-button color="primary" (click)="backFileInput.click()">
+                      <mat-icon>cloud_upload</mat-icon>
+                      Choose Back Image
+                    </button>
+                    <input #backFileInput type="file" accept="image/*" hidden (change)="onBackImageSelected($event)">
+                  }
+                  @if (backImagePreview) {
+                    <div class="image-preview">
+                      <img [src]="backImagePreview" alt="Back ID Preview">
+                      <button type="button" mat-icon-button color="warn" (click)="removeBackImage()" class="remove-btn">
+                        <mat-icon>close</mat-icon>
+                      </button>
+                    </div>
+                  }
+                </div>
+                @if (customerForm.get('id_photo_back')?.hasError('required') && customerForm.get('id_photo_back')?.touched) {
+                  <mat-error class="file-error">Back ID photo is required</mat-error>
+                }
+              </div>
+          </div>
+        </div>
+
+
       </div>
 
-      <!-- ID Photo Back Upload -->
-      <div class="image-upload-section">
-        <label class="upload-label">ID Photo (Back) *</label>
-        <div class="upload-container">
-          @if (!backImagePreview) {
-            <button type="button" mat-stroked-button color="primary" (click)="backFileInput.click()">
-              <mat-icon>cloud_upload</mat-icon>
-              Choose Back Image
-            </button>
-            <input #backFileInput type="file" accept="image/*" hidden (change)="onBackImageSelected($event)">
-          }
-          @if (backImagePreview) {
-            <div class="image-preview">
-              <img [src]="backImagePreview" alt="Back ID Preview">
-              <button type="button" mat-icon-button color="warn" (click)="removeBackImage()" class="remove-btn">
-                <mat-icon>close</mat-icon>
-              </button>
-            </div>
-          }
-        </div>
-        @if (customerForm.get('id_photo_back')?.hasError('required') && customerForm.get('id_photo_back')?.touched) {
-          <mat-error class="file-error">Back ID photo is required</mat-error>
-        }
-      </div>
 
     </form>
   </mat-dialog-content>
@@ -238,135 +270,160 @@
       }
     </button>
   </mat-dialog-actions>
+  </div>
 </ng-template>
 
 <!-- Update Customer Dialog Template -->
 <ng-template #updateDialog>
-  <h2 mat-dialog-title>Update Customer</h2>
+   <div class="container-fluid dialog-header">
+    <h2 style="display: inline;" mat-dialog-title>Update Customer</h2>
+    <button style="display: inline;float: right;" mat-icon-button mat-dialog-close aria-label="Close dialog">
+      <mat-icon>close</mat-icon>
+    </button> <br> 
   <mat-dialog-content>
     <form [formGroup]="updateCustomerForm" class="customer-form">
 
-      <mat-form-field appearance="outline">
-        <mat-label>First Name</mat-label>
-        <input matInput formControlName="first_name" placeholder="Enter first name">
-        @if (updateCustomerForm.get('first_name')?.hasError('required')) {
-          <mat-error>First name is required</mat-error>
-        }
-        @if (updateCustomerForm.get('first_name')?.hasError('minlength')) {
-          <mat-error>First name must be at least 2 characters</mat-error>
-        }
-      </mat-form-field>
-
-      <mat-form-field appearance="outline">
-        <mat-label>Last Name</mat-label>
-        <input matInput formControlName="last_name" placeholder="Enter last name">
-        @if (updateCustomerForm.get('last_name')?.hasError('required')) {
-          <mat-error>Last name is required</mat-error>
-        }
-        @if (updateCustomerForm.get('last_name')?.hasError('minlength')) {
-          <mat-error>Last name must be at least 2 characters</mat-error>
-        }
-      </mat-form-field>
-
-      <mat-form-field appearance="outline">
-        <mat-label>Phone Number</mat-label>
-        <input matInput formControlName="phone_number" placeholder="e.g., 0712345678">
-        @if (updateCustomerForm.get('phone_number')?.hasError('required')) {
-          <mat-error>Phone number is required</mat-error>
-        }
-        @if (updateCustomerForm.get('phone_number')?.hasError('pattern')) {
-          <mat-error>Phone number must be 10-15 digits</mat-error>
-        }
-      </mat-form-field>
-
-      <mat-form-field appearance="outline">
-        <mat-label>Email</mat-label>
-        <input matInput type="email" formControlName="email" placeholder="customer@example.com">
-        @if (updateCustomerForm.get('email')?.hasError('required')) {
-          <mat-error>Email is required</mat-error>
-        }
-        @if (updateCustomerForm.get('email')?.hasError('email')) {
-          <mat-error>Invalid email format</mat-error>
-        }
-      </mat-form-field>
-
-      <mat-form-field appearance="outline">
-        <mat-label>ID Number</mat-label>
-        <input matInput formControlName="id_number" placeholder="Enter ID/Passport number">
-        @if (updateCustomerForm.get('id_number')?.hasError('required')) {
-          <mat-error>ID number is required</mat-error>
-        }
-        @if (updateCustomerForm.get('id_number')?.hasError('minlength')) {
-          <mat-error>ID number must be at least 5 characters</mat-error>
-        }
-      </mat-form-field>
-
-      <!-- ID Photo Front Upload (Optional for update) -->
-      <div class="image-upload-section">
-        <label class="upload-label">ID Photo (Front) - Optional</label>
-        
-        <!-- Show existing image if available -->
-        @if (selectedCustomer && selectedCustomer.id_photo_front && !updateFrontImagePreview) {
-          <div class="existing-image">
-            <p class="existing-label">Current Image:</p>
-            <img [src]="apiUrl+selectedCustomer.id_photo_front" alt="Current Front ID" class="current-image">
+      <div class="container-fluid">
+          <div class="row">
+              <div class="col-md-4">
+                <mat-form-field appearance="outline">
+                  <mat-label>First Name</mat-label>
+                  <input matInput formControlName="first_name" placeholder="Enter first name">
+                  @if (updateCustomerForm.get('first_name')?.hasError('required')) {
+                    <mat-error>First name is required</mat-error>
+                  }
+                  @if (updateCustomerForm.get('first_name')?.hasError('minlength')) {
+                    <mat-error>First name must be at least 2 characters</mat-error>
+                  }
+                </mat-form-field>
+              </div>
+              <div class="col-md-4">
+                <mat-form-field appearance="outline">
+                  <mat-label>Last Name</mat-label>
+                  <input matInput formControlName="last_name" placeholder="Enter last name">
+                  @if (updateCustomerForm.get('last_name')?.hasError('required')) {
+                    <mat-error>Last name is required</mat-error>
+                  }
+                  @if (updateCustomerForm.get('last_name')?.hasError('minlength')) {
+                    <mat-error>Last name must be at least 2 characters</mat-error>
+                  }
+                </mat-form-field>
+              </div>
+              <div class="col-md-4">
+                <mat-form-field appearance="outline">
+                  <mat-label>Phone Number</mat-label>
+                  <input matInput formControlName="phone_number" placeholder="e.g., 0712345678">
+                  @if (updateCustomerForm.get('phone_number')?.hasError('required')) {
+                    <mat-error>Phone number is required</mat-error>
+                  }
+                  @if (updateCustomerForm.get('phone_number')?.hasError('pattern')) {
+                    <mat-error>Phone number must be 10-15 digits</mat-error>
+                  }
+                </mat-form-field>
+              </div>
           </div>
-        }
-        
-        <div class="upload-container">
-          @if (!updateFrontImagePreview) {
-            <button type="button" mat-stroked-button color="primary" (click)="updateFrontFileInput.click()">
-              <mat-icon>cloud_upload</mat-icon>
-              {{ selectedCustomer &&apiUrl+selectedCustomer.id_photo_front ? 'Replace Front Image' : 'Upload Front Image' }}
-            </button>
-            <input #updateFrontFileInput type="file" accept="image/*" hidden (change)="onUpdateFrontImageSelected($event)">
-          }
-          @if (updateFrontImagePreview) {
-            <div class="image-preview">
-              <p class="preview-label">New Image:</p>
-              <img [src]="updateFrontImagePreview" alt="Front ID Preview">
-              <button type="button" mat-icon-button color="warn" (click)="removeUpdateFrontImage()" class="remove-btn">
-                <mat-icon>close</mat-icon>
-              </button>
-            </div>
-          }
-        </div>
-        <small class="hint-text">Leave empty to keep existing image</small>
-      </div>
-
-      <!-- ID Photo Back Upload (Optional for update) -->
-      <div class="image-upload-section">
-        <label class="upload-label">ID Photo (Back) - Optional</label>
-        
-        <!-- Show existing image if available -->
-        @if (selectedCustomer && selectedCustomer.id_photo_back && !updateBackImagePreview) {
-          <div class="existing-image">
-            <p class="existing-label">Current Image:</p>
-            <img [src]="apiUrl+selectedCustomer.id_photo_back" alt="Current Back ID" class="current-image">
+          <div class="row">
+              <div class="col-md-4">
+                <mat-form-field appearance="outline">
+                  <mat-label>Email</mat-label>
+                  <input matInput type="email" formControlName="email" placeholder="customer@example.com">
+                  @if (updateCustomerForm.get('email')?.hasError('required')) {
+                    <mat-error>Email is required</mat-error>
+                  }
+                  @if (updateCustomerForm.get('email')?.hasError('email')) {
+                    <mat-error>Invalid email format</mat-error>
+                  }
+                </mat-form-field>
+              </div>
+              <div class="col-md-4">
+                <mat-form-field appearance="outline">
+                  <mat-label>ID Number</mat-label>
+                  <input matInput formControlName="id_number" placeholder="Enter ID/Passport number">
+                  @if (updateCustomerForm.get('id_number')?.hasError('required')) {
+                    <mat-error>ID number is required</mat-error>
+                  }
+                  @if (updateCustomerForm.get('id_number')?.hasError('minlength')) {
+                    <mat-error>ID number must be at least 5 characters</mat-error>
+                  }
+                </mat-form-field>
+              </div>
+              <div class="col-md-4">
+                
+              </div>
           </div>
-        }
-        
-        <div class="upload-container">
-          @if (!updateBackImagePreview) {
-            <button type="button" mat-stroked-button color="primary" (click)="updateBackFileInput.click()">
-              <mat-icon>cloud_upload</mat-icon>
-              {{ selectedCustomer && apiUrl+selectedCustomer.id_photo_back ? 'Replace Back Image' : 'Upload Back Image' }}
-            </button>
-            <input #updateBackFileInput type="file" accept="image/*" hidden (change)="onUpdateBackImageSelected($event)">
-          }
-          @if (updateBackImagePreview) {
-            <div class="image-preview">
-              <p class="preview-label">New Image:</p>
-              <img [src]="updateBackImagePreview" alt="Back ID Preview">
-              <button type="button" mat-icon-button color="warn" (click)="removeUpdateBackImage()" class="remove-btn">
-                <mat-icon>close</mat-icon>
-              </button>
-            </div>
-          }
-        </div>
-        <small class="hint-text">Leave empty to keep existing image</small>
-      </div>
+          <div class="row">
+              <div class="col-md-6">
 
+                <!-- ID Photo Front Upload (Optional for update) -->
+                <div class="image-upload-section">
+                  <label class="upload-label">ID Photo (Front) - Optional</label>
+                  
+                  <!-- Show existing image if available -->
+                  @if (selectedCustomer && selectedCustomer.id_photo_front && !updateFrontImagePreview) {
+                    <div class="existing-image">
+                      <p class="existing-label">Current Image:</p>
+                      <img [src]="apiUrl+selectedCustomer.id_photo_front" alt="Current Front ID" class="current-image">
+                    </div>
+                  }
+                  
+                  <div class="upload-container">
+                    @if (!updateFrontImagePreview) {
+                      <button type="button" mat-stroked-button color="primary" (click)="updateFrontFileInput.click()">
+                        <mat-icon>cloud_upload</mat-icon>
+                        {{ selectedCustomer &&apiUrl+selectedCustomer.id_photo_front ? 'Replace Front Image' : 'Upload Front Image' }}
+                      </button>
+                      <input #updateFrontFileInput type="file" accept="image/*" hidden (change)="onUpdateFrontImageSelected($event)">
+                    }
+                    @if (updateFrontImagePreview) {
+                      <div class="image-preview">
+                        <p class="preview-label">New Image:</p>
+                        <img [src]="updateFrontImagePreview" alt="Front ID Preview">
+                        <button type="button" mat-icon-button color="warn" (click)="removeUpdateFrontImage()" class="remove-btn">
+                          <mat-icon>close</mat-icon>
+                        </button>
+                      </div>
+                    }
+                  </div>
+                  <small class="hint-text">Leave empty to keep existing image</small>
+                </div>
+
+              </div>
+              <div class="col-md-6">
+                                    <!-- ID Photo Back Upload (Optional for update) -->
+                <div class="image-upload-section">
+                  <label class="upload-label">ID Photo (Back) - Optional</label>
+                  
+                  <!-- Show existing image if available -->
+                  @if (selectedCustomer && selectedCustomer.id_photo_back && !updateBackImagePreview) {
+                    <div class="existing-image">
+                      <p class="existing-label">Current Image:</p>
+                      <img [src]="apiUrl+selectedCustomer.id_photo_back" alt="Current Back ID" class="current-image">
+                    </div>
+                  }
+                  
+                  <div class="upload-container">
+                    @if (!updateBackImagePreview) {
+                      <button type="button" mat-stroked-button color="primary" (click)="updateBackFileInput.click()">
+                        <mat-icon>cloud_upload</mat-icon>
+                        {{ selectedCustomer && apiUrl+selectedCustomer.id_photo_back ? 'Replace Back Image' : 'Upload Back Image' }}
+                      </button>
+                      <input #updateBackFileInput type="file" accept="image/*" hidden (change)="onUpdateBackImageSelected($event)">
+                    }
+                    @if (updateBackImagePreview) {
+                      <div class="image-preview">
+                        <p class="preview-label">New Image:</p>
+                        <img [src]="updateBackImagePreview" alt="Back ID Preview">
+                        <button type="button" mat-icon-button color="warn" (click)="removeUpdateBackImage()" class="remove-btn">
+                          <mat-icon>close</mat-icon>
+                        </button>
+                      </div>
+                    }
+                  </div>
+                  <small class="hint-text">Leave empty to keep existing image</small>
+                </div>
+              </div>
+          </div>
+      </div>
     </form>
   </mat-dialog-content>
   <mat-dialog-actions align="end">
@@ -380,11 +437,16 @@
       }
     </button>
   </mat-dialog-actions>
+  </div>
 </ng-template>
 
 <!-- View Customer Dialog Template -->
 <ng-template #viewDialog>
-  <h2 mat-dialog-title>Customer Details</h2>
+    <div class="container-fluid dialog-header">
+    <h2 style="display: inline;" mat-dialog-title>View Customer</h2>
+    <button style="display: inline;float: right;" mat-icon-button mat-dialog-close aria-label="Close dialog">
+      <mat-icon>close</mat-icon>
+    </button> <br> 
   <mat-dialog-content>
     @if (selectedCustomer) {
       <div class="customer-details">
@@ -435,6 +497,7 @@
   <mat-dialog-actions align="end">
     <button mat-button mat-dialog-close>Close</button>
   </mat-dialog-actions>
+  </div>
 </ng-template>
 
 <!-- Delete Confirmation Dialog Template -->

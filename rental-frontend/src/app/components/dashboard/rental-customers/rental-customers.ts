@@ -8,6 +8,7 @@ import { MatDialog } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { Router } from '@angular/router';
 import { environment } from '../../../../environments/environment';
+import { A11yModule } from "@angular/cdk/a11y";
 
 export interface CustomerObject {
   id: string;
@@ -23,7 +24,7 @@ export interface CustomerObject {
 @Component({
   selector: 'app-rental-customers',
   standalone: true,
-  imports: [SharedImports],
+  imports: [SharedImports, A11yModule],
   templateUrl: './rental-customers.html',
   styleUrl: './rental-customers.css',
 })
@@ -183,6 +184,8 @@ loadCustomers(): void {
     this.dataSource.filter = filterValue;
   }
 
+  
+
   /** Handle front image selection for add form */
   onFrontImageSelected(event: Event) {
     const input = event.target as HTMLInputElement;
@@ -335,7 +338,7 @@ loadCustomers(): void {
     this.selectedBackImage = null;
     this.frontImagePreview = null;
     this.backImagePreview = null;
-    this.dialog.open(this.openAddDialog);
+    this.dialog.open(this.openAddDialog,{ maxWidth: '700px' });
   }
 
 /** Add customer using FormData */
@@ -406,7 +409,7 @@ addCustomer() {
   /** Opens dialog to view customer details */
   openViewDialog(customer: CustomerObject) {
     this.selectedCustomer = customer;
-    this.dialog.open(this.viewDialog);
+    this.dialog.open(this.viewDialog,{ maxWidth: '700px' });
   }
 
   /** Opens dialog and pre-fills data for update */
@@ -427,7 +430,7 @@ addCustomer() {
       email: customer.email,
       id_number: customer.id_number,
     });
-    this.dialog.open(this.updateDialog);
+    this.dialog.open(this.updateDialog,{ maxWidth: '700px' });
   }
 
   /** Update customer using FormData */

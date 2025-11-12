@@ -219,7 +219,9 @@ getProperties() {
 
   openAddUnitDialog() {
     const isMobile = window.innerWidth < 600;
-    let dialogRef = this.dialog.open(this.openAddDialog);
+    let dialogRef = this.dialog.open(this.openAddDialog,{
+          maxWidth: '700px',
+        });
     dialogRef.afterClosed().subscribe(result => {
       if (result !== undefined) {
         if (result === 'yes') {
