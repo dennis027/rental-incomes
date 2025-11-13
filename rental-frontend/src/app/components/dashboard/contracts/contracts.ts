@@ -463,12 +463,14 @@ export class Contracts implements OnInit, AfterViewInit {
         this.showSuccess('Contract deleted successfully!');
         this.dialog.closeAll();
         this.loadContracts();
+        this.cdr.detectChanges();
       },
       error: (err) => {
         this.loadDeleting = false;
         console.error('❌ Error deleting contract:', err);
         this.showError('Failed to delete contract.');
         if (err.status === 401) this.router.navigate(['/login']);
+        this.cdr.detectChanges();
       },
     });
   }
@@ -497,12 +499,14 @@ export class Contracts implements OnInit, AfterViewInit {
         setTimeout(() => {
           this.loadContracts();
         });
+        this.cdr.detectChanges();
       },
       error: (err) => {
         this.loadCancelling = false;
         console.error('❌ Error cancelling contract:', err);
         this.showError('Failed to cancel contract.');
         if (err.status === 401) this.router.navigate(['/login']);
+        this.cdr.detectChanges();
       },
     });
   }

@@ -18,6 +18,7 @@ export interface UnitsTable {
   rent_amount: number;
   water_meter_reading: number;
   electricity_meter_reading: number;
+  balance:string;
   status: string;
 }
 
@@ -46,7 +47,7 @@ export class Units implements OnInit, AfterViewInit {
   updateUnitForm!: FormGroup;
   selectedUnitId: string | null = null;
 
-  displayedColumns: string[] = ['unit_number', 'unit_type', 'rent_amount', 'status', 'actions'];
+  displayedColumns: string[] = ['unit_number', 'unit_type', 'rent_amount','balance', 'status', 'actions'];
   unitsObject: UnitsTable[] = [];
 
   systemParameters: any 

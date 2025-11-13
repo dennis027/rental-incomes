@@ -12,6 +12,7 @@ import { forkJoin } from 'rxjs';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 import { SystemParametersServices } from '../../../services/system-parameters-services';
+import { PaymentService } from '../../../services/payments';
 
 export interface Receipt {
   id: number;
@@ -36,6 +37,7 @@ export interface Receipt {
   previous_water_reading: string;
   current_water_reading: string;
   total_amount: string;
+  balance:string
 }
 
 export interface Property {
@@ -71,10 +73,11 @@ export class Receipts implements OnInit, AfterViewInit {
   private receiptService = inject(ReceiptService);
   private propertyService = inject(PropertiesService);
   private systemParametersSerice = inject(SystemParametersServices)
+  private paymentService = inject(PaymentService)
 
   displayedColumns: string[] = [
-    'receipt_number', 'contract_number', 'property', 'unit', 'customer', 'issue_date', 
-    'monthly_rent', 'electricity_bill', 'water_bill', 'service_charge', 'total_amount', 'actions'
+    'receipt_number', 'contract_number',  'unit',
+    'monthly_rent', 'electricity_bill', 'water_bill', 'service_charge', 'total_amount','balance', 'actions'
   ];
   dataSource = new MatTableDataSource<Receipt>([]);
   receipts: Receipt[] = [];
@@ -90,16 +93,21 @@ export class Receipts implements OnInit, AfterViewInit {
   @ViewChild('deleteReceiptDial') deleteReceiptDial!: TemplateRef<any>;
   @ViewChild('generateMonthlyDialog') generateMonthlyDialog!: TemplateRef<any>;
   @ViewChild('receiptPreviewDialog') receiptPreviewDialog!: TemplateRef<any>;
+  @ViewChild('paymentsDial') paymentsDial!: TemplateRef<any>;
   @ViewChild('receiptPreview', { static: false }) receiptPreview!: ElementRef;
 
   addReceiptForm!: FormGroup;
   updateReceiptForm!: FormGroup;
   generateMonthlyForm!: FormGroup;
+  paymentForm!:FormGroup
   loadAdding = false;
   loadGenerating = false;
   selectedReceiptId: number | null = null;
+  currentMonth:any
+  currentYear:any
 
   receipt: Receipt | null = null;
+  loadMakingPayments=false
   systemParametersObject:any = []
   receiptItems: { label: string; amount: number }[] = [];
   formattedDate: string = '';
@@ -107,11 +115,18 @@ export class Receipts implements OnInit, AfterViewInit {
   houseNameNo: string = '';
 
   ngOnInit() {
+
+    const today = new Date();
+    this.currentMonth = today.toLocaleString('en-US', { month: 'long' });
+    this.currentYear = today.getFullYear();
+
     this.initializeForms();
     this.loadProperties();
     this.loadData();
     this.setupFilters();
-    
+
+ 
+ 
   }
 
   getSystemParameters(){
@@ -183,6 +198,13 @@ export class Receipts implements OnInit, AfterViewInit {
       year: ['', [Validators.required, Validators.min(2000), Validators.max(2100)]],
       month: ['', [Validators.required, Validators.min(1), Validators.max(12)]]
     });
+
+    this.paymentForm = this.fb.group({
+      amount: ['', Validators.required],
+      method: ['', Validators.min(0)],
+      reference: ['', Validators.required],
+      notes: [`Payment for ${this.currentMonth} ${this.currentYear}`, [Validators.required]]
+    })
   }
 
   loadData() {
@@ -486,6 +508,54 @@ export class Receipts implements OnInit, AfterViewInit {
       { label: 'Other Charges', amount: parseFloat(receipt.other_charges) || 0 }
     ].filter(item => item.amount > 0); // Only show non-zero amounts
   }
+
+   openPaymentDial() {
+        let dialogRef = this.dialog.open(this.paymentsDial);
+        dialogRef.afterClosed().subscribe(result => {
+            // Note: If the user clicks outside the dialog or presses the escape key, there'll be no result
+            if (result !== undefined) {
+                if (result === 'yes') {
+        
+                } else if (result === 'no') {
+       
+                }
+            }
+        })
+    }
+
+
+    addPayment(){
+      this.loadMakingPayments = true
+      const data ={
+        receipt: this.receipt?.id,
+        amount:this.paymentForm.value.amount ,
+        method:this.paymentForm.value.method ,
+        reference:this.paymentForm.value.reference ,
+        notes:this.paymentForm.value.notes
+      }
+
+      this.paymentService.makePayment(data).subscribe(
+        (res)=>{
+          this.loadMakingPayments=false
+          this.showSuccess("Payment Made successfuly");
+          this.getReceipts();
+          this.dialog.closeAll();
+          this.paymentForm.reset();
+          this.cdr.detectChanges;
+
+        },
+        (err)=>{
+          this.loadMakingPayments=false
+          this.cdr.detectChanges();
+          this.showError("Kindly check your details")
+        }
+      )
+    }
+
+
+
+
+
 
   openReceiptReview() {
     const dialogRef = this.dialog.open(this.receiptPreviewDialog, {

@@ -1,23 +1,40 @@
 @if (!isLoading && !error) {
   <div class="contracts-container">
     <div class="header">
-      <h2>Contracts</h2>
-      <button mat-raised-button color="primary" (click)="openAddDialogForm()">Add Contract</button>
-      <mat-form-field appearance="outline" class="search-field">
-        <input matInput placeholder="Search" [(ngModel)]="searchText" (keyup)="applyFilter()" />
-      </mat-form-field>
+      <h2>Contracts</h2> <br>
+
+      <div class="row">
+        <div class="col-md-4"> <br>
+          <mat-form-field  appearance="outline" class="search-field" style="width: 100%;">
+              <input matInput placeholder="Search" [(ngModel)]="searchText" (keyup)="applyFilter()" />
+            </mat-form-field>
+        </div>
+
+        <div class="col-md-4"> 
+        <mat-form-field appearance="outline" class="full-width mt-3" style="width: 100%; padding-top: 0px;">
+          <mat-label>Select Property</mat-label>
+          <mat-select [(ngModel)]="selectedPropertyId" (selectionChange)="filterContractsByProperty()">
+            @for (property of properties; track property.id) {
+              <mat-option [value]="property.id">
+                {{ property.name }}
+              </mat-option>
+            }
+          </mat-select>
+        </mat-form-field>
+        </div>
+
+        <div class="col-md-4"> <br>
+           <button mat-raised-button color="primary" (click)="openAddDialogForm()">Add Contract</button>
+        </div>
+
+      </div>
     </div>
 
-    <mat-form-field appearance="outline" class="full-width mt-3">
-      <mat-label>Select Property</mat-label>
-      <mat-select [(ngModel)]="selectedPropertyId" (selectionChange)="filterContractsByProperty()">
-        @for (property of properties; track property.id) {
-          <mat-option [value]="property.id">
-            {{ property.name }}
-          </mat-option>
-        }
-      </mat-select>
-    </mat-form-field>
+
+     
+
+
+ 
 
     <!-- Active Contracts Table -->
     <div class="table-section">
@@ -77,7 +94,7 @@
         </ng-container>
 
         <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
-        <tr mat-row *matRowDef="let row; columns: displayedColumns;" class="active-row"></tr>
+        <tr mat-row  *matRowDef="let row; columns: displayedColumns;" class="active-row"></tr>
       </table>
       <mat-paginator #activePaginator [pageSizeOptions]="[5, 10, 25]" showFirstLastButtons></mat-paginator>
     </div>

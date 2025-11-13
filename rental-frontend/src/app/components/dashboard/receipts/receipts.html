@@ -75,9 +75,9 @@
       <td mat-cell *matCellDef="let r">{{ r.customer }}</td>
     </ng-container>
 
-    <ng-container matColumnDef="issue_date">
-      <th mat-header-cell *matHeaderCellDef>Date</th>
-      <td mat-cell *matCellDef="let r">{{ r.issue_date | date:'mediumDate' }}</td>
+    <ng-container matColumnDef="balance">
+      <th mat-header-cell *matHeaderCellDef>Balance</th>
+      <td mat-cell *matCellDef="let r">{{r.balance}}</td>
     </ng-container>
 
     <ng-container matColumnDef="monthly_rent">
@@ -108,8 +108,12 @@
     <ng-container matColumnDef="actions">
       <th mat-header-cell *matHeaderCellDef>Actions</th>
       <td mat-cell *matCellDef="let r">
+    
         <button mat-icon-button color="primary" (click)="generateReceipt(r); openReceiptReview()" matTooltip="Print Receipt">
           <mat-icon>print</mat-icon>
+        </button>
+        <button mat-icon-button color="primary" (click)="generateReceipt(r); openPaymentDial()" matTooltip="Pay Receipt">
+          <mat-icon>payment</mat-icon>
         </button>
         <button mat-icon-button color="primary" (click)="openUpdateDialog(r)" matTooltip="Edit Receipt">
           <mat-icon>edit</mat-icon>
@@ -121,7 +125,14 @@
     </ng-container>
 
     <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
-    <tr mat-row *matRowDef="let row; columns: displayedColumns"></tr>
+    <tr mat-row 
+        *matRowDef="let row; columns: displayedColumns"
+        [ngClass]="{
+          'balance-paid': row.status === 'paid',
+          'balance-unpaid': row.status === 'unpaid',
+          'balance-partial': row.status === 'partial'
+        }">
+    </tr>
   </table>
 
   <mat-paginator [pageSizeOptions]="[5, 10, 20]"
@@ -475,13 +486,12 @@
 </ng-template>
 
 <!-- Receipt Preview Dialog -->
-<ng-template #receiptPreviewDialog>
-  <div class="dialog-header">
-    <h2 mat-dialog-title>Receipt Preview</h2> 
-    <button mat-icon-button mat-dialog-close class="close-button">
-      <mat-icon>close</mat-icon>
-    </button> 
-  </div>
+<ng-template #receiptPreviewDialog> <br>
+  <div class="container-fluid dialog-header">
+      <h2 style="display: inline;" mat-dialog-title> Receipt Preview</h2>
+      <button style="display: inline;float: right;" mat-icon-button mat-dialog-close aria-label="Close dialog">
+        <mat-icon>close</mat-icon>
+      </button> <br> 
   
   <mat-dialog-content>
     <div #receiptPreview class="receipt-container">
@@ -537,4 +547,90 @@
       Download PDF
     </button>
   </mat-dialog-actions>
+  </div>
+</ng-template>
+
+
+
+
+<ng-template #paymentsDial> <br>
+  <div class="container-fluid dialog-header">
+      <h2 style="display: inline;" mat-dialog-title> Pay Receipt </h2>
+      <button style="display: inline;float: right;" mat-icon-button mat-dialog-close aria-label="Close dialog">
+        <mat-icon>close</mat-icon>
+      </button> <br> 
+
+          <form [formGroup]="paymentForm">
+
+            <div class="container-fluid">
+              <div class="row">
+                <div class="col-md-4">
+                      <!-- Amount -->
+                  <mat-form-field appearance="outline" class="full-width">
+                    <mat-label>Amount</mat-label>
+                    <input matInput formControlName="amount" type="number" step="0.01" required />
+                    @if (paymentForm.get('amount')?.hasError('required')) {
+                      <mat-error>Amount is required</mat-error>
+                    }
+                    @if (paymentForm.get('amount')?.hasError('min')) {
+                      <mat-error>Amount must be greater than 0</mat-error>
+                    }
+                  </mat-form-field>
+
+                </div>
+                <div class="col-md-4">
+                      <!-- Payment Method -->
+                  <mat-form-field appearance="outline" class="full-width">
+                    <mat-label>Payment Method</mat-label>
+                    <mat-select formControlName="method" required>
+                      <mat-option value="cash">Cash</mat-option>
+                      <mat-option value="mpesa">M-Pesa</mat-option>
+                      <mat-option value="bank">Bank Transfer</mat-option>
+                    </mat-select>
+
+                    @if (paymentForm.get('method')?.hasError('required')) {
+                      <mat-error>Payment method is required</mat-error>
+                    }
+                  </mat-form-field>
+                </div>
+                <div class="col-md-4">
+                            <!-- Reference -->
+                    <mat-form-field appearance="outline" class="full-width">
+                      <mat-label>Reference (M-Pesa Code / Bank Ref)</mat-label>
+                      <input matInput formControlName="reference" type="text" />
+                      @if (paymentForm.get('reference')?.hasError('required')) {
+                        <mat-error>Reference Code is required </mat-error>
+                      }
+                    </mat-form-field>
+                  </div>
+                </div>
+              </div>
+
+              <div class="row">
+                <div class="col-md-8">
+                          <!-- Notes -->
+                    <mat-form-field appearance="outline" class="full-width">
+                      <mat-label>Notes</mat-label>
+                      <textarea matInput formControlName="notes" rows="3"></textarea>
+                    </mat-form-field>
+                <div class="col-md-4">
+            
+                </div>
+              </div>
+            </div>
+
+          </form>
+
+        <mat-dialog-actions align="end">
+          <button mat-button mat-dialog-close>Cancel</button>
+          <button mat-flat-button color="primary" (click)="addPayment()" [disabled]="loadMakingPayments || paymentForm.invalid">
+            @if (loadMakingPayments) {
+              <span>Saving...</span>
+            } @else {
+              <span>Make Payments</span>
+            }
+          </button>
+        </mat-dialog-actions>
+
+  </div>
 </ng-template>
