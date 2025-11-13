@@ -68,6 +68,8 @@ export class Settings {
       default_service_charge: ['0.00'],
       default_security_charge: ['0.00'],
       default_other_charge: ['0.00'],
+      electicity_unit_cost: ['0.00'],
+      water_unit_cost: ['0.00'],
     });
   }
 
@@ -83,6 +85,7 @@ export class Settings {
         }
         console.log('Selected Property ID on Init:', this.selectedPropertyId);
         if (this.properties.length > 0) this.loadSystemParameters();
+        this.cdr.detectChanges();
       },
       error: (error) => {
         console.error('Error fetching properties:', error);
@@ -128,6 +131,7 @@ export class Settings {
     this.systemParametersService.updateSystemParams(propertyId, payload).subscribe({
       next: (res) => {
         this.showSuccess('✅ System parameters updated successfully!');
+         this.loadSystemParameters()
       },
       error: (err) => {
         console.error('Error updating system parameters:', err);

@@ -98,6 +98,7 @@ export class Contracts implements OnInit, AfterViewInit {
   loadUpdating = false;
   loadDeleting = false;
   loadCancelling = false;
+  isGeneratingPDF = false;
   selectedPropertyId: any;
   error: string | null = null;
   
@@ -567,64 +568,83 @@ export class Contracts implements OnInit, AfterViewInit {
     });
   }
 
-  generateContractPDF() {
-    const element = this.contractPreview.nativeElement;
-    html2canvas(element, { scale: 2 }).then(canvas => {
-      const imgData = canvas.toDataURL('image/png');
+generateContractPDF() {
+  this.isGeneratingPDF = true;
+  
+  const element = this.contractPreview.nativeElement;
+  
+  html2canvas(element, { scale: 2 }).then(canvas => {
+    const imgData = canvas.toDataURL('image/png');
+    
+    // A4 dimensions
+    const pdf = new jsPDF('p', 'mm', 'a4');
+    const pageWidth = 210;
+    const pageHeight = 297;
+    const margin = 15;
+    const contentWidth = pageWidth - (2 * margin);
+    
+    const imgWidth = contentWidth;
+    const imgHeight = (canvas.height * imgWidth) / canvas.width;
+    
+    const availableHeight = pageHeight - (2 * margin);
+    
+    let position = margin;
+    let remainingHeight = imgHeight;
+    
+    if (imgHeight <= availableHeight) {
+      pdf.addImage(imgData, 'PNG', margin, position, imgWidth, imgHeight);
+    } else {
+      let currentPage = 0;
       
-      // A4 dimensions
-      const pdf = new jsPDF('p', 'mm', 'a4');
-      const pageWidth = 210;
-      const pageHeight = 297;
-      const margin = 15;
-      const contentWidth = pageWidth - (2 * margin);
-      
-      const imgWidth = contentWidth;
-      const imgHeight = (canvas.height * imgWidth) / canvas.width;
-      
-      const availableHeight = pageHeight - (2 * margin);
-      
-      let position = margin;
-      let remainingHeight = imgHeight;
-      
-      if (imgHeight <= availableHeight) {
-        pdf.addImage(imgData, 'PNG', margin, position, imgWidth, imgHeight);
-      } else {
-        let currentPage = 0;
-        
-        while (remainingHeight > 0) {
-          if (currentPage > 0) {
-            pdf.addPage();
-          }
-          
-          const heightToShow = Math.min(availableHeight, remainingHeight);
-          const sourceY = currentPage * availableHeight * (canvas.height / imgHeight);
-          const sourceHeight = heightToShow * (canvas.height / imgHeight);
-          
-          const pageCanvas = document.createElement('canvas');
-          pageCanvas.width = canvas.width;
-          pageCanvas.height = sourceHeight;
-          const pageCtx = pageCanvas.getContext('2d');
-          
-          if (pageCtx) {
-            pageCtx.drawImage(
-              canvas,
-              0, sourceY, canvas.width, sourceHeight,
-              0, 0, canvas.width, sourceHeight
-            );
-            
-            const pageImgData = pageCanvas.toDataURL('image/png');
-            pdf.addImage(pageImgData, 'PNG', margin, margin, imgWidth, heightToShow);
-          }
-          
-          remainingHeight -= availableHeight;
-          currentPage++;
+      while (remainingHeight > 0) {
+        if (currentPage > 0) {
+          pdf.addPage();
         }
+        
+        const heightToShow = Math.min(availableHeight, remainingHeight);
+        const sourceY = currentPage * availableHeight * (canvas.height / imgHeight);
+        const sourceHeight = heightToShow * (canvas.height / imgHeight);
+        
+        const pageCanvas = document.createElement('canvas');
+        pageCanvas.width = canvas.width;
+        pageCanvas.height = sourceHeight;
+        const pageCtx = pageCanvas.getContext('2d');
+        
+        if (pageCtx) {
+          pageCtx.drawImage(
+            canvas,
+            0, sourceY, canvas.width, sourceHeight,
+            0, 0, canvas.width, sourceHeight
+          );
+          
+          const pageImgData = pageCanvas.toDataURL('image/png');
+          pdf.addImage(pageImgData, 'PNG', margin, margin, imgWidth, heightToShow);
+        }
+        
+        remainingHeight -= availableHeight;
+        currentPage++;
       }
-      
-      pdf.save(`contract_${this.selectedContract?.contract_number}.pdf`);
-    });
-  }
+    }
+    
+    pdf.save(`contract_${this.selectedContract?.contract_number}.pdf`);
+    
+    // Stop loader and close dialog
+    this.isGeneratingPDF = false;
+    this.dialog.closeAll();
+    
+    // Optional: Show success message
+    this.showSuccess('PDF downloaded successfully!');
+    
+  }).catch(error => {
+    console.error('Error generating PDF:', error);
+    this.isGeneratingPDF = false;
+    
+    // Optional: Show error message
+    this.showError('Failed to generate PDF. Please try again.');
+  });
+}
+
+
 
   calculateDuration(startDate: string, endDate: string): string {
     const start = new Date(startDate);

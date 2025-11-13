@@ -85,6 +85,7 @@ export class Receipts implements OnInit, AfterViewInit {
   @ViewChild(MatPaginator) paginator!: MatPaginator;
   @ViewChild('addReceiptDialog') addReceiptDialog!: TemplateRef<any>;
   @ViewChild('updateReceiptDialog') updateReceiptDialog!: TemplateRef<any>;
+  @ViewChild('deleteReceiptDial') deleteReceiptDial!: TemplateRef<any>;
   @ViewChild('generateMonthlyDialog') generateMonthlyDialog!: TemplateRef<any>;
   @ViewChild('receiptPreviewDialog') receiptPreviewDialog!: TemplateRef<any>;
   @ViewChild('receiptPreview', { static: false }) receiptPreview!: ElementRef;
@@ -393,18 +394,31 @@ export class Receipts implements OnInit, AfterViewInit {
   }
 
   deleteReceipt(id: number) {
-    if (!confirm('Are you sure you want to delete this receipt?')) return;
 
-    this.receiptService.deleteReceipt(id).subscribe({
-      next: () => {
-        this.showSuccess('Receipt deleted successfully!');
-        this.getReceipts();
-      },
-      error: (err) => {
-        this.showError('Failed to delete receipt.');
-        console.error('❌ Error deleting receipt:', err);
-      }
-    });
+      let dialogRef = this.dialog.open(this.deleteReceiptDial);
+        dialogRef.afterClosed().subscribe(result => {
+            // Note: If the user clicks outside the dialog or presses the escape key, there'll be no result
+            if (result !== undefined) {
+                if (result === 'yes') {
+                      this.receiptService.deleteReceipt(id).subscribe({
+                      next: () => {
+                        this.showSuccess('Receipt deleted successfully!');
+                        this.getReceipts();
+                      },
+                      error: (err) => {
+                        this.showError('Failed to delete receipt.');
+                        console.error('❌ Error deleting receipt:', err);
+                      }
+                    });
+                } else if (result === 'no') {
+                    // TODO: Replace the following line with your code.
+                    console.log('User clicked no.');
+                }
+            }
+        })
+
+
+
   }
 
   showSuccess(message: string) {

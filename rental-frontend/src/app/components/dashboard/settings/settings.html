@@ -26,7 +26,7 @@
   </mat-card>
 
   <!-- System Parameters Form -->
-  <form [formGroup]="updateSystemParams" (ngSubmit)="onUpdateSystemParams()">
+  <form [formGroup]="updateSystemParams">
     
     <!-- Financial Parameters Section -->
     <mat-card class="mb-3" style="box-shadow: 0 2px 8px rgba(0,0,0,0.08); border-radius: 12px;">
@@ -39,21 +39,21 @@
           <div class="col-md-4">
             <mat-form-field appearance="outline" class="full-width">
               <mat-label>Rent Deposit (Months)</mat-label>
-              <input matInput type="number" formControlName="rent_deposit_months" />
+              <input matInput type="number" formControlName="rent_deposit_months" (change)="onUpdateSystemParams()" />
               <mat-icon matSuffix style="color: #666;">calendar_today</mat-icon>
             </mat-form-field>
           </div>
           <div class="col-md-4">
             <mat-form-field appearance="outline" class="full-width">
               <mat-label>Late Payment Penalty (%)</mat-label>
-              <input matInput type="number" formControlName="late_payment_penalty_rate" />
+              <input matInput type="number" formControlName="late_payment_penalty_rate" (change)="onUpdateSystemParams()" />
               <mat-icon matSuffix style="color: #666;">percent</mat-icon>
             </mat-form-field>
           </div>
           <div class="col-md-4">
             <mat-form-field appearance="outline" class="full-width">
               <mat-label>Grace Period (Days)</mat-label>
-              <input matInput type="number" formControlName="grace_period_days" />
+              <input matInput type="number" formControlName="grace_period_days" (change)="onUpdateSystemParams()" />
               <mat-icon matSuffix style="color: #666;">schedule</mat-icon>
             </mat-form-field>
           </div>
@@ -72,21 +72,21 @@
           <div class="col-md-4">
             <mat-form-field appearance="outline" class="full-width">
               <mat-label>Default Service Charge</mat-label>
-              <input matInput type="number" formControlName="default_service_charge" />
+              <input matInput type="number" formControlName="default_service_charge" (change)="onUpdateSystemParams()" />
               <mat-icon matSuffix style="color: #666;">attach_money</mat-icon>
             </mat-form-field>
           </div>
           <div class="col-md-4">
             <mat-form-field appearance="outline" class="full-width">
               <mat-label>Default Security Charge</mat-label>
-              <input matInput type="number" formControlName="default_security_charge" />
+              <input matInput type="number" formControlName="default_security_charge" (change)="onUpdateSystemParams()" />
               <mat-icon matSuffix style="color: #666;">security</mat-icon>
             </mat-form-field>
           </div>
           <div class="col-md-4">
             <mat-form-field appearance="outline" class="full-width">
               <mat-label>Default Other Charge</mat-label>
-              <input matInput type="number" formControlName="default_other_charge" />
+              <input matInput type="number" formControlName="default_other_charge" (change)="onUpdateSystemParams()" />
               <mat-icon matSuffix style="color: #666;">more_horiz</mat-icon>
             </mat-form-field>
           </div>
@@ -103,22 +103,22 @@
         
         <div class="row">
           <div class="col-md-3">
-            <mat-slide-toggle formControlName="has_water_bill" color="primary">
+            <mat-slide-toggle formControlName="has_water_bill" color="primary" (change)="onUpdateSystemParams()">
               <span style="margin-left: 8px;">Include Water Bill</span>
             </mat-slide-toggle>
           </div>
           <div class="col-md-3">
-            <mat-slide-toggle formControlName="has_electricity_bill" color="primary">
+            <mat-slide-toggle formControlName="has_electricity_bill" color="primary" (change)="onUpdateSystemParams()">
               <span style="margin-left: 8px;">Include Electricity Bill</span>
             </mat-slide-toggle>
           </div>
           <div class="col-md-3">
-            <mat-slide-toggle formControlName="has_service_charge" color="primary">
+            <mat-slide-toggle formControlName="has_service_charge" color="primary" (change)="onUpdateSystemParams()">
               <span style="margin-left: 8px;">Include Service Charge</span>
             </mat-slide-toggle>
           </div>
           <div class="col-md-3">
-            <mat-slide-toggle formControlName="has_security_charge" color="primary">
+            <mat-slide-toggle formControlName="has_security_charge" color="primary" (change)="onUpdateSystemParams()">
               <span style="margin-left: 8px;">Include Security Charge</span>
             </mat-slide-toggle>
           </div>
@@ -126,13 +126,54 @@
         
         <div class="row mt-2">
           <div class="col-md-3">
-            <mat-slide-toggle formControlName="has_other_charges" color="primary">
+            <mat-slide-toggle formControlName="has_other_charges" color="primary" (change)="onUpdateSystemParams()">
               <span style="margin-left: 8px;">Include Other Charges</span>
             </mat-slide-toggle>
           </div>
         </div>
       </mat-card-content>
     </mat-card>
+
+@if (systemParameters?.has_electricity_bill === true || systemParameters?.has_water_bill === true) {
+  <mat-card class="mb-3" style="box-shadow: 0 2px 8px rgba(0,0,0,0.08); border-radius: 12px;">
+    <mat-card-content class="p-3">
+      <h6 class="mb-2" style="font-weight: 600; color: #1a1a1a; border-bottom: 2px solid #e0e0e0; padding-bottom: 8px;">
+        Units Cost
+      </h6>
+
+      <div class="row">
+        <div class="col-md-4">
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Electricity Unit Cost</mat-label>
+            <input
+              matInput
+              type="number"
+              formControlName="electicity_unit_cost"
+              (change)="onUpdateSystemParams()"
+            />
+            <mat-icon matSuffix style="color: #666;">power</mat-icon>
+          </mat-form-field>
+        </div>
+
+        <div class="col-md-4">
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Water Unit Cost</mat-label>
+            <input
+              matInput
+              type="number"
+              formControlName="water_unit_cost"
+              (change)="onUpdateSystemParams()"
+            />
+            <mat-icon matSuffix style="color: #666;">water</mat-icon>
+          </mat-form-field>
+        </div>
+      </div>
+    </mat-card-content>
+  </mat-card>
+} @else {
+  <!-- nothing will render when both are false -->
+}
+
 
     <!-- Deposit Requirements Section -->
     <mat-card class="mb-3" style="box-shadow: 0 2px 8px rgba(0,0,0,0.08); border-radius: 12px;">
@@ -143,12 +184,12 @@
         
         <div class="row">
           <div class="col-md-3">
-            <mat-slide-toggle formControlName="require_water_deposit" color="primary">
+            <mat-slide-toggle formControlName="require_water_deposit" color="primary" (change)="onUpdateSystemParams()">
               <span style="margin-left: 8px;">Require Water Deposit</span>
             </mat-slide-toggle>
           </div>
           <div class="col-md-3">
-            <mat-slide-toggle formControlName="require_electricity_deposit" color="primary">
+            <mat-slide-toggle formControlName="require_electricity_deposit" color="primary" (change)="onUpdateSystemParams()">
               <span style="margin-left: 8px;">Require Electricity Deposit</span>
             </mat-slide-toggle>
           </div>
@@ -165,12 +206,12 @@
         
         <div class="row">
           <div class="col-md-3">
-            <mat-slide-toggle formControlName="allow_partial_payments" color="primary">
+            <mat-slide-toggle formControlName="allow_partial_payments" color="primary" (change)="onUpdateSystemParams()">
               <span style="margin-left: 8px;">Allow Partial Payments</span>
             </mat-slide-toggle>
           </div>
           <div class="col-md-3">
-            <mat-slide-toggle formControlName="auto_generate_receipts" color="primary">
+            <mat-slide-toggle formControlName="auto_generate_receipts" color="primary" (change)="onUpdateSystemParams()">
               <span style="margin-left: 8px;">Auto Generate Receipts</span>
             </mat-slide-toggle>
           </div>
@@ -178,17 +219,5 @@
       </mat-card-content>
     </mat-card>
 
-    <!-- Submit Button -->
-    <div class="d-flex justify-content-end">
-
-      <button 
-        mat-raised-button 
-        color="primary" 
-        type="submit"
-        style="padding: 10px 28px; font-weight: 500; border-radius: 8px; box-shadow: 0 2px 8px rgba(63, 81, 181, 0.3);">
-        <mat-icon style="margin-right: 8px;">save</mat-icon>
-        Update System Parameters
-      </button>
-    </div>
   </form>
 </div>

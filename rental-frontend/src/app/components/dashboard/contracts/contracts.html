@@ -473,26 +473,7 @@
         </div>
       </div>
 
-      <!-- Legal Documents -->
 
-      <div class="contract-section">
-        <div class="section-title"> Legal Documents</div>
-        <div class="info-grid">
-          <div class="info-item full-width">
-            <div class="info-label">ID/Passport Front</div>
-            <div class="info-value">
-              <img style="width: 100%;" src="{{apiUrl+selectedContract?.id_photo_front }}" alt="">
-              </div>
-          </div>
-
-          <div class="info-item full-width">
-            <div class="info-label">ID/Passport Back</div>
-            <div class="info-value">
-                  <img style="width: 100%;" src="{{apiUrl+selectedContract?.id_photo_back }}" alt="">
-              </div>
-          </div>
-        </div>
-      </div>
 
       <!-- Contract Period -->
       <div class="contract-section">
@@ -616,10 +597,19 @@
   </mat-dialog-content>
 
   <mat-dialog-actions align="end">
-    <button mat-button mat-dialog-close>Close</button>
-    <button mat-raised-button color="primary" (click)="generateContractPDF()">
-      <mat-icon>download</mat-icon>
-      Download PDF
+    <button mat-button mat-dialog-close [disabled]="isGeneratingPDF">Close</button>
+    <button 
+      mat-raised-button 
+      color="primary" 
+      (click)="generateContractPDF()" 
+      [disabled]="isGeneratingPDF">
+      @if (isGeneratingPDF) {
+        <mat-spinner diameter="20" style="display: inline-block; margin-right: 8px;"></mat-spinner>
+      }
+      @if (!isGeneratingPDF) {
+        <mat-icon>download</mat-icon>
+      }
+      {{ isGeneratingPDF ? 'Generating...' : 'Download PDF' }}
     </button>
   </mat-dialog-actions>
   </div>
