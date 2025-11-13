@@ -11,6 +11,7 @@ import { Router } from '@angular/router';
 import { forkJoin } from 'rxjs';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
+import { SystemParametersServices } from '../../../services/system-parameters-services';
 
 export interface Receipt {
   id: number;
@@ -69,6 +70,7 @@ export class Receipts implements OnInit, AfterViewInit {
   private cdr = inject(ChangeDetectorRef);
   private receiptService = inject(ReceiptService);
   private propertyService = inject(PropertiesService);
+  private systemParametersSerice = inject(SystemParametersServices)
 
   displayedColumns: string[] = [
     'receipt_number', 'contract_number', 'property', 'unit', 'customer', 'issue_date', 
@@ -98,6 +100,7 @@ export class Receipts implements OnInit, AfterViewInit {
   selectedReceiptId: number | null = null;
 
   receipt: Receipt | null = null;
+  systemParametersObject:any = []
   receiptItems: { label: string; amount: number }[] = [];
   formattedDate: string = '';
   receiptClientName: string = '';
@@ -108,7 +111,21 @@ export class Receipts implements OnInit, AfterViewInit {
     this.loadProperties();
     this.loadData();
     this.setupFilters();
+    
   }
+
+  getSystemParameters(){
+    const propertyId = this.selectedProperty.value;
+    this.systemParametersSerice.getSystemParams( propertyId?  Number(propertyId) : this.properties[0].id ).subscribe(
+      (res)=>{
+        this.systemParametersObject =res
+      },
+      (err)=>{
+        console.log
+      }
+    )
+  }
+
 
   ngAfterViewInit() {
     this.dataSource.paginator = this.paginator;
@@ -121,6 +138,7 @@ export class Receipts implements OnInit, AfterViewInit {
         if (this.properties && this.properties.length > 0) {
           this.selectedProperty.setValue(String(this.properties[0].id));
         }
+        this.getSystemParameters()
       },
       (err) => {
         console.error('Failed to load properties', err);
@@ -204,6 +222,7 @@ export class Receipts implements OnInit, AfterViewInit {
     let filtered = [...this.receipts];
 
     const propertyId = this.selectedProperty.value;
+    this.getSystemParameters();
     if (propertyId) {
       filtered = filtered.filter(receipt => 
         String(receipt.property_id) === String(propertyId)
