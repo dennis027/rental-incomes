@@ -6,6 +6,7 @@
   </div>
 
   <!-- Property Selection Card -->
+  @if (properties.length >1 ){
   <mat-card class="mb-3" style="box-shadow: 0 2px 8px rgba(0,0,0,0.08); border-radius: 12px;">
     <mat-card-content class="p-3">
       <div class="row">
@@ -24,6 +25,7 @@
       </div>
     </mat-card-content>
   </mat-card>
+   }
 
   <!-- System Parameters Form -->
   <form [formGroup]="updateSystemParams">
@@ -142,37 +144,44 @@
       </h6>
 
       <div class="row">
-        <div class="col-md-4">
-          <mat-form-field appearance="outline" class="full-width">
-            <mat-label>Electricity Unit Cost</mat-label>
-            <input
-              matInput
-              type="number"
-              formControlName="electicity_unit_cost"
-              (change)="onUpdateSystemParams()"
-            />
-            <mat-icon matSuffix style="color: #666;">power</mat-icon>
-          </mat-form-field>
-        </div>
 
-        <div class="col-md-4">
-          <mat-form-field appearance="outline" class="full-width">
-            <mat-label>Water Unit Cost</mat-label>
-            <input
-              matInput
-              type="number"
-              formControlName="water_unit_cost"
-              (change)="onUpdateSystemParams()"
-            />
-            <mat-icon matSuffix style="color: #666;">water</mat-icon>
-          </mat-form-field>
-        </div>
+        @if (systemParameters?.has_electricity_bill === true) {
+          <div class="col-md-4">
+            <mat-form-field appearance="outline" class="full-width">
+              <mat-label>Electricity Unit Cost</mat-label>
+              <input
+                matInput
+                type="number"
+                formControlName="electicity_unit_cost"
+                (change)="onUpdateSystemParams()"
+              />
+              <mat-icon matSuffix style="color: #666;">power</mat-icon>
+            </mat-form-field>
+          </div>
+        }
+
+        @if (systemParameters?.has_water_bill === true) {
+          <div class="col-md-4">
+            <mat-form-field appearance="outline" class="full-width">
+              <mat-label>Water Unit Cost</mat-label>
+              <input
+                matInput
+                type="number"
+                formControlName="water_unit_cost"
+                (change)="onUpdateSystemParams()"
+              />
+              <mat-icon matSuffix style="color: #666;">water</mat-icon>
+            </mat-form-field>
+          </div>
+        }
+
       </div>
     </mat-card-content>
   </mat-card>
 } @else {
   <!-- nothing will render when both are false -->
 }
+
 
 
     <!-- Deposit Requirements Section -->

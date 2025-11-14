@@ -11,6 +11,7 @@
   </div>
 
   <!-- Property Selector -->
+  @if (properties.length >1 ){
   <mat-form-field appearance="outline" class="full-width mt-3">
     <mat-label>Select Property</mat-label>
     <mat-select [(ngModel)]="selectedPropertyId" (selectionChange)="filterUnitsByProperty()">
@@ -21,7 +22,7 @@
       }
     </mat-select>
   </mat-form-field>
-
+   }
   <!-- Search Bar -->
   <mat-form-field appearance="outline" class="full-width mt-2">
     <mat-label>Search Units</mat-label>

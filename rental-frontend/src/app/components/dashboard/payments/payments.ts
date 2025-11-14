@@ -3,19 +3,25 @@ import { MatDialog } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatPaginator } from '@angular/material/paginator';
 import { MatTableDataSource } from '@angular/material/table';
-import { FormBuilder, FormGroup, Validators } from '@angular/forms';
+import { FormBuilder, FormGroup, Validators, FormControl } from '@angular/forms';
 import { SharedImports } from '../../../shared-imports/imports';
 import { PaymentService } from '../../../services/payments';
 import { Router } from '@angular/router';
+import { PropertiesService } from '../../../services/properties';
 
 export interface Payment {
   id: number;
-  amount: number;
+  unit_id: number;
+  unit_number: string;
+  property_id: number;
+  property_name: string;
+  amount: string;
   payment_date: string;
   method: string;
   reference: string;
   notes: string;
-  contract: number;
+  created_at: string;
+  receipt: number;
 }
 
 @Component({
@@ -32,10 +38,12 @@ export class Payments implements OnInit, AfterViewInit {
   private snackBar = inject(MatSnackBar);
   private cdr = inject(ChangeDetectorRef);
   private PaymentsService = inject(PaymentService);
+  private propertyService = inject(PropertiesService);
 
-  displayedColumns: string[] = ['amount', 'payment_date', 'method', 'reference', 'notes', 'contract', 'actions'];
+  displayedColumns: string[] = ['amount', 'payment_date', 'method', 'reference', 'unit_number', 'notes', 'receipt', 'actions'];
   dataSource = new MatTableDataSource<Payment>([]);
   payments: Payment[] = [];
+  filteredPayments: Payment[] = [];
 
   @ViewChild(MatPaginator) paginator!: MatPaginator;
   @ViewChild('addPaymentDialog') addPaymentDialog!: TemplateRef<any>;
@@ -43,10 +51,29 @@ export class Payments implements OnInit, AfterViewInit {
   addPaymentForm!: FormGroup;
   loadAdding = false;
 
+  properties: any[] = [];
+  selectedProperty = new FormControl('');
+
   ngOnInit() {
     this.initializeForm();
-    this.getPayments();
-        this.loadAdding = false;
+    this.loadAdding = false;
+    this.getProperties();
+  }
+
+  getProperties() {
+    this.propertyService.getProperties().subscribe(
+      (res) => {
+        this.properties = res;
+        if (this.properties.length > 0) {
+          // Set first property as default
+          this.selectedProperty.setValue(this.properties[0].id.toString());
+          this.getPayments();
+        }
+      },
+      (err) => {
+        console.error('Error loading properties:', err);
+      }
+    );
   }
 
   ngAfterViewInit() {
@@ -68,11 +95,7 @@ export class Payments implements OnInit, AfterViewInit {
     this.PaymentsService.getPayments().subscribe({
       next: (res: Payment[]) => {
         this.payments = res;
-        this.dataSource.data = this.payments;
-        setTimeout(() => {
-          this.dataSource.paginator = this.paginator;
-        });
-        this.cdr.detectChanges();
+        this.filterPaymentsByProperty();
       },
       error: (err) => {
         if (err.status === 401) {
@@ -82,6 +105,33 @@ export class Payments implements OnInit, AfterViewInit {
         console.error('❌ Error fetching payments:', err);
       }
     });
+  }
+
+  filterPaymentsByProperty() {
+    const propertyId = this.selectedProperty.value;
+    
+    if (propertyId) {
+      this.filteredPayments = this.payments.filter(
+        payment => payment.property_id.toString() === propertyId
+      );
+    } else {
+      this.filteredPayments = this.payments;
+    }
+
+    this.dataSource.data = this.filteredPayments;
+    
+    setTimeout(() => {
+      if (this.paginator) {
+        this.dataSource.paginator = this.paginator;
+      }
+    });
+    
+    this.cdr.detectChanges();
+  }
+
+  getPropertyName(propertyId: string): string {
+    const property = this.properties.find(p => p.id.toString() === propertyId);
+    return property ? property.name : 'All Properties';
   }
 
   openAddPaymentDialog() {
@@ -103,7 +153,6 @@ export class Payments implements OnInit, AfterViewInit {
         this.dialog.closeAll();
         this.showSuccess('Payment added successfully!');
         this.getPayments();
-        this.cdr.detectChanges();
         this.addPaymentForm.reset({ method: 'mpesa' });
       },
       error: (err) => {

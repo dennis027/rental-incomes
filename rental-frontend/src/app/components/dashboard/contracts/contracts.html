@@ -11,6 +11,7 @@
         </div>
 
         <div class="col-md-4"> 
+         @if (properties.length >1 ){
         <mat-form-field appearance="outline" class="full-width mt-3" style="width: 100%; padding-top: 0px;">
           <mat-label>Select Property</mat-label>
           <mat-select [(ngModel)]="selectedPropertyId" (selectionChange)="filterContractsByProperty()">
@@ -21,7 +22,9 @@
             }
           </mat-select>
         </mat-form-field>
+         }
         </div>
+        
 
         <div class="col-md-4"> <br>
            <button mat-raised-button color="primary" (click)="openAddDialogForm()">Add Contract</button>

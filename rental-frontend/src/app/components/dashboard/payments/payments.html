@@ -1,9 +1,35 @@
 <div class="payments-container">
   <div class="header">
     <h2><i class="fas fa-money-bill-wave"></i> Payments</h2>
-    <button mat-raised-button color="primary" (click)="openAddPaymentDialog()">
-      <mat-icon>add</mat-icon> Add Payment
-    </button>
+    
+    <div class="header-actions">
+      @if (properties.length >1 ){
+        <mat-form-field appearance="outline" class="property-filter">
+        <mat-label>Filter by Property</mat-label>
+        <mat-select [formControl]="selectedProperty" (selectionChange)="filterPaymentsByProperty()">
+          @for (property of properties; track property.id) {
+            <mat-option [value]="property.id.toString()">
+              {{ property.name }}
+            </mat-option>
+          }
+        </mat-select>
+      </mat-form-field>
+      } 
+
+
+      <!-- <button mat-raised-button color="primary" (click)="openAddPaymentDialog()">
+        <mat-icon>add</mat-icon> Add Payment
+      </button> -->
+    </div>
+  </div>
+
+  <div class="payment-summary">
+    <span class="summary-text">
+      Showing {{ dataSource.data.length }} payment(s)
+      @if (selectedProperty.value) {
+        <span> for {{ getPropertyName(selectedProperty.value) }}</span>
+      }
+    </span>
   </div>
 
   <div class="table-container mat-elevation-z8">
@@ -12,7 +38,7 @@
       <!-- Amount -->
       <ng-container matColumnDef="amount">
         <th mat-header-cell *matHeaderCellDef>Amount</th>
-        <td mat-cell *matCellDef="let element">{{ element.amount | currency:'KES' }}</td>
+        <td mat-cell *matCellDef="let element">{{ element.amount | number:'1.2-2' }}</td>
       </ng-container>
 
       <!-- Date -->
@@ -33,16 +59,22 @@
         <td mat-cell *matCellDef="let element">{{ element.reference }}</td>
       </ng-container>
 
+      <!-- Unit -->
+      <ng-container matColumnDef="unit_number">
+        <th mat-header-cell *matHeaderCellDef>Unit</th>
+        <td mat-cell *matCellDef="let element">{{ element.unit_number }}</td>
+      </ng-container>
+
       <!-- Notes -->
       <ng-container matColumnDef="notes">
         <th mat-header-cell *matHeaderCellDef>Notes</th>
         <td mat-cell *matCellDef="let element">{{ element.notes || '-' }}</td>
       </ng-container>
 
-      <!-- Contract -->
-      <ng-container matColumnDef="contract">
-        <th mat-header-cell *matHeaderCellDef>Contract</th>
-        <td mat-cell *matCellDef="let element">{{ element.contract }}</td>
+      <!-- Receipt -->
+      <ng-container matColumnDef="receipt">
+        <th mat-header-cell *matHeaderCellDef>Receipt</th>
+        <td mat-cell *matCellDef="let element">{{ element.receipt }}</td>
       </ng-container>
 
       <!-- Actions -->
