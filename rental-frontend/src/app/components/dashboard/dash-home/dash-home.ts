@@ -1,5 +1,14 @@
-import { Component, OnInit, OnDestroy, AfterViewInit } from '@angular/core';
+
+import { Component, OnInit, OnDestroy, AfterViewInit, inject, ChangeDetectorRef } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { FormControl, ReactiveFormsModule } from '@angular/forms';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatSelectModule } from '@angular/material/select';
+import { DashboardSummaryService, DashboardSummary, MonthlyCollection, OccupancyStats } from '../../../services/dashboard-summary-service'
+import { PropertiesService } from '../../../services/properties';
 import Chart from 'chart.js/auto';
+import { SharedImports } from '../../../shared-imports/imports';
+import { Router } from '@angular/router';
 
 @Component({
   selector: 'app-dash-home',
@@ -7,64 +16,119 @@ import Chart from 'chart.js/auto';
   // but based on the class structure, it seems like a standalone component might require it.
   // Assuming a modern Angular setup, you might need to add CommonModule here 
   // if your template uses directives like *ngFor or *ngIf.
-  imports: [], 
+  imports: [SharedImports], 
   templateUrl: './dash-home.html',
   styleUrl: './dash-home.css'
 })
 // Implement the required lifecycle interfaces for clarity and type-safety
 export class DashHome implements OnInit, AfterViewInit, OnDestroy { 
-  summaryCards = [
-    { label: 'Total Tenants', value: 24, icon: 'fas fa-user-friends' },
-    { label: 'Occupied Units', value: 18, icon: 'fas fa-building' },
-    { label: 'Pending Rent', value: 'KSh 42,000', icon: 'fas fa-money-bill-wave' },
-    { label: 'Contracts Expiring', value: 3, icon: 'fas fa-file-contract' },
+
+  private dashboardService = inject(DashboardSummaryService);
+  private propertyService = inject(PropertiesService);
+  private cdr = inject(ChangeDetectorRef)
+  private router = inject(Router)
+  
+    summaryCards = [
+    { label: 'Total Tenants', value: '0', icon: 'fas fa-user-friends' },
+    { label: 'Occupied Units', value: '0/0', icon: 'fas fa-building' },
+    { label: 'Pending Rent', value: 'KSh 0', icon: 'fas fa-money-bill-wave' },
+    { label: 'Contracts Expiring', value: '0', icon: 'fas fa-file-contract' },
   ];
+
+  properties: any[] = [];
+  selectedProperty = new FormControl('');
+  isLoading = false;
 
   private rentChart?: Chart;
   private occupancyChart?: Chart;
 
-  // ngOnInit is used for initialization logic that doesn't rely on the view
   ngOnInit(): void {
-    // Keep this empty or use it for data fetching/initial variable setup
+    this.loadProperties();
   }
 
-  // This hook is called *after* Angular initializes the component's view 
-  // and child views—this is the correct place to interact with the canvas elements.
   ngAfterViewInit(): void {
-    // Since the view is ready, we can safely call renderCharts without a setTimeout
-    this.renderCharts();
+    // Charts will be rendered after data is loaded
   }
 
   ngOnDestroy(): void {
-    // Clean up charts when component is destroyed
     this.rentChart?.destroy();
     this.occupancyChart?.destroy();
   }
 
-  renderCharts() {
-    // The previous checks and destruction logic inside ngOnInit and renderCharts are
-    // now redundant for the initial load because we are using ngAfterViewInit,
-    // which runs only once after the view is initialized.
+  loadProperties(): void {
+    this.propertyService.getProperties().subscribe({
+      next: (res) => {
+        this.properties = res;
+        if (this.properties.length > 0) {
+          this.selectedProperty.setValue(this.properties[0].id.toString());
+          this.loadDashboardData();
+        }
+        this.cdr.detectChanges();
+      },
+      error: (err) => {
+        console.error('Error loading properties:', err);
+       if (err.status === 401) this.router.navigate(['/login']);
+      }
+    });
+  }
 
-    // If you were calling renderCharts outside of the initial load (e.g., from a button click),
-    // you would keep the destroy checks. For this setup, we keep the destroy checks
-    // just in case it's called again for some reason, ensuring Chart.js doesn't error.
+  onPropertyChange(): void {
+    this.loadDashboardData();
+  }
+
+  loadDashboardData(): void {
+    this.isLoading = true;
+    const propertyId = this.selectedProperty.value || undefined;
+
+    // Load summary
+    this.dashboardService.getDashboardSummary(propertyId).subscribe({
+      next: (data: DashboardSummary) => {
+        this.summaryCards = [
+          { label: 'Total Tenants', value: data.total_tenants.toString(), icon: 'fas fa-user-friends' },
+          { label: 'Occupied Units', value: `${data.occupied_units}/${data.total_units}`, icon: 'fas fa-building' },
+          { label: 'Pending Rent', value: `KSh ${data.pending_rent.toLocaleString()}`, icon: 'fas fa-money-bill-wave' },
+          { label: 'Contracts Expiring', value: data.contracts_expiring.toString(), icon: 'fas fa-file-contract' },
+        ];
+      },
+      error: (err) => console.error('Error loading summary:', err)
+    });
+
+    // Load monthly collection
+    this.dashboardService.getMonthlyCollection(propertyId, 6).subscribe({
+      next: (data: MonthlyCollection[]) => {
+        this.renderRentChart(data);
+        this.cdr.detectChanges();
+      },
+      error: (err) => console.error('Error loading monthly collection:', err)
+    });
+
+    // Load occupancy stats
+    this.dashboardService.getOccupancyStats(propertyId).subscribe({
+      next: (data: OccupancyStats) => {
+        this.renderOccupancyChart(data);
+        this.isLoading = false;
+        this.cdr.detectChanges();
+      },
+      error: (err) => {
+        console.error('Error loading occupancy:', err);
+        this.isLoading = false;
+      }
+    });
+  }
+
+  renderRentChart(data: MonthlyCollection[]): void {
     if (this.rentChart) {
       this.rentChart.destroy();
     }
-    if (this.occupancyChart) {
-      this.occupancyChart.destroy();
-    }
-    
-    // Create the charts using the ID of the canvas element in the template
+
     this.rentChart = new Chart('rentChart', {
       type: 'bar',
       data: {
-        labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
+        labels: data.map(d => d.month),
         datasets: [
           {
             label: 'Rent Collected (KSh)',
-            data: [42000, 53000, 48000, 60000, 55000, 63000],
+            data: data.map(d => d.amount),
             backgroundColor: '#4e73df',
           },
         ],
@@ -74,13 +138,22 @@ export class DashHome implements OnInit, AfterViewInit, OnDestroy {
         maintainAspectRatio: false,
       },
     });
+  }
+
+  renderOccupancyChart(data: OccupancyStats): void {
+    if (this.occupancyChart) {
+      this.occupancyChart.destroy();
+    }
 
     this.occupancyChart = new Chart('occupancyChart', {
       type: 'doughnut',
       data: {
         labels: ['Occupied', 'Vacant'],
         datasets: [
-          { data: [75, 25], backgroundColor: ['#4e73df', '#ea2222ff'] },
+          { 
+            data: [data.occupied, data.vacant], 
+            backgroundColor: ['#4e73df', '#ea2222ff'] 
+          },
         ],
       },
       options: {

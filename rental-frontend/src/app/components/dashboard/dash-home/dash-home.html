@@ -1,5 +1,20 @@
 <div class="dashboard-container p-3">
-  <h2 class="mb-4">Dashboard Overview</h2>
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <h2>Dashboard Overview</h2>
+    
+    @if (properties.length > 1) {
+      <mat-form-field appearance="outline" class="property-filter">
+        <mat-label>Select Property</mat-label>
+        <mat-select [formControl]="selectedProperty" (selectionChange)="onPropertyChange()">
+          @for (property of properties; track property.id) {
+            <mat-option [value]="property.id.toString()">
+              {{ property.name }}
+            </mat-option>
+          }
+        </mat-select>
+      </mat-form-field>
+    }
+  </div>
 
   <!-- Summary Cards -->
   <div class="row g-3 mb-4">
