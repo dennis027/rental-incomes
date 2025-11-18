@@ -43,62 +43,104 @@
   </div>
 
   <!-- Units Table -->
-  <div class="table-container mat-elevation-z8">
-    <table mat-table [dataSource]="dataSource" class="full-width-table">
+<!-- Units Table -->
+<div class="table-container mat-elevation-z8">
+  <!-- Add the directive here ↓ -->
+  <table mat-table [dataSource]="dataSource" appMatTableResponsive class="full-width-table">
 
-      <!-- Unit Number -->
-      <ng-container matColumnDef="unit_number">
-        <th mat-header-cell *matHeaderCellDef>Unit No</th>
-        <td mat-cell *matCellDef="let element">{{ element.unit_number }}</td>
-      </ng-container>
+    <!-- Unit Number -->
+    <ng-container matColumnDef="unit_number">
+      <th mat-header-cell *matHeaderCellDef>Unit No</th>
+      <td mat-cell *matCellDef="let element">{{ element.unit_number }}</td>
+    </ng-container>
 
-      <!-- Type -->
-      <ng-container matColumnDef="unit_type">
-        <th mat-header-cell *matHeaderCellDef>Type</th>
-        <td mat-cell *matCellDef="let element">{{ element.unit_type }}</td>
-      </ng-container>
+    <!-- Type -->
+    <ng-container matColumnDef="unit_type">
+      <th mat-header-cell *matHeaderCellDef>Type</th>
+      <td mat-cell *matCellDef="let element">{{ element.unit_type }}</td>
+    </ng-container>
 
-      <!-- Rent -->
-      <ng-container matColumnDef="rent_amount">
-        <th mat-header-cell *matHeaderCellDef>Rent</th>
-        <td mat-cell *matCellDef="let element">{{ element.rent_amount | currency:'KES' }}</td>
-      </ng-container>
+    <!-- Rent -->
+    <ng-container matColumnDef="rent_amount">
+      <th mat-header-cell *matHeaderCellDef>Rent</th>
+      <td mat-cell *matCellDef="let element">{{ element.rent_amount | currency:'KES' }}</td>
+    </ng-container>
 
-      <ng-container matColumnDef="balance">
-        <th mat-header-cell *matHeaderCellDef>Balance</th>
-        <td mat-cell *matCellDef="let element">{{ element.balance | currency:'KES' }}</td>
-      </ng-container>
+        <!-- Contract deposit balance -->
+    <ng-container matColumnDef="active_contract_deposit">
+      <th mat-header-cell *matHeaderCellDef>Deposit</th>
+      <td mat-cell *matCellDef="let element">{{ element.active_contract_deposit | currency:'KES' }}</td>
+    </ng-container>
 
-      <!-- Status -->
-      <ng-container matColumnDef="status">
-        <th mat-header-cell *matHeaderCellDef>Status</th>
-        <td mat-cell *matCellDef="let element">
-          <span [ngClass]="element.status === 'occupied' ? 'occupied' : 'vacant'">
-            {{ element.status | titlecase }}
-          </span>
-        </td>
-      </ng-container>
 
-      <!-- Actions -->
-      <ng-container matColumnDef="actions">
-        <th mat-header-cell *matHeaderCellDef class="text-center">Actions</th>
-        <td mat-cell *matCellDef="let element" class="actions-cell">
-          <button mat-icon-button color="primary" (click)="openUpdateDialog(element)" matTooltip="Edit Unit">
-            <mat-icon>edit</mat-icon>
+    <!-- Balance -->
+    <ng-container matColumnDef="balance">
+      <th mat-header-cell *matHeaderCellDef>Balance</th>
+      <td mat-cell *matCellDef="let element">{{ element.balance | currency:'KES' }}</td>
+    </ng-container>
+
+
+    <!-- Status -->
+    <ng-container matColumnDef="status">
+      <th mat-header-cell *matHeaderCellDef>Status</th>
+      <td mat-cell *matCellDef="let element">
+        <span [ngClass]="element.status === 'occupied' ? 'occupied' : 'vacant'">
+          {{ element.status | titlecase }}
+        </span>
+      </td>
+    </ng-container>
+
+    <!-- Actions -->
+    <ng-container matColumnDef="actions">
+      <th mat-header-cell *matHeaderCellDef class="text-center">Actions</th>
+
+      <td mat-cell *matCellDef="let element; let i = index" class="actions-cell">
+
+        <!-- EDIT -->
+        <button mat-icon-button color="primary"
+                (click)="openUpdateDialog(element)"
+                [matTooltip]="'Edit Unit'"
+                [matTooltipPosition]="'above'">
+          <mat-icon>edit</mat-icon>
+        </button>
+
+        <!-- DELETE -->
+        <button mat-icon-button color="warn"
+                (click)="openDeleteDialog(element)"
+                [matTooltip]="'Delete Unit'"
+                [matTooltipPosition]="'above'">
+          <mat-icon>delete</mat-icon>
+        </button>
+
+        <!-- CREATE CONTRACT -->
+        @if (element.status !== 'occupied') {
+          <button mat-icon-button color="accent"
+                  (click)="openCreateContractDialog(element)"
+                  [matTooltip]="'Create Contract'"
+                  [matTooltipPosition]="'above'">
+            <mat-icon>note_add</mat-icon>
           </button>
-          <button mat-icon-button color="warn" (click)="openDeleteDialog(element)" matTooltip="Delete Unit">
-            <mat-icon>delete</mat-icon>
+        }
+
+        <!-- CANCEL CONTRACT -->
+        @if (element.status === 'occupied') {
+          <button mat-icon-button color="warn"
+                  (click)="openCancelContractDialog(element)"
+                  [matTooltip]="'Cancel Contract'"
+                  [matTooltipPosition]="'above'">
+            <mat-icon>cancel</mat-icon>
           </button>
-        </td>
-      </ng-container>
+        }
 
-      <!-- Table Rows -->
-      <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
-      <tr mat-row *matRowDef="let row; columns: displayedColumns"></tr>
+      </td>
+    </ng-container>
 
-      <!-- No Data Row -->
-      @if (dataSource.data.length === 0) {
-        <tr class="mat-row">
+    <!-- Header and Row Definitions -->
+    <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+    <tr mat-row *matRowDef="let row; columns: displayedColumns"></tr>
+
+    <!-- No Data Row -->
+        <tr matNoDataRow>
           <td class="mat-cell" [attr.colspan]="displayedColumns.length">
             <div class="no-data">
               <mat-icon>inbox</mat-icon>
@@ -106,11 +148,13 @@
             </div>
           </td>
         </tr>
-      }
-    </table>
 
-    <mat-paginator [pageSizeOptions]="[5, 10, 20]" showFirstLastButtons></mat-paginator>
-  </div>
+
+  </table>
+
+  <mat-paginator [pageSizeOptions]="[5, 10, 20]" showFirstLastButtons></mat-paginator>
+</div>
+
 </div>
 
 <!-- Add Unit Dialog Template -->

@@ -9,6 +9,7 @@ import { MatTableDataSource } from '@angular/material/table';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { SystemParametersServices } from '../../../services/system-parameters-services';
+import { MatTableResponsiveDirective } from '../../../directives/mat-table-responsive-directive';
 
 export interface UnitsTable {
   id: string;
@@ -20,6 +21,7 @@ export interface UnitsTable {
   electricity_meter_reading: number;
   balance:string;
   status: string;
+  active_contract_deposit:string
 }
 
 @Component({
@@ -27,7 +29,7 @@ export interface UnitsTable {
   standalone: true,
   imports: [SharedImports],
   templateUrl: './units.html',
-  styleUrl: './units.css',
+  styleUrl: './units.css'
 })
 export class Units implements OnInit, AfterViewInit {
   private snackBar = inject(MatSnackBar);
@@ -47,7 +49,7 @@ export class Units implements OnInit, AfterViewInit {
   updateUnitForm!: FormGroup;
   selectedUnitId: string | null = null;
 
-  displayedColumns: string[] = ['unit_number', 'unit_type', 'rent_amount','balance', 'status', 'actions'];
+  displayedColumns: string[] = ['unit_number', 'unit_type', 'rent_amount','active_contract_deposit', 'balance','status', 'actions'];
   unitsObject: UnitsTable[] = [];
 
   systemParameters: any 
@@ -388,5 +390,14 @@ updateUnit() {
         }
       },
     });
+  }
+
+
+  openCreateContractDialog(id:any){
+    console.log(id)
+  }
+
+  openCancelContractDialog(id:any){
+    console.log(id)
   }
 }

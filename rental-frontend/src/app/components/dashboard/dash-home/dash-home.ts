@@ -89,6 +89,7 @@ export class DashHome implements OnInit, AfterViewInit, OnDestroy {
           { label: 'Pending Rent', value: `KSh ${data.pending_rent.toLocaleString()}`, icon: 'fas fa-money-bill-wave' },
           { label: 'Contracts Expiring', value: data.contracts_expiring.toString(), icon: 'fas fa-file-contract' },
         ];
+        this.cdr.detectChanges();
       },
       error: (err) => console.error('Error loading summary:', err)
     });

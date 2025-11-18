@@ -1,4 +1,4 @@
-import { Component, signal, inject } from '@angular/core';
+import { Component, signal, inject, ChangeDetectorRef } from '@angular/core';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 import { AuthService } from '../../../services/auth'
@@ -18,7 +18,7 @@ private fb = inject(FormBuilder);
   private authService = inject(AuthService);
   private route = inject(Router);
   private snackBar = inject(MatSnackBar);
-
+  private cdr = inject(ChangeDetectorRef)
 
   // SMACKBAR MESSAGES
 
@@ -60,6 +60,7 @@ private fb = inject(FormBuilder);
         next: res => {
           this.route.navigate(['/dashboard']);
           this.showSuccess('Logged In successfully!');
+          this.cdr.detectChanges();
         },
         error: err => {
             this.showError('Check your details.');
