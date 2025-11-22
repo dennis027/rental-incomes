@@ -33,7 +33,8 @@
   </div>
 
   <div class="table-container mat-elevation-z8">
-    <table mat-table [dataSource]="dataSource" class="full-width-table">
+    <!--  -->
+    <table mat-table [dataSource]="dataSource" class="full-width-table" ngSkipHydration>
 
       <!-- Amount -->
       <ng-container matColumnDef="amount">

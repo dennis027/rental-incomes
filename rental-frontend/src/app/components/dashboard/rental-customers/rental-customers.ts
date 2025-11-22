@@ -1,4 +1,5 @@
-import { Component, inject, AfterViewInit, ViewChild, OnInit, TemplateRef, ChangeDetectorRef } from '@angular/core';
+import { Component, inject, AfterViewInit, ViewChild, OnInit, TemplateRef, ChangeDetectorRef, PLATFORM_ID } from '@angular/core';
+import { isPlatformBrowser } from '@angular/common';
 import { MatPaginator } from '@angular/material/paginator';
 import { MatTableDataSource } from '@angular/material/table';
 import { CustomersService } from '../../../services/customer';
@@ -32,6 +33,7 @@ export class RentalCustomers implements OnInit, AfterViewInit {
 
   apiUrl = environment.apiUrl;
   private snackBar = inject(MatSnackBar);
+  private platformId = inject(PLATFORM_ID); // ✅ Added
 
   // ViewChild for dialog templates
   @ViewChild('openAddDialog') openAddDialog!: TemplateRef<any>;
@@ -97,18 +99,39 @@ export class RentalCustomers implements OnInit, AfterViewInit {
   }
 
   ngOnInit(): void {
-    this.loadCustomers();
+    // Initialize forms first (can run on server)
     this.initializeForm();
+
+    // ✅ CRITICAL: Only load data in browser
+    if (isPlatformBrowser(this.platformId)) {
+      console.log('🔍 Customers component running in browser');
+
+      // Verify token exists
+      const token = localStorage.getItem('access_token');
+      console.log('🔑 Token status:', token ? 'Token exists' : '❌ NO TOKEN!');
+
+      if (!token) {
+        console.error('❌ No access token found, redirecting to login');
+        this.router.navigate(['/login']);
+        return;
+      }
+
+      this.loadCustomers();
+    } else {
+      console.log('⚠️ Customers component running on server, skipping API calls');
+    }
   }
 
-ngAfterViewInit(): void {
-  // Defer paginator binding until the view and @if DOM are stable
-  setTimeout(() => {
-    if (this.paginator) {
-      this.dataSource.paginator = this.paginator;
+  ngAfterViewInit(): void {
+    // ✅ Only set paginator in browser
+    if (isPlatformBrowser(this.platformId)) {
+      setTimeout(() => {
+        if (this.paginator) {
+          this.dataSource.paginator = this.paginator;
+        }
+      });
     }
-  });
-}
+  }
 
   initializeForm() {
     this.customerForm = this.fb.group({
@@ -140,36 +163,40 @@ ngAfterViewInit(): void {
     });
   }
 
+  loadCustomers(): void {
+    console.log('📡 Loading customers...');
+    this.isLoading = true;
+    
+    this.customersService.getCustomers().subscribe({
+      next: (res) => {
+        console.log('✅ Customers loaded:', res);
+        this.customers = res;
+        this.dataSource.data = this.customers;
+        this.isLoading = false;
 
-loadCustomers(): void {
-  this.isLoading = true;
-  this.customersService.getCustomers().subscribe({
-    next: (res) => {
-      this.customers = res;
-      this.dataSource.data = this.customers;
-      this.isLoading = false;
-      console.log('✅ Customers loaded:', this.customers);
-
-      // Safely rebind paginator when data changes
-      setTimeout(() => {
-        if (this.paginator) {
-          this.dataSource.paginator = this.paginator;
+        // ✅ Only update paginator in browser
+        if (isPlatformBrowser(this.platformId)) {
+          setTimeout(() => {
+            if (this.paginator) {
+              this.dataSource.paginator = this.paginator;
+            }
+            this.cdr.detectChanges();
+          });
         }
-        this.cdr.detectChanges();
-      });
-    },
-    error: (err) => {
-      console.error('❌ Error fetching customers:', err);
-      this.error = 'Failed to load customers';
-      this.isLoading = false;
+      },
+      error: (err) => {
+        console.error('❌ Error loading customers:', err);
+        this.error = 'Failed to load customers';
+        this.isLoading = false;
+        this.showError('Failed to load customers.');
 
-      if (err.status === 401) {
-        this.router.navigate(['/login']);
-        this.dialog.closeAll();
-      }
-    },
-  });
-}
+        if (err.status === 401) {
+          console.log('🔒 Unauthorized, redirecting to login...');
+          this.router.navigate(['/login']);
+        }
+      },
+    });
+  }
 
   ngAfterViewChecked() {
     // Ensure paginator is always set after view checks
@@ -184,21 +211,17 @@ loadCustomers(): void {
     this.dataSource.filter = filterValue;
   }
 
-  
-
   /** Handle front image selection for add form */
   onFrontImageSelected(event: Event) {
     const input = event.target as HTMLInputElement;
     if (input.files && input.files[0]) {
       const file = input.files[0];
       
-      // Validate file type
       if (!file.type.startsWith('image/')) {
         this.showError('Please select a valid image file');
         return;
       }
 
-      // Validate file size (max 5MB)
       if (file.size > 5 * 1024 * 1024) {
         this.showError('Image size should not exceed 5MB');
         return;
@@ -208,7 +231,6 @@ loadCustomers(): void {
       this.customerForm.patchValue({ id_photo_front: file });
       this.customerForm.get('id_photo_front')?.updateValueAndValidity();
 
-      // Create preview
       const reader = new FileReader();
       reader.onload = (e) => {
         this.frontImagePreview = e.target?.result as string;
@@ -223,13 +245,11 @@ loadCustomers(): void {
     if (input.files && input.files[0]) {
       const file = input.files[0];
       
-      // Validate file type
       if (!file.type.startsWith('image/')) {
         this.showError('Please select a valid image file');
         return;
       }
 
-      // Validate file size (max 5MB)
       if (file.size > 5 * 1024 * 1024) {
         this.showError('Image size should not exceed 5MB');
         return;
@@ -239,7 +259,6 @@ loadCustomers(): void {
       this.customerForm.patchValue({ id_photo_back: file });
       this.customerForm.get('id_photo_back')?.updateValueAndValidity();
 
-      // Create preview
       const reader = new FileReader();
       reader.onload = (e) => {
         this.backImagePreview = e.target?.result as string;
@@ -333,72 +352,70 @@ loadCustomers(): void {
   }
 
   openAddCustomerDialog() {
-    // Reset image selections when opening dialog
     this.selectedFrontImage = null;
     this.selectedBackImage = null;
     this.frontImagePreview = null;
     this.backImagePreview = null;
-    this.dialog.open(this.openAddDialog,{ maxWidth: '700px' });
+    this.dialog.open(this.openAddDialog, { maxWidth: '700px' });
   }
 
-/** Add customer using FormData */
-addCustomer() {
-  if (this.customerForm.invalid) {
-    this.customerForm.markAllAsTouched();
-    return;
-  }
-
-  if (!this.selectedFrontImage || !this.selectedBackImage) {
-    this.showError('Please upload both front and back images of ID');
-    return;
-  }
-
-  this.loadAdding = true;
-
-  const formData = new FormData();
-  const formValues = this.customerForm.value;
-
-  // Append text fields
-  Object.keys(formValues).forEach(key => {
-    if (key !== 'id_photo_front' && key !== 'id_photo_back') {
-      formData.append(key, formValues[key]);
+  /** Add customer using FormData */
+  addCustomer() {
+    if (this.customerForm.invalid) {
+      this.customerForm.markAllAsTouched();
+      return;
     }
-  });
 
-  // Append images
-  if (this.selectedFrontImage) formData.append('id_photo_front', this.selectedFrontImage);
-  if (this.selectedBackImage) formData.append('id_photo_back', this.selectedBackImage);
+    if (!this.selectedFrontImage || !this.selectedBackImage) {
+      this.showError('Please upload both front and back images of ID');
+      return;
+    }
 
-  this.customersService.addCustomer(formData).subscribe({
-    next: (res) => {
-      this.loadAdding = false;
+    this.loadAdding = true;
+    console.log('📤 Adding customer...');
 
-      // Reload customers AFTER Angular stabilizes
-      setTimeout(() => {
-        this.loadCustomers();
-        this.customerForm.reset();
-        this.selectedFrontImage = null;
-        this.selectedBackImage = null;
-        this.frontImagePreview = null;
-        this.backImagePreview = null;
+    const formData = new FormData();
+    const formValues = this.customerForm.value;
 
-        this.dialog.closeAll();
-        this.showSuccess('Customer added successfully!');
-        this.cdr.detectChanges();
-      }, 0);
-    },
-      error: (err) => {
+    // Append text fields
+    Object.keys(formValues).forEach(key => {
+      if (key !== 'id_photo_front' && key !== 'id_photo_back') {
+        formData.append(key, formValues[key]);
+      }
+    });
+
+    // Append images
+    if (this.selectedFrontImage) formData.append('id_photo_front', this.selectedFrontImage);
+    if (this.selectedBackImage) formData.append('id_photo_back', this.selectedBackImage);
+
+    this.customersService.addCustomer(formData).subscribe({
+      next: (res) => {
+        console.log('✅ Customer added successfully:', res);
         this.loadAdding = false;
 
-        if (err.status === 0) {
-          console.warn('🌐 Network error while adding customer.');
-          this.showError('Network error. Please check your internet connection.');
-        } 
-        else if (err.status === 401) {
+        // Reload customers AFTER Angular stabilizes
+        setTimeout(() => {
+          this.loadCustomers();
+          this.customerForm.reset();
+          this.selectedFrontImage = null;
+          this.selectedBackImage = null;
+          this.frontImagePreview = null;
+          this.backImagePreview = null;
+
           this.dialog.closeAll();
+          this.showSuccess('Customer added successfully!');
+          this.cdr.detectChanges();
+        }, 0);
+      },
+      error: (err) => {
+        console.error('❌ Error adding customer:', err);
+        this.loadAdding = false;
+
+        if (err.status === 401) {
+          console.log('🔒 Unauthorized, redirecting to login...');
           this.router.navigate(['/login']);
-        } 
-        else if (err.error && typeof err.error === 'object') {
+          this.dialog.closeAll();
+        } else if (err.error && typeof err.error === 'object') {
           // Extract the first available error message from the backend
           const firstKey = Object.keys(err.error)[0];
           const firstMessage = Array.isArray(err.error[firstKey])
@@ -406,25 +423,20 @@ addCustomer() {
             : err.error[firstKey];
 
           this.showError(firstMessage);
-          console.error('❌ Validation error:', firstKey, firstMessage);
-        } 
-        else {
+          console.error('Validation error:', firstKey, firstMessage);
+        } else {
           this.showError('Failed to add customer. Please try again.');
-          console.error('❌ Error adding customer:', err);
         }
 
         setTimeout(() => this.cdr.detectChanges(), 0);
       }
-
-
-  });
-}
-
+    });
+  }
 
   /** Opens dialog to view customer details */
   openViewDialog(customer: CustomerObject) {
     this.selectedCustomer = customer;
-    this.dialog.open(this.viewDialog,{ maxWidth: '700px' });
+    this.dialog.open(this.viewDialog, { maxWidth: '700px' });
   }
 
   /** Opens dialog and pre-fills data for update */
@@ -435,7 +447,6 @@ addCustomer() {
     this.updateFrontImagePreview = null;
     this.updateBackImagePreview = null;
     
-    // Store existing image URLs for display
     this.selectedCustomer = customer;
     
     this.updateCustomerForm.patchValue({
@@ -445,13 +456,15 @@ addCustomer() {
       email: customer.email,
       id_number: customer.id_number,
     });
-    this.dialog.open(this.updateDialog,{ maxWidth: '700px' });
+    this.dialog.open(this.updateDialog, { maxWidth: '700px' });
   }
 
   /** Update customer using FormData */
- updateCustomer() {
+  updateCustomer() {
     if (!this.selectedCustomerId || this.updateCustomerForm.invalid) return;
+    
     this.loadUpdating = true;
+    console.log('📤 Updating customer:', this.selectedCustomerId);
 
     const formData = new FormData();
     const formValues = this.updateCustomerForm.value;
@@ -469,72 +482,72 @@ addCustomer() {
 
     this.customersService.updateCustomer(this.selectedCustomerId, formData).subscribe({
       next: (response) => {
+        console.log('✅ Customer updated successfully:', response);
         this.loadUpdating = false;
 
-        // ✅ Safely refresh UI after Angular stabilizes
-        setTimeout(() => {
-          this.loadCustomers(); // Reload data
-          this.updateCustomerForm.reset();
-          this.updateFrontImage = null;
-          this.updateBackImage = null;
-          this.updateFrontImagePreview = null;
-          this.updateBackImagePreview = null;
+        // ✅ Only update paginator in browser
+        if (isPlatformBrowser(this.platformId)) {
+          setTimeout(() => {
+            this.loadCustomers();
+            this.updateCustomerForm.reset();
+            this.updateFrontImage = null;
+            this.updateBackImage = null;
+            this.updateFrontImagePreview = null;
+            this.updateBackImagePreview = null;
 
-          this.dialog.closeAll();
-          this.showSuccess('Customer updated successfully!');
-
-          // ✅ Trigger a manual detection after DOM update
-          this.cdr.detectChanges();
-        }, 0);
+            this.dialog.closeAll();
+            this.showSuccess('Customer updated successfully!');
+            this.cdr.detectChanges();
+          }, 0);
+        }
       },
-      error: (error) => {
+      error: (err) => {
+        console.error('❌ Error updating customer:', err);
         this.loadUpdating = false;
         this.showError('Failed to update customer. Please try again.');
 
-        // 🩵 Force detection just in case
-        setTimeout(() => this.cdr.detectChanges(), 0);
-
-        if (error.status === 0) {
-          console.warn('🌐 Network error while updating customer.');
-        } else if (error.status === 401) {
-          this.dialog.closeAll();
+        if (err.status === 401) {
+          console.log('🔒 Unauthorized, redirecting to login...');
           this.router.navigate(['/login']);
-        } else {
-          console.error('❌ Update failed:', error);
+          this.dialog.closeAll();
         }
+
+        setTimeout(() => this.cdr.detectChanges(), 0);
       },
     });
   }
-
-  
 
   openDeleteDialog(customer: CustomerObject) {
     this.selectedCustomerId = customer.id;
     this.dialog.open(this.deleteDialog);
   }
 
-confirmDelete() {
-  this.loadDeleting = true;
-  if (!this.selectedCustomerId) return;
+  confirmDelete() {
+    if (!this.selectedCustomerId) return;
 
-  this.customersService.deleteCustomer(this.selectedCustomerId).subscribe({
-    next: (response) => {
-      this.loadDeleting = false;
-      this.loadCustomers();
-      this.dialog.closeAll();
-      this.showSuccess('Customer deleted successfully!');
-      this.cdr.detectChanges(); // ✅ forces a clean recheck
-    },
-    error: (error) => {
-      this.loadDeleting = false;
-      this.showError('Failed to delete customer. Please try again.');
-      if (error.status === 401) {
-        this.router.navigate(['/login']);
+    this.loadDeleting = true;
+    console.log('🗑️ Deleting customer:', this.selectedCustomerId);
+
+    this.customersService.deleteCustomer(this.selectedCustomerId).subscribe({
+      next: (response) => {
+        console.log('✅ Customer deleted successfully:', response);
+        this.loadDeleting = false;
         this.dialog.closeAll();
-      } else {
-        console.error('❌ Delete failed:', error);
-      }
-    },
-  });
-}
+        this.showSuccess('Customer deleted successfully!');
+        this.loadCustomers();
+        this.cdr.detectChanges();
+      },
+      error: (err) => {
+        console.error('❌ Error deleting customer:', err);
+        this.loadDeleting = false;
+        this.showError('Failed to delete customer. Please try again.');
+
+        if (err.status === 401) {
+          console.log('🔒 Unauthorized, redirecting to login...');
+          this.router.navigate(['/login']);
+          this.dialog.closeAll();
+        }
+      },
+    });
+  }
 }

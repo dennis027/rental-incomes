@@ -1,4 +1,5 @@
-import { Component, inject, ViewChild, AfterViewInit, OnInit, ChangeDetectorRef, TemplateRef } from '@angular/core';
+import { Component, inject, ViewChild, AfterViewInit, OnInit, ChangeDetectorRef, TemplateRef, PLATFORM_ID } from '@angular/core';
+import { isPlatformBrowser } from '@angular/common';
 import { UnitsService } from '../../../services/units';
 import { PropertiesService } from '../../../services/properties';
 import { Router } from '@angular/router';
@@ -19,9 +20,9 @@ export interface UnitsTable {
   rent_amount: number;
   water_meter_reading: number;
   electricity_meter_reading: number;
-  balance:string;
+  balance: string;
   status: string;
-  active_contract_deposit:string
+  active_contract_deposit: string;
 }
 
 @Component({
@@ -35,6 +36,7 @@ export class Units implements OnInit, AfterViewInit {
   private snackBar = inject(MatSnackBar);
   private cdr = inject(ChangeDetectorRef);
   private systemsParamsService = inject(SystemParametersServices);
+  private platformId = inject(PLATFORM_ID); // ✅ Added
 
   // ViewChild for the dialog templates
   @ViewChild('openAddDialog') openAddDialog!: TemplateRef<any>;
@@ -44,15 +46,16 @@ export class Units implements OnInit, AfterViewInit {
   loadAdding = false;
   loadUpdating = false;
   loadDeleting = false;
+  isLoading = true; // ✅ Added
 
   unitForm!: FormGroup;
   updateUnitForm!: FormGroup;
   selectedUnitId: string | null = null;
 
-  displayedColumns: string[] = ['unit_number', 'unit_type', 'rent_amount','active_contract_deposit', 'balance','status', 'actions'];
+  displayedColumns: string[] = ['unit_number', 'unit_type', 'rent_amount', 'active_contract_deposit', 'balance', 'status', 'actions'];
   unitsObject: UnitsTable[] = [];
 
-  systemParameters: any 
+  systemParameters: any;
 
   showSuccess(message: string) {
     this.snackBar.open(message, 'Close', {
@@ -77,9 +80,8 @@ export class Units implements OnInit, AfterViewInit {
   // ViewChild for the paginator
   @ViewChild(MatPaginator) paginator!: MatPaginator;
 
-  
   searchText: string = '';
-   properties: any[] = [];
+  properties: any[] = [];
   selectedPropertyId: number | null = null;
   selectedPropertyName: string = '';
 
@@ -100,30 +102,50 @@ export class Units implements OnInit, AfterViewInit {
       rent_amount: ['', [Validators.required, Validators.min(0)]],
       water_meter_reading: [0, [Validators.required, Validators.min(0)]],
       electricity_meter_reading: [0, [Validators.required, Validators.min(0)]],
-      // status: ['vacant', Validators.required],
     });
   }
 
   ngOnInit() {
-  
-    this.getProperties();
-    setTimeout(() => {  this.initializeForm(); }, 1000);
+    // ✅ CRITICAL: Only load data in browser
+    if (isPlatformBrowser(this.platformId)) {
+      console.log('🔍 Units component running in browser');
 
- 
-      
+      // Verify token exists
+      const token = localStorage.getItem('access_token');
+      console.log('🔑 Token status:', token ? 'Token exists' : '❌ NO TOKEN!');
+
+      if (!token) {
+        console.error('❌ No access token found, redirecting to login');
+        this.router.navigate(['/login']);
+        return;
+      }
+
+      this.getProperties();
+      setTimeout(() => { this.initializeForm(); }, 1000);
+    } else {
+      console.log('⚠️ Units component running on server, skipping API calls');
+    }
   }
 
   getSystemParameters(propertyId: number) {
+    console.log('📡 Loading system parameters for property:', propertyId);
+
     this.systemsParamsService.getSystemParams(propertyId).subscribe({
       next: (res) => {
-        this.systemParameters = res
+        console.log('✅ System parameters loaded:', res);
+        this.systemParameters = res;
         this.showElectricityMeter = this.systemParameters.has_electricity_bill;
         this.showWaterMeter = this.systemParameters.has_water_bill;
         this.cdr.detectChanges();
       },
       error: (err) => {
-        console.error('Error fetching system parameters:', err);
-         this.cdr.detectChanges();
+        console.error('❌ Error loading system parameters:', err);
+        if (err.status === 401) {
+          console.log('🔒 Unauthorized, redirecting to login...');
+          this.router.navigate(['/login']);
+          this.dialog.closeAll();
+        }
+        this.cdr.detectChanges();
       }
     });
   }
@@ -136,39 +158,55 @@ export class Units implements OnInit, AfterViewInit {
       rent_amount: ['', [Validators.required, Validators.min(0)]],
       water_meter_reading: [0, [Validators.required, Validators.min(0)]],
       electricity_meter_reading: [0, [Validators.required, Validators.min(0)]],
-      // status: ['vacant', Validators.required],
     });
   }
 
   getUnits() {
+    console.log('📡 Loading units...');
+
     this.UnitsService.getUnits().subscribe({
       next: (res: UnitsTable[] | any) => {
+        console.log('✅ Units loaded:', res);
         this.unitsObject = res;
         this.dataSource.data = this.unitsObject;
-        
+        this.isLoading = false;
+
         // Filter after data is loaded if property is selected
         if (this.selectedPropertyId) {
           this.filterUnitsByProperty();
         }
-         this.cdr.detectChanges();
+
+        // ✅ Only update paginator in browser
+        if (isPlatformBrowser(this.platformId)) {
+          setTimeout(() => {
+            if (this.paginator) {
+              this.dataSource.paginator = this.paginator;
+            }
+            this.cdr.detectChanges();
+          });
+        }
       },
       error: (err) => {
-        if (err.status === 0) {
-          // Network error
-        }
+        console.error('❌ Error loading units:', err);
+        this.isLoading = false;
+
         if (err.status === 401) {
+          console.log('🔒 Unauthorized, redirecting to login...');
           this.router.navigate(['/login']);
           this.dialog.closeAll();
         } else {
-          console.error('Error fetching units:', err);
+          this.showError('Failed to load units.');
         }
       }
     });
   }
 
-getProperties() {
+  getProperties() {
+    console.log('📡 Loading properties...');
+
     this.PropertiesService.getProperties().subscribe({
       next: (res) => {
+        console.log('✅ Properties loaded:', res);
         this.properties = res;
 
         if (this.properties.length > 0) {
@@ -183,21 +221,25 @@ getProperties() {
         this.getUnits();
       },
       error: (err) => {
-        if (err.status === 0) {
-          // Network error
-        } else if (err.status === 401) {
+        console.error('❌ Error loading properties:', err);
+
+        if (err.status === 401) {
+          console.log('🔒 Unauthorized, redirecting to login...');
           this.router.navigate(['/login']);
           this.dialog.closeAll();
         } else {
-          console.error('Error fetching properties:', err);
+          this.showError('Failed to load properties.');
         }
       },
     });
   }
 
   ngAfterViewInit() {
-    this.dataSource.paginator = this.paginator;
+    // ✅ Only set paginator in browser
+    if (isPlatformBrowser(this.platformId)) {
+      this.dataSource.paginator = this.paginator;
       this.cdr.detectChanges();
+    }
   }
 
   /** Filter units by selected property */
@@ -206,15 +248,24 @@ getProperties() {
     this.selectedPropertyName = this.properties.find(
       (prop) => prop.id === Number(this.selectedPropertyId)
     )?.name || '';
-    
+
     if (!this.selectedPropertyId) {
       this.dataSource.data = this.unitsObject;
       return;
     }
-    
+
     this.dataSource.data = this.unitsObject.filter(
       (unit) => unit.property === Number(this.selectedPropertyId)
     );
+
+    // ✅ Only update paginator in browser
+    if (isPlatformBrowser(this.platformId)) {
+      setTimeout(() => {
+        if (this.paginator) {
+          this.paginator.firstPage();
+        }
+      });
+    }
   }
 
   /** Apply search filter */
@@ -225,9 +276,9 @@ getProperties() {
 
   openAddUnitDialog() {
     const isMobile = window.innerWidth < 600;
-    let dialogRef = this.dialog.open(this.openAddDialog,{
-          maxWidth: '700px',
-        });
+    let dialogRef = this.dialog.open(this.openAddDialog, {
+      maxWidth: '700px',
+    });
     dialogRef.afterClosed().subscribe(result => {
       if (result !== undefined) {
         if (result === 'yes') {
@@ -239,71 +290,66 @@ getProperties() {
     });
   }
 
-  testForm(){
+  testForm() {
     console.log(this.unitForm.value);
   }
 
-addUnit() {
-  
-  if (this.unitForm.invalid) {
-    this.unitForm.markAllAsTouched();
-    return;
-  }
-
-  this.loadAdding = true;
-  this.cdr.detectChanges(); // ✅ inform Angular before HTTP call
-
-  const newUnit ={
-    property: this.selectedPropertyId,
-    unit_number: this.unitForm.value.unit_number,
-    unit_type: this.unitForm.value.unit_type,
-    rent_amount: this.unitForm.value.rent_amount,
-    water_meter_reading: this.unitForm.value.water_meter_reading,
-    electricity_meter_reading: this.unitForm.value.electricity_meter_reading,
-    // status: 'vacant'
-  }
-
-  this.UnitsService.addUnit(newUnit).subscribe({
-    next: (res) => {
-      this.loadAdding = false;
-      this.getUnits();
-      const resetValue ={
-        property: this.selectedPropertyId,
-        unit_number: '',
-        unit_type: '',
-        rent_amount: '',
-        water_meter_reading: '',
-        electricity_meter_reading: '',
-        // status: 'vacant'
-      }
-      this.unitForm.reset(resetValue);
-      this.dialog.closeAll();
-      this.showSuccess('Unit added successfully!');
-
-      // ✅ Let Angular stabilize after async changes
-      this.cdr.detectChanges();
-    },
-    error: (err) => {
-      this.loadAdding = false;
-      this.showError('Failed to add unit. Please try again.');
-      if (err.error.non_field_errors[0] == "The fields property, unit_number must make a unique set."){
-        this.showError("Check Unit Number, It should be unique to the property")
-      }
-      if (err.status === 0) {
-        this.showError("Check your network connection")
-      }
-
-      if (err.status === 401) {
-        this.dialog.closeAll();
-        this.router.navigate(['/login']);
-      } else {
-        console.error('❌ Error adding unit:', err);
-      }
-
-      this.cdr.detectChanges();
+  addUnit() {
+    if (this.unitForm.invalid) {
+      this.unitForm.markAllAsTouched();
+      return;
     }
-  });
-}
+
+    this.loadAdding = true;
+    console.log('📤 Adding unit...');
+    this.cdr.detectChanges();
+
+    const newUnit = {
+      property: this.selectedPropertyId,
+      unit_number: this.unitForm.value.unit_number,
+      unit_type: this.unitForm.value.unit_type,
+      rent_amount: this.unitForm.value.rent_amount,
+      water_meter_reading: this.unitForm.value.water_meter_reading,
+      electricity_meter_reading: this.unitForm.value.electricity_meter_reading,
+    };
+
+    this.UnitsService.addUnit(newUnit).subscribe({
+      next: (res) => {
+        console.log('✅ Unit added successfully:', res);
+        this.loadAdding = false;
+        this.getUnits();
+        const resetValue = {
+          property: this.selectedPropertyId,
+          unit_number: '',
+          unit_type: '',
+          rent_amount: '',
+          water_meter_reading: '',
+          electricity_meter_reading: '',
+        };
+        this.unitForm.reset(resetValue);
+        this.dialog.closeAll();
+        this.showSuccess('Unit added successfully!');
+        this.cdr.detectChanges();
+      },
+      error: (err) => {
+        console.error('❌ Error adding unit:', err);
+        this.loadAdding = false;
+        this.showError('Failed to add unit. Please try again.');
+
+        if (err.error?.non_field_errors?.[0] === "The fields property, unit_number must make a unique set.") {
+          this.showError("Check Unit Number, It should be unique to the property");
+        }
+
+        if (err.status === 401) {
+          console.log('🔒 Unauthorized, redirecting to login...');
+          this.router.navigate(['/login']);
+          this.dialog.closeAll();
+        }
+
+        this.cdr.detectChanges();
+      }
+    });
+  }
 
   /** Opens dialog and pre-fills data for update */
   openUpdateDialog(unit: any) {
@@ -321,43 +367,40 @@ addUnit() {
   }
 
   /** Submits update request */
-updateUnit() {
-  if (!this.selectedUnitId || this.updateUnitForm.invalid) return;
+  updateUnit() {
+    if (!this.selectedUnitId || this.updateUnitForm.invalid) return;
 
-  this.loadUpdating = true;
-  this.cdr.detectChanges(); // ✅ notify Angular before async call
+    this.loadUpdating = true;
+    console.log('📤 Updating unit:', this.selectedUnitId);
+    this.cdr.detectChanges();
 
-  const updatedData = this.updateUnitForm.value;
+    const updatedData = this.updateUnitForm.value;
 
-  this.UnitsService.updateUnit(this.selectedUnitId, updatedData).subscribe({
-    next: (response) => {
-      this.loadUpdating = false;
-      this.getUnits();
-      this.updateUnitForm.reset();
-      this.dialog.closeAll();
-      this.showSuccess('Unit updated successfully!');
-
-      this.cdr.detectChanges(); // ✅ ensure stable UI after async update
-    },
-    error: (error) => {
-      this.loadUpdating = false;
-      this.showError('Failed to update unit. Please try again.');
-
-      if (error.status === 0) {
-        // Network error
-      }
-      if (error.status === 401) {
+    this.UnitsService.updateUnit(this.selectedUnitId, updatedData).subscribe({
+      next: (response) => {
+        console.log('✅ Unit updated successfully:', response);
+        this.loadUpdating = false;
+        this.getUnits();
+        this.updateUnitForm.reset();
         this.dialog.closeAll();
-        this.router.navigate(['/login']);
-      } else {
-        console.error('❌ Update failed:', error);
-      }
+        this.showSuccess('Unit updated successfully!');
+        this.cdr.detectChanges();
+      },
+      error: (error) => {
+        console.error('❌ Error updating unit:', error);
+        this.loadUpdating = false;
+        this.showError('Failed to update unit. Please try again.');
 
-      this.cdr.detectChanges(); // ✅ same for error case
-    },
-  });
-}
+        if (error.status === 401) {
+          console.log('🔒 Unauthorized, redirecting to login...');
+          this.router.navigate(['/login']);
+          this.dialog.closeAll();
+        }
 
+        this.cdr.detectChanges();
+      },
+    });
+  }
 
   openDeleteDialog(unit: any) {
     this.selectedUnitId = unit.id;
@@ -366,38 +409,38 @@ updateUnit() {
 
   /** Performs deletion after confirmation */
   confirmDelete() {
-    this.loadDeleting = true;
     if (!this.selectedUnitId) return;
+
+    this.loadDeleting = true;
+    console.log('🗑️ Deleting unit:', this.selectedUnitId);
 
     this.UnitsService.deleteUnit(this.selectedUnitId).subscribe({
       next: (response) => {
+        console.log('✅ Unit deleted successfully:', response);
         this.loadDeleting = false;
         this.getUnits();
         this.dialog.closeAll();
         this.showSuccess('Unit deleted successfully!');
       },
       error: (error) => {
+        console.error('❌ Error deleting unit:', error);
         this.loadDeleting = false;
         this.showError('Failed to delete unit. Please try again.');
-        if (error.status === 0) {
-          // Network error
-        }
+
         if (error.status === 401) {
+          console.log('🔒 Unauthorized, redirecting to login...');
           this.router.navigate(['/login']);
           this.dialog.closeAll();
-        } else {
-          console.error('❌ Delete failed:', error);
         }
       },
     });
   }
 
-
-  openCreateContractDialog(id:any){
-    console.log(id)
+  openCreateContractDialog(id: any) {
+    console.log(id);
   }
 
-  openCancelContractDialog(id:any){
-    console.log(id)
+  openCancelContractDialog(id: any) {
+    console.log(id);
   }
 }

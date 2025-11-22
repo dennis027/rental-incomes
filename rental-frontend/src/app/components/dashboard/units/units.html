@@ -105,12 +105,14 @@
         </button>
 
         <!-- DELETE -->
-        <button mat-icon-button color="warn"
-                (click)="openDeleteDialog(element)"
-                [matTooltip]="'Delete Unit'"
-                [matTooltipPosition]="'above'">
-          <mat-icon>delete</mat-icon>
-        </button>
+        @if (element.status !== 'occupied') {
+          <button mat-icon-button color="warn"
+                  (click)="openDeleteDialog(element)"
+                  [matTooltip]="'Delete Unit'"
+                  [matTooltipPosition]="'above'">
+            <mat-icon>delete</mat-icon>
+          </button>
+        }
 
         <!-- CREATE CONTRACT -->
         @if (element.status !== 'occupied') {
@@ -140,14 +142,15 @@
     <tr mat-row *matRowDef="let row; columns: displayedColumns"></tr>
 
     <!-- No Data Row -->
-        <tr matNoDataRow>
-          <td class="mat-cell" [attr.colspan]="displayedColumns.length">
-            <div class="no-data">
-              <mat-icon>inbox</mat-icon>
-              <p>No units found</p>
-            </div>
-          </td>
-        </tr>
+  <tr matNoDataRow *matNoDataRow>
+    <td class="mat-cell" [attr.colspan]="displayedColumns.length">
+      <div class="no-data">
+        <mat-icon>inbox</mat-icon>
+        <p>No units found</p>
+      </div>
+    </td>
+  </tr>
+
 
 
   </table>

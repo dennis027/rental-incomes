@@ -1,4 +1,5 @@
-import { Component, OnInit, AfterViewInit, ViewChild, inject, TemplateRef, ChangeDetectorRef } from '@angular/core';
+import { Component, OnInit, AfterViewInit, ViewChild, inject, TemplateRef, ChangeDetectorRef, PLATFORM_ID } from '@angular/core';
+import { isPlatformBrowser } from '@angular/common';
 import { MatDialog } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatPaginator } from '@angular/material/paginator';
@@ -39,6 +40,7 @@ export class Payments implements OnInit, AfterViewInit {
   private cdr = inject(ChangeDetectorRef);
   private PaymentsService = inject(PaymentService);
   private propertyService = inject(PropertiesService);
+  private platformId = inject(PLATFORM_ID);
 
   displayedColumns: string[] = ['amount', 'payment_date', 'method', 'reference', 'unit_number', 'notes', 'receipt', 'actions'];
   dataSource = new MatTableDataSource<Payment>([]);
@@ -50,6 +52,7 @@ export class Payments implements OnInit, AfterViewInit {
 
   addPaymentForm!: FormGroup;
   loadAdding = false;
+  isLoading = false;
 
   properties: any[] = [];
   selectedProperty = new FormControl('');
@@ -57,27 +60,57 @@ export class Payments implements OnInit, AfterViewInit {
   ngOnInit() {
     this.initializeForm();
     this.loadAdding = false;
-    this.getProperties();
+    this.isLoading = false;
+    
+    if (isPlatformBrowser(this.platformId)) {
+      console.log('🔍 Payments component running in browser');
+      
+      const token = localStorage.getItem('access_token');
+      console.log('🔑 Token status:', token ? 'Token exists' : '❌ NO TOKEN!');
+      
+      if (!token) {
+        console.error('❌ No access token found, redirecting to login');
+        this.router.navigate(['/login']);
+        return;
+      }
+      
+      this.getProperties();
+    } else {
+      console.log('⚠️ Payments component running on server, skipping API calls');
+    }
   }
 
   getProperties() {
-    this.propertyService.getProperties().subscribe(
-      (res) => {
+    console.log('📡 Loading properties...');
+    this.isLoading = true;
+    
+    this.propertyService.getProperties().subscribe({
+      next: (res) => {
+        console.log('✅ Properties loaded:', res);
         this.properties = res;
         if (this.properties.length > 0) {
-          // Set first property as default
           this.selectedProperty.setValue(this.properties[0].id.toString());
           this.getPayments();
+        } else {
+          this.isLoading = false;
         }
+        this.cdr.detectChanges();
       },
-      (err) => {
-        console.error('Error loading properties:', err);
+      error: (err) => {
+        console.error('❌ Error loading properties:', err);
+        this.isLoading = false;
+        if (err.status === 401) {
+          console.log('🔒 Unauthorized, redirecting to login...');
+          this.router.navigate(['/login']);
+        }
       }
-    );
+    });
   }
 
   ngAfterViewInit() {
-    this.dataSource.paginator = this.paginator;
+    if (isPlatformBrowser(this.platformId) && this.paginator) {
+      this.dataSource.paginator = this.paginator;
+    }
   }
 
   initializeForm() {
@@ -92,17 +125,26 @@ export class Payments implements OnInit, AfterViewInit {
   }
 
   getPayments() {
+    console.log('📡 Loading payments...');
+
     this.PaymentsService.getPayments().subscribe({
       next: (res: Payment[]) => {
+        console.log('✅ Payments loaded:', res);
         this.payments = res;
         this.filterPaymentsByProperty();
+        this.isLoading = false;
       },
       error: (err) => {
+        console.error('❌ Error fetching payments:', err);
+        this.isLoading = false;
+
         if (err.status === 401) {
+          console.log('🔒 Unauthorized → redirect to login');
           this.router.navigate(['/login']);
           this.dialog.closeAll();
+        } else {
+          this.showError('Failed to load payments');
         }
-        console.error('❌ Error fetching payments:', err);
       }
     });
   }
@@ -110,26 +152,42 @@ export class Payments implements OnInit, AfterViewInit {
   filterPaymentsByProperty() {
     const propertyId = this.selectedProperty.value;
     
+    console.log('🔍 Filtering payments by property:', propertyId);
+    console.log('📊 Total payments:', this.payments.length);
+    
     if (propertyId) {
-      this.filteredPayments = this.payments.filter(
-        payment => payment.property_id.toString() === propertyId
-      );
+      // ✅ Fixed: Added null/undefined checks
+      this.filteredPayments = this.payments.filter(payment => {
+        // Check if property_id exists and is not null/undefined
+        if (payment.property_id === null || payment.property_id === undefined) {
+          console.warn('⚠️ Payment missing property_id:', payment);
+          return false;
+        }
+        return payment.property_id.toString() === propertyId;
+      });
+      
+      console.log('✅ Filtered payments:', this.filteredPayments.length);
     } else {
       this.filteredPayments = this.payments;
     }
 
     this.dataSource.data = this.filteredPayments;
     
-    setTimeout(() => {
-      if (this.paginator) {
-        this.dataSource.paginator = this.paginator;
-      }
-    });
+    if (isPlatformBrowser(this.platformId)) {
+      setTimeout(() => {
+        if (this.paginator) {
+          this.dataSource.paginator = this.paginator;
+        }
+      });
+    }
     
     this.cdr.detectChanges();
   }
 
   getPropertyName(propertyId: string): string {
+    // ✅ Added null check
+    if (!propertyId) return 'All Properties';
+    
     const property = this.properties.find(p => p.id.toString() === propertyId);
     return property ? property.name : 'All Properties';
   }
@@ -147,8 +205,11 @@ export class Payments implements OnInit, AfterViewInit {
     const newPayment = this.addPaymentForm.value;
     this.loadAdding = true;
 
+    console.log('📤 Submitting payment:', newPayment);
+
     this.PaymentsService.makePayment(newPayment).subscribe({
       next: (res) => {
+        console.log('✅ Payment added successfully:', res);
         this.loadAdding = false;
         this.dialog.closeAll();
         this.showSuccess('Payment added successfully!');
@@ -156,10 +217,16 @@ export class Payments implements OnInit, AfterViewInit {
         this.addPaymentForm.reset({ method: 'mpesa' });
       },
       error: (err) => {
+        console.error('❌ Error adding payment:', err);
         this.loadAdding = false;
         this.cdr.detectChanges();
-        this.showError('Failed to add payment. Please try again.');
-        console.error('❌ Error adding payment:', err);
+        
+        if (err.status === 401) {
+          this.router.navigate(['/login']);
+          this.dialog.closeAll();
+        } else {
+          this.showError('Failed to add payment. Please try again.');
+        }
       }
     });
   }

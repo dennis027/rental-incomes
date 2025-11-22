@@ -1,4 +1,5 @@
-import { Component, inject, ViewChild, AfterViewInit, OnInit, ChangeDetectorRef, TemplateRef } from '@angular/core';
+import { Component, inject, ViewChild, AfterViewInit, OnInit, ChangeDetectorRef, TemplateRef, PLATFORM_ID } from '@angular/core';
+import { isPlatformBrowser } from '@angular/common';
 import { PropertiesService } from '../../../services/properties';
 import { Router } from '@angular/router';
 import { MatDialog } from '@angular/material/dialog';
@@ -8,13 +9,14 @@ import { MatTableDataSource } from '@angular/material/table';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { SystemParametersServices } from '../../../services/system-parameters-services';
+
 @Component({
   selector: 'app-settings',
   imports: [SharedImports],
   templateUrl: './settings.html',
   styleUrl: './settings.css'
 })
-export class Settings {
+export class Settings implements OnInit {
   private snackBar = inject(MatSnackBar);
   private cdr = inject(ChangeDetectorRef);
   private propertiesService = inject(PropertiesService);
@@ -22,10 +24,14 @@ export class Settings {
   private dialog = inject(MatDialog);
   private fb = inject(FormBuilder);
   private systemParametersService = inject(SystemParametersServices);
+  private platformId = inject(PLATFORM_ID); // ✅ Add this
+
   updateSystemParams!: FormGroup;
   selectedPropertyId: number | null = null;
+  systemParameters: any;
+  properties: any[] = [];
 
-    showSuccess(message: string) {
+  showSuccess(message: string) {
     this.snackBar.open(message, 'Close', {
       duration: 3000,
       panelClass: ['success-snackbar'],
@@ -43,15 +49,31 @@ export class Settings {
     });
   }
 
-
   ngOnInit() {
-
-    this.getProperties()
+    // Initialize form first (can run on server)
     this.updateSysParamsForm();
-    
+
+    // ✅ CRITICAL: Only load data in browser
+    if (isPlatformBrowser(this.platformId)) {
+      console.log('🔍 Settings component running in browser');
+      
+      // Verify token exists
+      const token = localStorage.getItem('access_token');
+      console.log('🔑 Token status:', token ? 'Token exists' : '❌ NO TOKEN!');
+      
+      if (!token) {
+        console.error('❌ No access token found, redirecting to login');
+        this.router.navigate(['/login']);
+        return;
+      }
+      
+      this.getProperties();
+    } else {
+      console.log('⚠️ Settings component running on server, skipping API calls');
+    }
   }
 
-    updateSysParamsForm() {
+  updateSysParamsForm() {
     this.updateSystemParams = this.fb.group({
       has_water_bill: [true],
       has_electricity_bill: [true],
@@ -73,12 +95,13 @@ export class Settings {
     });
   }
 
-  systemParameters: any;
-  properties: any[] = [];
- /** 🏢 Get all properties */
+  /** 🏢 Get all properties */
   getProperties() {
+    console.log('📡 Loading properties...');
+    
     this.propertiesService.getProperties().subscribe({
       next: (data) => {
+        console.log('✅ Properties loaded:', data);
         this.properties = data;
         if (!this.selectedPropertyId && this.properties.length > 0) {
           this.selectedPropertyId = this.properties[0].id;
@@ -88,8 +111,11 @@ export class Settings {
         this.cdr.detectChanges();
       },
       error: (error) => {
-        console.error('Error fetching properties:', error);
-        if (error.status === 401) this.router.navigate(['/login']);
+        console.error('❌ Error fetching properties:', error);
+        if (error.status === 401) {
+          console.log('🔒 Unauthorized, redirecting to login...');
+          this.router.navigate(['/login']);
+        }
       }
     });
   }
@@ -97,16 +123,21 @@ export class Settings {
   /** ⚙️ Load System Parameters for selected property */
   loadSystemParameters() {
     const propertyId = this.selectedPropertyId ?? this.properties[0]?.id;
+    console.log('📡 Loading system parameters for property:', propertyId);
+    
     this.systemParametersService.getSystemParams(propertyId).subscribe({
       next: (data) => {
+        console.log('✅ System Parameters loaded:', data);
         this.systemParameters = data;
         this.updateSystemParams.patchValue(data); // ✅ auto-fill form
-        console.log('System Parameters:', this.systemParameters);
         this.cdr.detectChanges();
       },
       error: (error) => {
-        console.error('Error fetching system parameters:', error);
-        if (error.status === 401) this.router.navigate(['/login']);
+        console.error('❌ Error fetching system parameters:', error);
+        if (error.status === 401) {
+          console.log('🔒 Unauthorized, redirecting to login...');
+          this.router.navigate(['/login']);
+        }
       }
     });
   }
@@ -114,7 +145,7 @@ export class Settings {
   /** 🧩 On property change */
   getPropertyID(event: any) {
     this.selectedPropertyId = event.value;
-    console.log('Selected Property ID:', this.selectedPropertyId);
+    console.log('🔄 Property changed to:', this.selectedPropertyId);
     this.loadSystemParameters();
   }
 
@@ -128,14 +159,21 @@ export class Settings {
     const payload = this.updateSystemParams.value;
     const propertyId = this.selectedPropertyId ?? this.properties[0]?.id;
 
+    console.log('📤 Updating system parameters:', payload);
+
     this.systemParametersService.updateSystemParams(propertyId, payload).subscribe({
       next: (res) => {
+        console.log('✅ System parameters updated:', res);
         this.showSuccess('✅ System parameters updated successfully!');
-         this.loadSystemParameters()
+        this.loadSystemParameters();
       },
       error: (err) => {
-        console.error('Error updating system parameters:', err);
+        console.error('❌ Error updating system parameters:', err);
         this.showError('❌ Failed to update system parameters');
+        if (err.status === 401) {
+          console.log('🔒 Unauthorized, redirecting to login...');
+          this.router.navigate(['/login']);
+        }
       }
     });
   }

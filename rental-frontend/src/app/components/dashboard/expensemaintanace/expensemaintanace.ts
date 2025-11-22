@@ -1,16 +1,22 @@
 import {
-  Component,AfterViewInit, ViewChild,inject,
+  Component,
+  AfterViewInit,
+  ViewChild,
+  inject,
   TemplateRef,
-  ChangeDetectorRef} from '@angular/core';
+  ChangeDetectorRef,
+  PLATFORM_ID,
+  OnInit
+} from '@angular/core';
+import { isPlatformBrowser } from '@angular/common';
 import { SharedImports } from '../../../shared-imports/imports';
 import { MatDialog } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { Router } from '@angular/router';
 import { ExpensesService } from '../../../services/expense-service';
 import { MaintenanceService } from '../../../services/maintanance-service';
-import {} from '@angular/core';
-import {MatPaginator, MatPaginatorModule} from '@angular/material/paginator';
-import {MatTableDataSource, MatTableModule} from '@angular/material/table';
+import { MatPaginator } from '@angular/material/paginator';
+import { MatTableDataSource } from '@angular/material/table';
 import { PropertiesService } from '../../../services/properties';
 import { UnitsService } from '../../../services/units';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
@@ -22,7 +28,6 @@ export interface expensesObject {
   expense_date: string;
 }
 
-
 export interface maintanceObject {
   unit: string;
   description: string;
@@ -30,149 +35,138 @@ export interface maintanceObject {
   reported_date: string;
 }
 
-
-
-
-
 @Component({
   selector: 'app-expensemaintanace',
   imports: [SharedImports],
   templateUrl: './expensemaintanace.html',
   styleUrl: './expensemaintanace.css'
 })
-export class Expensemaintanace {
+export class Expensemaintanace implements OnInit, AfterViewInit {
 
-    private snackBar = inject(MatSnackBar);
-    private dialog = inject(MatDialog);
-    private router = inject(Router);
-    private expenseService = inject(ExpensesService);
-    private maintanaceService = inject(MaintenanceService);
-    private propertyService = inject(PropertiesService);
-    private unitsService = inject(UnitsService);
-    private fb = inject(FormBuilder);
-    private snackbar = inject(MatSnackBar);
-    private cdr = inject(ChangeDetectorRef);
-    private customerService =inject(CustomersService)
+  private snackBar = inject(MatSnackBar);
+  private dialog = inject(MatDialog);
+  private router = inject(Router);
+  private expenseService = inject(ExpensesService);
+  private maintanaceService = inject(MaintenanceService);
+  private propertyService = inject(PropertiesService);
+  private unitsService = inject(UnitsService);
+  private fb = inject(FormBuilder);
+  private cdr = inject(ChangeDetectorRef);
+  private customerService = inject(CustomersService);
+  private platformId = inject(PLATFORM_ID); // ✅ Add this
 
+  today = new Date();
 
-    today = new Date();
+  //expenses dialogs
+  @ViewChild('addExpeDial') addExpeDial!: TemplateRef<any>;
+  @ViewChild('updateExpenseDial') updateExpenseDial!: TemplateRef<any>;
+  @ViewChild('deleteExpensDial') deleteExpensDial!: TemplateRef<any>;
 
+  // maintanance dialogs
+  @ViewChild('addMaintanceDial') addMaintanceDial!: TemplateRef<any>;
+  @ViewChild('deleteMaintanceDial') deleteMaintanceDial!: TemplateRef<any>;
 
-    //expenses dialogs
-    @ViewChild('addExpeDial') addExpeDial!: TemplateRef<any>;
-    @ViewChild('updateExpenseDial') updateExpenseDial!: TemplateRef<any>;
-    @ViewChild('deleteExpensDial') deleteExpensDial!: TemplateRef<any>;
+  expenseForm!: FormGroup;
+  updateExpenseForm!: FormGroup;
+  maintanaceForm!: FormGroup;
+  updateMaintanaceForm!: FormGroup;
+  properties: any[] = [];
+  isSubmitting = false;
+  isUpdateExpenseSubmit = false;
+  isLoading = false; // ✅ Add loading state
+  expenseId: any;
+  expenseName: any;
+  filteredUnits: any[] = [];
+  units: any[] = [];
+  propertiesList: any[] = [];
+  customers: any[] = [];
+  maintananceId: any;
+  maintanaceName: any;
+  selectedPropertyId: any = null;
+  allExpenses: any[] = [];
+  allMaintenance: any[] = [];
+  startDate: Date | null = null;
+  endDate: Date | null = null;
+  selectedProperty: any;
 
-    // maintanance dialogs
-    @ViewChild('addMaintanceDial') addMaintanceDial!: TemplateRef<any>;
-    @ViewChild('deleteMaintanceDial') deleteMaintanceDial!: TemplateRef<any>;
-
-
-    expenseForm!: FormGroup;
-    updateExpenseForm!: FormGroup;
-    maintanaceForm!: FormGroup;
-    updateMaintanaceForm!: FormGroup;
-    properties: any[] = [];
-    isSubmitting = false;
-    isUpdateExpenseSubmit=false
-    expenseId:any
-    expenseName:any
-    filteredUnits: any[] = [];
-    units: any[] = [];
-    propertiesList: any[] = [];
-    customers:any[] =[]
-    maintananceId:any
-    maintanaceName:any
-    selectedPropertyId: any = null;
-    allExpenses: any[] = [];
-    allMaintenance: any[] = [];
-    startDate: Date | null = null;
-    endDate: Date | null = null;
-    selectedProperty:any;
-
-  
   expenseObject: expensesObject[] = [];
-  displayedExpensesColumns: string[] = ['description', 'amount', 'expense_date','actions'];
+  displayedExpensesColumns: string[] = ['description', 'amount', 'expense_date', 'actions'];
   dataExpenseSource = new MatTableDataSource<expensesObject>(this.expenseObject);
 
-
   maintainanceObject: maintanceObject[] = [];
-  displayedMaintanceColumns: string[] = ['unit', 'description', 'status', 'reported_date','actions'];
+  displayedMaintanceColumns: string[] = ['unit', 'description', 'status', 'reported_date', 'actions'];
   dataMaintanceSource = new MatTableDataSource<maintanceObject>(this.maintainanceObject);
-
-
-
-  // @ViewChild(MatPaginator) paginator!: MatPaginator;
 
   @ViewChild('expensesPaginator') expensePaginator!: MatPaginator;
   @ViewChild('maintancePaginator') maintancePaginator!: MatPaginator;
 
   ngAfterViewInit() {
-    this.dataExpenseSource.paginator = this.expensePaginator;
-    this.dataMaintanceSource.paginator = this.maintancePaginator;
-
+    // ✅ Only set paginator in browser
+    if (isPlatformBrowser(this.platformId)) {
+      this.dataExpenseSource.paginator = this.expensePaginator;
+      this.dataMaintanceSource.paginator = this.maintancePaginator;
+    }
   }
 
-   ngOnInit(): void {
+  ngOnInit(): void {
+    // Initialize forms first (can run on server)
+    this.expenseSForm();
+    this.updateExpensesForm();
+    this.openMaintanaceForm();
+    this.openUpdateMaintanaceForm();
+
+    // ✅ CRITICAL: Only load data in browser
+    if (isPlatformBrowser(this.platformId)) {
       this.getExpenses();
       this.getMaintanance();
-      this.expenseSForm();
-      this.updateExpensesForm();
-      this.openMaintanaceForm();
-      this.openUpdateMaintanaceForm();
       this.getProperties();
       this.getUnits();
       this.getCustomers();
 
-
-       // ✅ Automatically select the first property after data loads
+      // ✅ Automatically select the first property after data loads
       setTimeout(() => {
         if (this.properties?.length && !this.selectedProperty?.value) {
           const firstPropertyId = this.properties[0].id;
           this.onPropertyChange(firstPropertyId);
         }
       }, 300);
-   }
+    }
+  }
 
-   getCustomers(){
-    this.customerService.getCustomers().subscribe(
-      {
-        next: (data) => {
-          console.log('Customers data:', data);
-          this.customers = data;
-        },
-        error: (error) => {
-          this.showError('Failed to load customers.');
-          console.error('Error fetching customers:', error);
-          if (error.status === 401) {
-            this.router.navigate(['/login']);
-          }
+  getCustomers() {
+    this.customerService.getCustomers().subscribe({
+      next: (data) => {
+        console.log('Customers data:', data);
+        this.customers = data;
+      },
+      error: (error) => {
+        this.showError('Failed to load customers.');
+        console.error('Error fetching customers:', error);
+        if (error.status === 401) {
+          this.router.navigate(['/login']);
         }
       }
-    )   
-   } 
+    });
+  }
 
-    openMaintanaceForm(): void {
-      this.maintanaceForm = this.fb.group({
-        unit: ['', Validators.required],
-        customer:['', Validators.required],
-        description: ['', Validators.required],
-      });
-    }
+  openMaintanaceForm(): void {
+    this.maintanaceForm = this.fb.group({
+      unit: ['', Validators.required],
+      customer: ['', Validators.required],
+      description: ['', Validators.required],
+    });
+  }
 
-    openUpdateMaintanaceForm(): void {
-      this.updateMaintanaceForm = this.fb.group({
-        unit: ['', Validators.required],
-        customer:['', Validators.required],
-        description: ['', Validators.required],
-      });
-    }
-
-
+  openUpdateMaintanaceForm(): void {
+    this.updateMaintanaceForm = this.fb.group({
+      unit: ['', Validators.required],
+      customer: ['', Validators.required],
+      description: ['', Validators.required],
+    });
+  }
 
   expenseSForm(): void {
     this.expenseForm = this.fb.group({
-      // property: ['', Validators.required],
       description: ['', [Validators.required, Validators.minLength(3)]],
       amount: ['', [Validators.required, Validators.pattern(/^\d+(\.\d{1,2})?$/)]],
     });
@@ -180,114 +174,98 @@ export class Expensemaintanace {
 
   updateExpensesForm(): void {
     this.updateExpenseForm = this.fb.group({
-      // property: ['', Validators.required],
       description: ['', [Validators.required, Validators.minLength(3)]],
       amount: ['', [Validators.required, Validators.pattern(/^\d+(\.\d{1,2})?$/)]],
     });
   }
 
-    getProperties() {
-      this.propertyService.getProperties().subscribe(
-        {
-          next: (data) => {
-            console.log('Properties data:', data);
-            this.properties = data;
-            
-            // Set default to first property
-            if (this.properties.length > 0 && !this.selectedPropertyId) {
-              this.selectedPropertyId = this.properties[0].id;
-              this.filterDataByProperty();
-            }
-          },
-          error: (error) => {
-            this.showError('Failed to load properties.');
-            console.error('Error fetching properties:', error);
-            if (error.status === 401) {
-              this.router.navigate(['/login']);
-            }
-          }
+  getProperties() {
+    this.propertyService.getProperties().subscribe({
+      next: (data) => {
+        console.log('Properties data:', data);
+        this.properties = data;
+
+        // Set default to first property
+        if (this.properties.length > 0 && !this.selectedPropertyId) {
+          this.selectedPropertyId = this.properties[0].id;
+          this.filterDataByProperty();
         }
-      )
-    }
-    
-    getUnits() {  
-      this.unitsService.getUnits().subscribe(
-        {
-          next: (data) => {
-            console.log('Units data:', data);
-            this.units = data;
-          },
-          error: (error) => {
-            this.showError('Failed to load units.');
-            console.error('Error fetching units:', error);
-            if (error.status === 401) {
-              this.router.navigate(['/login']);
-            }
-          }
+      },
+      error: (error) => {
+        this.showError('Failed to load properties.');
+        console.error('Error fetching properties:', error);
+        if (error.status === 401) {
+          this.router.navigate(['/login']);
         }
-      )
-    }
-
-onPropertyChange(propertyId?: number) {
-  const selectedPropertyId = propertyId || this.properties[0]?.id;
-
-  if (!selectedPropertyId) return; // handle case when properties array is empty
-
-  // Optional: also update selectedProperty FormControl if you’re using one
-  if (this.selectedProperty) {
-    this.selectedProperty.setValue(selectedPropertyId);
+      }
+    });
   }
 
-  setTimeout(() => {
-    this.filteredUnits = this.units.filter(u => u.property === selectedPropertyId);
-  }, 100);
-}
-
-
-   getExpenses() {
-    // Implementation for fetching expenses
-    this.expenseService.getExpenses().subscribe(
-      {
-        next: (data) => {
-          console.log('Expenses data:', data);
-          this.allExpenses = data;
-          this.filterDataByProperty();
-        },
-        error: (error) => {
-          this.showError('Failed to load expenses.');
-          console.error('Error fetching expenses:', error);
-          if (error.status === 401) {
-            this.router.navigate(['/login']);
-          }
-
+  getUnits() {
+    this.unitsService.getUnits().subscribe({
+      next: (data) => {
+        console.log('Units data:', data);
+        this.units = data;
+      },
+      error: (error) => {
+        this.showError('Failed to load units.');
+        console.error('Error fetching units:', error);
+        if (error.status === 401) {
+          this.router.navigate(['/login']);
         }
       }
-    )
-   }
+    });
+  }
 
-   getMaintanance() {
-    // Implementation for fetching maintenance records
-    this.maintanaceService.getMaintenanceRequests().subscribe(
-      {
-        next: (data) => {
-          console.log('Maintenance data:', data);
-          this.allMaintenance = data;
-          this.filterDataByProperty();
-          this.cdr.detectChanges();
-        },
-        error: (error) => {
-          this.showError('Failed to load maintenance records.');
-          console.error('Error fetching maintenance records:', error);
-          if (error.status === 401) {
-            this.router.navigate(['/login']);   
-          }
+  onPropertyChange(propertyId?: number) {
+    const selectedPropertyId = propertyId || this.properties[0]?.id;
+
+    if (!selectedPropertyId) return;
+
+    if (this.selectedProperty) {
+      this.selectedProperty.setValue(selectedPropertyId);
+    }
+
+    setTimeout(() => {
+      this.filteredUnits = this.units.filter(u => u.property === selectedPropertyId);
+    }, 100);
+  }
+
+  getExpenses() {
+    this.expenseService.getExpenses().subscribe({
+      next: (data) => {
+        console.log('Expenses data:', data);
+        this.allExpenses = data;
+        this.filterDataByProperty();
+      },
+      error: (error) => {
+        this.showError('Failed to load expenses.');
+        console.error('Error fetching expenses:', error);
+        if (error.status === 401) {
+          this.router.navigate(['/login']);
         }
       }
-    ) 
-   }
+    });
+  }
 
+  getMaintanance() {
+    this.maintanaceService.getMaintenanceRequests().subscribe({
+      next: (data) => {
+        console.log('Maintenance data:', data);
+        this.allMaintenance = data;
+        this.filterDataByProperty();
+        this.cdr.detectChanges();
+      },
+      error: (error) => {
+        this.showError('Failed to load maintenance records.');
+        console.error('Error fetching maintenance records:', error);
+        if (error.status === 401) {
+          this.router.navigate(['/login']);
+        }
+      }
+    });
+  }
 
-  /** 🔹 Submit Expense */
   addExpenses(): void {
     if (this.expenseForm.invalid) {
       this.expenseForm.markAllAsTouched();
@@ -298,12 +276,12 @@ onPropertyChange(propertyId?: number) {
       property: this.selectedPropertyId,
       description: this.expenseForm.value.description,
       amount: this.expenseForm.value.amount,
-    }
+    };
     this.isSubmitting = true;
 
     this.expenseService.addExpense(data).subscribe({
       next: (res) => {
-        this.showSuccess('Expense added successfully ✅')
+        this.showSuccess('Expense added successfully ✅');
         this.getExpenses();
         this.expenseForm.reset();
         this.isSubmitting = false;
@@ -311,51 +289,43 @@ onPropertyChange(propertyId?: number) {
       },
       error: (err) => {
         console.error('Error submitting expense:', err);
-        this.showError('Failed to add expense ❌',)
+        this.showError('Failed to add expense ❌');
         this.isSubmitting = false;
       }
     });
   }
 
+  openAAddExpenseDialog() {
+    let dialogRef = this.dialog.open(this.addExpeDial, {
+      maxWidth: '700px',
+    });
+    dialogRef.afterClosed().subscribe(result => {
+      if (result !== undefined) {
+        if (result === 'yes') {
 
-    openAAddExpenseDialog() {
-        let dialogRef = this.dialog.open(this.addExpeDial,{
-          maxWidth: '700px',
-        });
-        dialogRef.afterClosed().subscribe(result => {
-            if (result !== undefined) {
-                if (result === 'yes') {
-                    
-                } else if (result === 'no') {
-                
-                }
-            }
-        })
-    }
+        } else if (result === 'no') {
 
+        }
+      }
+    });
+  }
 
-    /** 🔹 Show Success Snackbar */
+  openUpdateDial() {
+    let dialogRef = this.dialog.open(this.updateExpenseDial, {
+      maxWidth: '700px',
+    });
+    dialogRef.afterClosed().subscribe(result => {
+      if (result !== undefined) {
+        if (result === 'yes') {
 
+        } else if (result === 'no') {
 
-    openUpdateDial() {
-      let dialogRef = this.dialog.open(this.updateExpenseDial,{
-        maxWidth: '700px',
-      });
-      dialogRef.afterClosed().subscribe(result => {
-          // Note: If the user clicks outside the dialog or presses the escape key, there'll be no result
-          if (result !== undefined) {
-              if (result === 'yes') {
-                
-              } else if (result === 'no') {
-               
-              }
-          }
-      })
-    }
+        }
+      }
+    });
+  }
 
-
-   openExpensesDialog(element: any) {
-    // Implementation for opening expenses dialog
+  openExpensesDialog(element: any) {
     console.log('Open expenses dialog for:', element);
     this.expenseId = element.id;
     this.updateExpenseForm.patchValue({
@@ -363,26 +333,25 @@ onPropertyChange(propertyId?: number) {
       description: element.description,
       amount: element.amount
     });
-   }
+  }
 
-   updateExpense() {
+  updateExpense() {
     if (this.updateExpenseForm.invalid) {
       this.updateExpenseForm.markAllAsTouched();
       return;
     }
 
-    const data ={
+    const data = {
       property: this.selectedPropertyId,
       description: this.updateExpenseForm.value.description,
       amount: this.updateExpenseForm.value.amount,
-    }
+    };
 
     this.isUpdateExpenseSubmit = true;
 
-
     this.expenseService.updateExpense(this.expenseId, data).subscribe({
       next: (res) => {
-        this.showSuccess('Expense updated successfully ✅')
+        this.showSuccess('Expense updated successfully ✅');
         this.getExpenses();
         this.updateExpenseForm.reset();
         this.isUpdateExpenseSubmit = false;
@@ -394,66 +363,59 @@ onPropertyChange(propertyId?: number) {
         this.isUpdateExpenseSubmit = false;
       }
     });
-   }
-
-   openDeleteDialog(element: any) {
-    this.expenseId = element.id;
-    this.expenseName = element.description;
-     let dialogRef = this.dialog.open(this.deleteExpensDial);
-        dialogRef.afterClosed().subscribe(result => {
-            // Note: If the user clicks outside the dialog or presses the escape key, there'll be no result
-            if (result !== undefined) {
-                if (result === 'yes') {
-                    this.expenseService.deleteExpense(this.expenseId).subscribe({
-                      next: (res) => {
-                        this.showSuccess(`Expense ${this.expenseName} deleted successfully ✅`)
-                        this.getExpenses();
-                      },
-                      error: (err) => {
-                        console.error('Error deleting expense:', err);
-                        this.showError('Failed to delete expense ❌');
-                      }
-                    });
-                } else if (result === 'no') {
-               
-                }
-            }
-        })
-   }
-
-
-
-   openMaintanaceDialog(element: any) {
-    // Implementation for opening maintenance dialog
-    console.log('Open maintenance dialog for:', element);
-   }
-
-  openDeleteMainanceDialog(element: any) {
-     this.maintananceId = element.id;
-    this.maintanaceName = element.description;
-      let dialogRef = this.dialog.open(this.deleteMaintanceDial);
-        dialogRef.afterClosed().subscribe(result => {
-          
-            if (result !== undefined) {
-                if (result === 'yes') {
-                  this.maintanaceService.deleteMaintenanceRequest(this.maintananceId).subscribe({
-                    next: (res) => {
-                      this.showSuccess(`Maintanance ${this.maintanaceName} deleted successfully ✅`)
-                      this.getMaintanance();
-                    },
-                    error: (err) => {
-                      console.error('Error deleting maintanance:', err);
-                      this.showError('Failed to delete maintanance ❌');
-                    }
-                  });
-                } else if (result === 'no') {
-          
-                }
-            }
-        })
   }
 
+  openDeleteDialog(element: any) {
+    this.expenseId = element.id;
+    this.expenseName = element.description;
+    let dialogRef = this.dialog.open(this.deleteExpensDial);
+    dialogRef.afterClosed().subscribe(result => {
+      if (result !== undefined) {
+        if (result === 'yes') {
+          this.expenseService.deleteExpense(this.expenseId).subscribe({
+            next: (res) => {
+              this.showSuccess(`Expense ${this.expenseName} deleted successfully ✅`);
+              this.getExpenses();
+            },
+            error: (err) => {
+              console.error('Error deleting expense:', err);
+              this.showError('Failed to delete expense ❌');
+            }
+          });
+        } else if (result === 'no') {
 
+        }
+      }
+    });
+  }
+
+  openMaintanaceDialog(element: any) {
+    console.log('Open maintenance dialog for:', element);
+  }
+
+  openDeleteMainanceDialog(element: any) {
+    this.maintananceId = element.id;
+    this.maintanaceName = element.description;
+    let dialogRef = this.dialog.open(this.deleteMaintanceDial);
+    dialogRef.afterClosed().subscribe(result => {
+      if (result !== undefined) {
+        if (result === 'yes') {
+          this.maintanaceService.deleteMaintenanceRequest(this.maintananceId).subscribe({
+            next: (res) => {
+              this.showSuccess(`Maintanance ${this.maintanaceName} deleted successfully ✅`);
+              this.getMaintanance();
+            },
+            error: (err) => {
+              console.error('Error deleting maintanance:', err);
+              this.showError('Failed to delete maintanance ❌');
+            }
+          });
+        } else if (result === 'no') {
+
+        }
+      }
+    });
+  }
 
   addMaintanaceForm() {
     if (this.maintanaceForm.invalid) {
@@ -467,7 +429,7 @@ onPropertyChange(propertyId?: number) {
 
     this.maintanaceService.addMaintenanceRequest(payload).subscribe({
       next: (res) => {
-        this.showSuccess('Maintenance request added successfully ✅')
+        this.showSuccess('Maintenance request added successfully ✅');
         this.getMaintanance();
         this.maintanaceForm.reset();
         this.isSubmitting = false;
@@ -475,28 +437,26 @@ onPropertyChange(propertyId?: number) {
       },
       error: (err) => {
         console.error('Error submitting maintenance request:', err);
-        this.showError('Failed to add maintenance request ❌',)
+        this.showError('Failed to add maintenance request ❌');
         this.isSubmitting = false;
       }
     });
   }
 
-
   openAddMaintanaceDialog() {
-        let dialogRef = this.dialog.open(this.addMaintanceDial,{
-          maxWidth: '780px',
-          });
-        dialogRef.afterClosed().subscribe(result => {
-            if (result !== undefined) {
-                if (result === 'yes') {
-               
-                } else if (result === 'no') {
+    let dialogRef = this.dialog.open(this.addMaintanceDial, {
+      maxWidth: '780px',
+    });
+    dialogRef.afterClosed().subscribe(result => {
+      if (result !== undefined) {
+        if (result === 'yes') {
 
-                }
-            }
-        })
-    }
+        } else if (result === 'no') {
 
+        }
+      }
+    });
+  }
 
   onPropertyFilterChange(propertyId: any) {
     this.selectedPropertyId = propertyId;
@@ -517,16 +477,14 @@ onPropertyChange(propertyId?: number) {
   filterDataByProperty() {
     if (!this.selectedPropertyId) return;
 
-    // Filter expenses by property
     let filteredExpenses = this.allExpenses.filter(
       expense => expense.property === this.selectedPropertyId
     );
 
-    // Filter expenses by date range if dates are set
     if (this.startDate || this.endDate) {
       filteredExpenses = filteredExpenses.filter(expense => {
         const expenseDate = new Date(expense.expense_date);
-        
+
         if (this.startDate && this.endDate) {
           return expenseDate >= this.startDate && expenseDate <= this.endDate;
         } else if (this.startDate) {
@@ -539,17 +497,15 @@ onPropertyChange(propertyId?: number) {
     }
 
     this.expenseObject = filteredExpenses;
-    
-    // Filter maintenance by property_id (string in the API response)
+
     let filteredMaintenance = this.allMaintenance.filter(
       maintenance => parseInt(maintenance.property_id) === this.selectedPropertyId
     );
 
-    // Filter maintenance by date range if dates are set
     if (this.startDate || this.endDate) {
       filteredMaintenance = filteredMaintenance.filter(maintenance => {
         const reportedDate = new Date(maintenance.reported_date);
-        
+
         if (this.startDate && this.endDate) {
           return reportedDate >= this.startDate && reportedDate <= this.endDate;
         } else if (this.startDate) {
@@ -563,17 +519,17 @@ onPropertyChange(propertyId?: number) {
 
     this.maintainanceObject = filteredMaintenance;
 
-    // Update table data sources
-    setTimeout(() => {
-      this.dataExpenseSource.data = this.expenseObject;
-      this.dataExpenseSource.paginator = this.expensePaginator;
-      
-      this.dataMaintanceSource.data = this.maintainanceObject;
-      this.dataMaintanceSource.paginator = this.maintancePaginator;
-    });
-  }
+    // ✅ Only update paginator in browser
+    if (isPlatformBrowser(this.platformId)) {
+      setTimeout(() => {
+        this.dataExpenseSource.data = this.expenseObject;
+        this.dataExpenseSource.paginator = this.expensePaginator;
 
-  
+        this.dataMaintanceSource.data = this.maintainanceObject;
+        this.dataMaintanceSource.paginator = this.maintancePaginator;
+      });
+    }
+  }
 
   showSuccess(message: string) {
     this.snackBar.open(message, 'Close', {
@@ -592,8 +548,4 @@ onPropertyChange(propertyId?: number) {
       verticalPosition: 'top'
     });
   }
-
-
-
-  
 }

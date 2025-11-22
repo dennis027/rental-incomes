@@ -1,10 +1,7 @@
-
-import { Component, OnInit, OnDestroy, AfterViewInit, inject, ChangeDetectorRef } from '@angular/core';
-import { CommonModule } from '@angular/common';
-import { FormControl, ReactiveFormsModule } from '@angular/forms';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatSelectModule } from '@angular/material/select';
-import { DashboardSummaryService, DashboardSummary, MonthlyCollection, OccupancyStats } from '../../../services/dashboard-summary-service'
+import { Component, OnInit, OnDestroy, AfterViewInit, inject, ChangeDetectorRef, PLATFORM_ID } from '@angular/core';
+import { isPlatformBrowser } from '@angular/common';
+import { FormControl } from '@angular/forms';
+import { DashboardSummaryService, DashboardSummary, MonthlyCollection, OccupancyStats } from '../../../services/dashboard-summary-service';
 import { PropertiesService } from '../../../services/properties';
 import Chart from 'chart.js/auto';
 import { SharedImports } from '../../../shared-imports/imports';
@@ -12,23 +9,19 @@ import { Router } from '@angular/router';
 
 @Component({
   selector: 'app-dash-home',
-  // You need to import CommonModule if you use ngIf/ngFor in the template, 
-  // but based on the class structure, it seems like a standalone component might require it.
-  // Assuming a modern Angular setup, you might need to add CommonModule here 
-  // if your template uses directives like *ngFor or *ngIf.
   imports: [SharedImports], 
   templateUrl: './dash-home.html',
   styleUrl: './dash-home.css'
 })
-// Implement the required lifecycle interfaces for clarity and type-safety
 export class DashHome implements OnInit, AfterViewInit, OnDestroy { 
 
   private dashboardService = inject(DashboardSummaryService);
   private propertyService = inject(PropertiesService);
-  private cdr = inject(ChangeDetectorRef)
-  private router = inject(Router)
+  private cdr = inject(ChangeDetectorRef);
+  private router = inject(Router);
+  private platformId = inject(PLATFORM_ID); // ✅ Add this
   
-    summaryCards = [
+  summaryCards = [
     { label: 'Total Tenants', value: '0', icon: 'fas fa-user-friends' },
     { label: 'Occupied Units', value: '0/0', icon: 'fas fa-building' },
     { label: 'Pending Rent', value: 'KSh 0', icon: 'fas fa-money-bill-wave' },
@@ -43,7 +36,13 @@ export class DashHome implements OnInit, AfterViewInit, OnDestroy {
   private occupancyChart?: Chart;
 
   ngOnInit(): void {
-    this.loadProperties();
+    // ✅ CRITICAL: Only load data in browser
+    if (isPlatformBrowser(this.platformId)) {
+      console.log('🔍 Dashboard running in browser');
+      this.loadProperties();
+    } else {
+      console.log('⚠️ Dashboard running on server, skipping data load');
+    }
   }
 
   ngAfterViewInit(): void {
@@ -56,8 +55,11 @@ export class DashHome implements OnInit, AfterViewInit, OnDestroy {
   }
 
   loadProperties(): void {
+    console.log('📡 Loading properties...');
+    
     this.propertyService.getProperties().subscribe({
       next: (res) => {
+        console.log('✅ Properties loaded:', res);
         this.properties = res;
         if (this.properties.length > 0) {
           this.selectedProperty.setValue(this.properties[0].id.toString());
@@ -66,8 +68,11 @@ export class DashHome implements OnInit, AfterViewInit, OnDestroy {
         this.cdr.detectChanges();
       },
       error: (err) => {
-        console.error('Error loading properties:', err);
-       if (err.status === 401) this.router.navigate(['/login']);
+        console.error('❌ Error loading properties:', err);
+        if (err.status === 401) {
+          console.log('🔒 Unauthorized, redirecting to login...');
+          this.router.navigate(['/login']);
+        }
       }
     });
   }
@@ -77,12 +82,26 @@ export class DashHome implements OnInit, AfterViewInit, OnDestroy {
   }
 
   loadDashboardData(): void {
+    console.log('📊 Loading dashboard data...');
     this.isLoading = true;
     const propertyId = this.selectedProperty.value || undefined;
+
+    // ✅ Check token before making calls
+    if (isPlatformBrowser(this.platformId)) {
+      const token = localStorage.getItem('access_token');
+      console.log('🔑 Token status:', token ? 'Token exists' : '❌ NO TOKEN!');
+      
+      if (!token) {
+        console.error('❌ No access token found, redirecting to login');
+        this.router.navigate(['/login']);
+        return;
+      }
+    }
 
     // Load summary
     this.dashboardService.getDashboardSummary(propertyId).subscribe({
       next: (data: DashboardSummary) => {
+        console.log('✅ Summary loaded:', data);
         this.summaryCards = [
           { label: 'Total Tenants', value: data.total_tenants.toString(), icon: 'fas fa-user-friends' },
           { label: 'Occupied Units', value: `${data.occupied_units}/${data.total_units}`, icon: 'fas fa-building' },
@@ -91,38 +110,56 @@ export class DashHome implements OnInit, AfterViewInit, OnDestroy {
         ];
         this.cdr.detectChanges();
       },
-      error: (err) => console.error('Error loading summary:', err)
+      error: (err) => {
+        console.error('❌ Error loading summary:', err);
+        if (err.status === 401) this.router.navigate(['/login']);
+      }
     });
 
     // Load monthly collection
     this.dashboardService.getMonthlyCollection(propertyId, 6).subscribe({
       next: (data: MonthlyCollection[]) => {
+        console.log('✅ Monthly collection loaded:', data);
         this.renderRentChart(data);
         this.cdr.detectChanges();
       },
-      error: (err) => console.error('Error loading monthly collection:', err)
+      error: (err) => {
+        console.error('❌ Error loading monthly collection:', err);
+        if (err.status === 401) this.router.navigate(['/login']);
+      }
     });
 
     // Load occupancy stats
     this.dashboardService.getOccupancyStats(propertyId).subscribe({
       next: (data: OccupancyStats) => {
+        console.log('✅ Occupancy loaded:', data);
         this.renderOccupancyChart(data);
         this.isLoading = false;
         this.cdr.detectChanges();
       },
       error: (err) => {
-        console.error('Error loading occupancy:', err);
+        console.error('❌ Error loading occupancy:', err);
+        if (err.status === 401) this.router.navigate(['/login']);
         this.isLoading = false;
       }
     });
   }
 
   renderRentChart(data: MonthlyCollection[]): void {
+    // ✅ Only render charts in browser
+    if (!isPlatformBrowser(this.platformId)) return;
+
     if (this.rentChart) {
       this.rentChart.destroy();
     }
 
-    this.rentChart = new Chart('rentChart', {
+    const canvas = document.getElementById('rentChart') as HTMLCanvasElement;
+    if (!canvas) {
+      console.warn('⚠️ rentChart canvas not found');
+      return;
+    }
+
+    this.rentChart = new Chart(canvas, {
       type: 'bar',
       data: {
         labels: data.map(d => d.month),
@@ -142,11 +179,20 @@ export class DashHome implements OnInit, AfterViewInit, OnDestroy {
   }
 
   renderOccupancyChart(data: OccupancyStats): void {
+    // ✅ Only render charts in browser
+    if (!isPlatformBrowser(this.platformId)) return;
+
     if (this.occupancyChart) {
       this.occupancyChart.destroy();
     }
 
-    this.occupancyChart = new Chart('occupancyChart', {
+    const canvas = document.getElementById('occupancyChart') as HTMLCanvasElement;
+    if (!canvas) {
+      console.warn('⚠️ occupancyChart canvas not found');
+      return;
+    }
+
+    this.occupancyChart = new Chart(canvas, {
       type: 'doughnut',
       data: {
         labels: ['Occupied', 'Vacant'],
