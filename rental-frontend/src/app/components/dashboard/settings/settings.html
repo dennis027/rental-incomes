@@ -175,6 +175,52 @@
           </div>
         }
 
+         @if (systemParameters?.has_service_charge === true) {
+          <div class="col-md-4">
+            <mat-form-field appearance="outline" class="full-width">
+              <mat-label>Default Service Charge</mat-label>
+              <input
+                matInput
+                type="number"
+                formControlName="default_service_charge"
+                (change)="onUpdateSystemParams()"
+              />
+              <mat-icon matSuffix style="color: #666;">handyman</mat-icon>
+            </mat-form-field>
+          </div>
+        }
+
+      </div>
+
+      <div class="row"> 
+        @if (systemParameters?.has_security_charge === true) {
+            <div class="col-md-4">
+              <mat-form-field appearance="outline" class="full-width">
+                <mat-label>Default Security Charge</mat-label>
+                <input
+                  matInput
+                  type="number"
+                  formControlName="default_security_charge"
+                  (change)="onUpdateSystemParams()"
+                />
+                <mat-icon matSuffix style="color: #666;">security</mat-icon>
+              </mat-form-field>
+            </div>
+        }
+
+         @if (systemParameters?.has_other_charges === true) {
+            <div class="col-md-4">
+              <mat-form-field appearance="outline" class="full-width">
+                <mat-label>Default Other Charge</mat-label>
+                <input
+                  matInput
+                  type="number"
+                  formControlName="default_other_charge"
+                  (change)="onUpdateSystemParams()"
+                />
+              </mat-form-field>
+            </div>
+          }
       </div>
     </mat-card-content>
   </mat-card>
