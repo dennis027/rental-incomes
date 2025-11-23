@@ -377,9 +377,9 @@ export class Units implements OnInit, AfterViewInit {
           property: this.selectedPropertyId,
           unit_number: '',
           unit_type: '',
-          rent_amount: '',
-          water_meter_reading: '',
-          electricity_meter_reading: '',
+          rent_amount: 0,
+          water_meter_reading: 0,
+          electricity_meter_reading: 0,
         };
         this.unitForm.reset(resetValue);
         this.dialog.closeAll();
