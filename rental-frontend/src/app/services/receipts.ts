@@ -9,6 +9,7 @@ import { environment } from '../../environments/environment';
 })
 export class ReceiptService {
   private receiptsURL = `${environment.apiUrl}api/receipts/`;
+  private unitsURL = `${environment.apiUrl}api/units/`;
 
   constructor(
     private http: HttpClient,
@@ -40,11 +41,6 @@ export class ReceiptService {
     return this.http.delete<any>(`${this.receiptsURL}${id}/`, { headers });
   }
 
-  addMonthlyReceipts(data: any): Observable<any> {
-    const headers = this.getAuthHeaders();
-    return this.http.post<any>(`${this.receiptsURL}generate-monthly-receipts/`, data, { headers });
-  }
-
   /** 🔹 Helper: Construct Headers with Bearer Token */
   private getAuthHeaders(): HttpHeaders {
     let headers = new HttpHeaders({ 'Content-Type': 'application/json' });
@@ -55,6 +51,42 @@ export class ReceiptService {
     }
 
     return headers;
+  }
+  /** 🔹 Generate Monthly Receipts (Simple - No Meter Readings) */
+  addMonthlyReceipts(data: any): Observable<any> {
+    const headers = this.getAuthHeaders();
+    return this.http.post<any>(`${this.receiptsURL}generate-monthly-receipts/`, data, { headers });
+  }
+
+  /** 🔹 Get Active Units for Property (For Meter Readings Collection) */
+  getActiveUnitsForProperty(propertyId: string | number): Observable<any> {
+    const headers = this.getAuthHeaders();
+    return this.http.get<any>(`${this.unitsURL}active/?property_id=${propertyId}`, { headers });
+  }
+
+  /** 🔹 Generate Monthly Receipts with Meter Readings */
+  addMonthlyReceiptsWithReadings(data: {
+    month: string;
+    property_id: string | number;
+    meter_readings: Array<{
+      unit_id: number;
+      contract_id: number;
+      previous_balance: number;
+      current_water_reading: number;
+      current_electricity_reading: number;
+      water_bill: number;
+      electricity_bill: number;
+      service_charge: number;
+      security_charge: number;
+      other_charges: number;
+    }>;
+  }): Observable<any> {
+    const headers = this.getAuthHeaders();
+    return this.http.post<any>(
+      `${this.receiptsURL}generate-monthly-with-readings/`,
+      data,
+      { headers }
+    );
   }
 
   /** 🔹 Helper: Safely Retrieve Token from LocalStorage (Browser Only) */

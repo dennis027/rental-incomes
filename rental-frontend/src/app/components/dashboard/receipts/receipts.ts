@@ -4,7 +4,7 @@ import { MatDialog } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatPaginator } from '@angular/material/paginator';
 import { MatTableDataSource } from '@angular/material/table';
-import { FormBuilder, FormGroup, Validators, FormControl } from '@angular/forms';
+import { FormBuilder, FormGroup, Validators, FormControl, FormArray } from '@angular/forms';
 import { SharedImports } from '../../../shared-imports/imports';
 import { ReceiptService } from '../../../services/receipts';
 import { PropertiesService } from '../../../services/properties';
@@ -58,6 +58,18 @@ export interface MonthYear {
   value: string;
 }
 
+export interface UnitReading {
+  unit_id: number;
+  unit_number: string;
+  contract_id: number;
+  customer_name: string;
+  previous_balance: number;
+  previous_water_reading: number;
+  current_water_reading: number;
+  previous_electricity_reading: number;
+  current_electricity_reading: number;
+}
+
 @Component({
   selector: 'app-receipts',
   standalone: true,
@@ -75,7 +87,7 @@ export class Receipts implements OnInit, AfterViewInit {
   private propertyService = inject(PropertiesService);
   private systemParametersSerice = inject(SystemParametersServices);
   private paymentService = inject(PaymentService);
-  private platformId = inject(PLATFORM_ID); // ✅ Add this
+  private platformId = inject(PLATFORM_ID);
 
   displayedColumns: string[] = [
     'receipt_number', 'contract_number', 'unit',
@@ -94,6 +106,7 @@ export class Receipts implements OnInit, AfterViewInit {
   @ViewChild('updateReceiptDialog') updateReceiptDialog!: TemplateRef<any>;
   @ViewChild('deleteReceiptDial') deleteReceiptDial!: TemplateRef<any>;
   @ViewChild('generateMonthlyDialog') generateMonthlyDialog!: TemplateRef<any>;
+  @ViewChild('meterReadingsDialog') meterReadingsDialog!: TemplateRef<any>;
   @ViewChild('receiptPreviewDialog') receiptPreviewDialog!: TemplateRef<any>;
   @ViewChild('paymentsDial') paymentsDial!: TemplateRef<any>;
   @ViewChild('receiptPreview', { static: false }) receiptPreview!: ElementRef;
@@ -101,34 +114,37 @@ export class Receipts implements OnInit, AfterViewInit {
   addReceiptForm!: FormGroup;
   updateReceiptForm!: FormGroup;
   generateMonthlyForm!: FormGroup;
+  meterReadingsForm!: FormGroup;
   paymentForm!: FormGroup;
   loadAdding = false;
   loadGenerating = false;
+  loadingUnits = false;
   selectedReceiptId: number | null = null;
   currentMonth: any;
   currentYear: any;
 
   receipt: Receipt | null = null;
   loadMakingPayments = false;
-  systemParametersObject: any = [];
+  systemParametersObject: any = null;
   receiptItems: { label: string; amount: number }[] = [];
   formattedDate: string = '';
   receiptClientName: string = '';
   houseNameNo: string = '';
+  
+  // New properties for meter readings
+  unitReadings: UnitReading[] = [];
+  selectedMonthForGeneration: any = null;
 
   ngOnInit() {
     const today = new Date();
     this.currentMonth = today.toLocaleString('en-US', { month: 'long' });
     this.currentYear = today.getFullYear();
 
-    // Initialize forms first (can run on server)
     this.initializeForms();
 
-    // ✅ CRITICAL: Only load data in browser
     if (isPlatformBrowser(this.platformId)) {
       console.log('🔍 Receipts component running in browser');
 
-      // Verify token exists
       const token = localStorage.getItem('access_token');
       console.log('🔑 Token status:', token ? 'Token exists' : '❌ NO TOKEN!');
 
@@ -166,7 +182,6 @@ export class Receipts implements OnInit, AfterViewInit {
   }
 
   ngAfterViewInit() {
-    // ✅ Only set paginator in browser
     if (isPlatformBrowser(this.platformId)) {
       this.dataSource.paginator = this.paginator;
     }
@@ -232,12 +247,20 @@ export class Receipts implements OnInit, AfterViewInit {
       month: ['', [Validators.required, Validators.min(1), Validators.max(12)]]
     });
 
+    this.meterReadingsForm = this.fb.group({
+      readings: this.fb.array([])
+    });
+
     this.paymentForm = this.fb.group({
       amount: ['', Validators.required],
       method: ['', Validators.min(0)],
       reference: ['', Validators.required],
       notes: [`Payment for ${this.currentMonth} ${this.currentYear}`, [Validators.required]]
     });
+  }
+
+  get readingsArray(): FormArray {
+    return this.meterReadingsForm.get('readings') as FormArray;
   }
 
   loadData() {
@@ -254,7 +277,6 @@ export class Receipts implements OnInit, AfterViewInit {
         this.updateAvailableMonths();
         this.applyFilters();
 
-        // ✅ Only update paginator in browser
         if (isPlatformBrowser(this.platformId)) {
           setTimeout(() => {
             this.dataSource.paginator = this.paginator;
@@ -376,7 +398,6 @@ export class Receipts implements OnInit, AfterViewInit {
 
         this.applyFilters();
 
-        // ✅ Only update paginator in browser
         if (isPlatformBrowser(this.platformId)) {
           setTimeout(() => {
             this.dataSource.paginator = this.paginator;
@@ -406,6 +427,213 @@ export class Receipts implements OnInit, AfterViewInit {
     });
     this.dialog.open(this.generateMonthlyDialog);
   }
+
+  // NEW: Check if meter readings are needed before generation
+  checkAndProceedToGeneration() {
+    if (this.generateMonthlyForm.invalid) {
+      this.generateMonthlyForm.markAllAsTouched();
+      return;
+    }
+
+    if (!this.systemParametersObject) {
+      this.showError('System parameters not loaded. Please try again.');
+      return;
+    }
+
+    const { year, month } = this.generateMonthlyForm.value;
+    this.selectedMonthForGeneration = { year, month };
+
+    // Check if we need to collect meter readings
+    const needsWaterReadings = this.systemParametersObject.has_water_bill;
+    const needsElectricityReadings = this.systemParametersObject.has_electricity_bill;
+
+    if (needsWaterReadings || needsElectricityReadings) {
+      // Load active units for the property and show meter readings dialog
+      this.loadActiveUnitsForReadings();
+    } else {
+      // Proceed directly to generation without readings
+      this.generateMonthlyReceipts();
+    }
+  }
+
+// NEW: Load active units that need meter readings
+loadActiveUnitsForReadings() {
+  const propertyId = this.selectedProperty.value;
+
+  if (propertyId === null) {
+    this.showError('Please select a property before loading units.');
+    return;
+  }
+
+  this.loadingUnits = true;
+
+  // GET /api/units/active/?property_id={propertyId}
+  this.receiptService.getActiveUnitsForProperty(propertyId).subscribe({
+    next: (response: any) => {
+      console.log('✅ Active units loaded:', response);
+      this.loadingUnits = false;
+
+      const units = response.active_units || [];
+
+      // Prepare unit readings array
+      this.unitReadings = units.map((unit: any) => ({
+        unit_id: unit.id,
+        unit_number: unit.unit_number,
+        contract_id: unit.contract_id,
+        customer_name: unit.customer_name,
+        previous_balance: unit.previous_balance || 0,
+        previous_water_reading: unit.water_meter_reading || 0,
+        current_water_reading: unit.water_meter_reading || 0,
+        previous_electricity_reading: unit.electricity_meter_reading || 0,
+        current_electricity_reading: unit.electricity_meter_reading || 0,
+        service_charge: unit.service_charge || 0,
+        security_charge: unit.security_charge || 0,
+        other_charges: unit.other_charges || 0
+      }));
+
+      // Build form array
+      this.buildMeterReadingsForm();
+
+      // Close first dialog and open meter readings dialog
+      this.dialog.closeAll();
+      this.dialog.open(this.meterReadingsDialog, {
+        width: '900px',
+        maxHeight: '90vh',
+        disableClose: true
+      });
+    },
+    error: (err) => {
+      console.error('❌ Error loading units:', err);
+      this.loadingUnits = false;
+      this.showError('Failed to load units for meter readings.');
+      if (err.status === 401) {
+        this.router.navigate(['/login']);
+      }
+    }
+  });
+}
+
+  // NEW: Build form array for meter readings
+  buildMeterReadingsForm() {
+    this.readingsArray.clear();
+    
+    this.unitReadings.forEach(unit => {
+      const group = this.fb.group({
+        unit_id: [unit.unit_id],
+        unit_number: [unit.unit_number],
+        contract_id: [unit.contract_id],
+        customer_name: [unit.customer_name],
+        previous_balance: [unit.previous_balance || 0],
+        previous_water_reading: [unit.previous_water_reading],
+        current_water_reading: [
+          unit.current_water_reading,
+          this.systemParametersObject.has_water_bill ? [Validators.required, Validators.min(unit.previous_water_reading)] : []
+        ],
+        previous_electricity_reading: [unit.previous_electricity_reading],
+        current_electricity_reading: [
+          unit.current_electricity_reading,
+          this.systemParametersObject.has_electricity_bill ? [Validators.required, Validators.min(unit.previous_electricity_reading)] : []
+        ],
+        service_charge: [
+          this.systemParametersObject.has_service_charge ? this.systemParametersObject.default_service_charge : 0,
+          this.systemParametersObject.has_service_charge ? [Validators.required, Validators.min(0)] : []
+        ],
+        security_charge: [
+          this.systemParametersObject.has_security_charge ? this.systemParametersObject.default_security_charge : 0,
+          this.systemParametersObject.has_security_charge ? [Validators.required, Validators.min(0)] : []
+        ],
+        other_charges: [
+          this.systemParametersObject.has_other_charges ? this.systemParametersObject.default_other_charge : 0,
+          this.systemParametersObject.has_other_charges ? [Validators.required, Validators.min(0)] : []
+        ]
+      });
+      
+      this.readingsArray.push(group);
+    });
+  }
+
+  // NEW: Calculate water bill for a unit
+  calculateWaterBill(index: number): number {
+    const reading = this.readingsArray.at(index).value;
+    const units = reading.current_water_reading - reading.previous_water_reading;
+    return units * (this.systemParametersObject.water_unit_cost || 0);
+  }
+
+  // NEW: Calculate electricity bill for a unit
+  calculateElectricityBill(index: number): number {
+    const reading = this.readingsArray.at(index).value;
+    const units = reading.current_electricity_reading - reading.previous_electricity_reading;
+    return units * (this.systemParametersObject.electicity_unit_cost || 0);
+  }
+
+  // NEW: Submit meter readings and generate receipts
+submitMeterReadingsAndGenerate() {
+  if (this.meterReadingsForm.invalid) {
+    this.meterReadingsForm.markAllAsTouched();
+    this.showError('Please fill in all required meter readings.');
+    return;
+  }
+
+  const propertyId = this.selectedProperty.value;
+  if (propertyId === null) {
+    this.showError('Please select a property before generating receipts.');
+    return;
+  }
+
+  this.loadGenerating = true;
+  const { year, month } = this.selectedMonthForGeneration;
+  const formattedMonthYear = `${year}-${month}`;
+
+  const payload = {
+    month: formattedMonthYear,
+    property_id: propertyId, // guaranteed not null now
+    meter_readings: this.readingsArray.value.map((reading: any) => ({
+      unit_id: reading.unit_id,
+      contract_id: reading.contract_id,
+      previous_balance: reading.previous_balance || 0,
+      current_water_reading: reading.current_water_reading,
+      current_electricity_reading: reading.current_electricity_reading,
+      water_bill: this.systemParametersObject.has_water_bill
+        ? this.calculateWaterBill(this.readingsArray.value.indexOf(reading))
+        : 0,
+      electricity_bill: this.systemParametersObject.has_electricity_bill
+        ? this.calculateElectricityBill(this.readingsArray.value.indexOf(reading))
+        : 0,
+      service_charge: this.systemParametersObject.has_service_charge
+        ? reading.service_charge
+        : 0,
+      security_charge: this.systemParametersObject.has_security_charge
+        ? reading.security_charge
+        : 0,
+      other_charges: this.systemParametersObject.has_other_charges
+        ? reading.other_charges
+        : 0,
+    }))
+  };
+
+  console.log('📤 Generating monthly receipts with meter readings:', payload);
+
+  this.receiptService.addMonthlyReceiptsWithReadings(payload).subscribe({
+    next: (response) => {
+      console.log('✅ Monthly receipts generated:', response);
+      this.loadGenerating = false;
+      this.dialog.closeAll();
+      this.showSuccess(`Successfully generated ${response.count || 'monthly'} receipts!`);
+      this.getReceipts();
+      this.generateMonthlyForm.reset();
+      this.meterReadingsForm.reset();
+    },
+    error: (err) => {
+      console.error('❌ Error generating monthly receipts:', err);
+      this.loadGenerating = false;
+      this.showError('Failed to generate monthly receipts. Please try again.');
+      if (err.status === 401) {
+        this.router.navigate(['/login']);
+        this.dialog.closeAll();
+      }
+    }
+  });
+}
 
   openUpdateDialog(receipt: Receipt) {
     this.selectedReceiptId = receipt.id;
