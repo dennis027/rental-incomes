@@ -29,7 +29,7 @@ export interface expensesObject {
 }
 
 export interface maintanceObject {
-  unit: string;
+  unit_number: string;
   description: string;
   status: string;
   reported_date: string;
@@ -94,7 +94,7 @@ export class Expensemaintanace implements OnInit, AfterViewInit {
   dataExpenseSource = new MatTableDataSource<expensesObject>(this.expenseObject);
 
   maintainanceObject: maintanceObject[] = [];
-  displayedMaintanceColumns: string[] = ['unit', 'description', 'status', 'reported_date', 'actions'];
+  displayedMaintanceColumns: string[] = ['unit_number', 'description', 'status', 'reported_date', 'actions'];
   dataMaintanceSource = new MatTableDataSource<maintanceObject>(this.maintainanceObject);
 
   @ViewChild('expensesPaginator') expensePaginator!: MatPaginator;

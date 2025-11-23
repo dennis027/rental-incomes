@@ -10,7 +10,8 @@ import { MatTableDataSource } from '@angular/material/table';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { SystemParametersServices } from '../../../services/system-parameters-services';
-import { MatTableResponsiveDirective } from '../../../directives/mat-table-responsive-directive';
+import { ContractsService } from '../../../services/contract-service';
+import { CustomersService } from '../../../services/customer';
 
 export interface UnitsTable {
   id: string;
@@ -35,6 +36,8 @@ export interface UnitsTable {
 export class Units implements OnInit, AfterViewInit {
   private snackBar = inject(MatSnackBar);
   private cdr = inject(ChangeDetectorRef);
+  private contractsService = inject(ContractsService)
+  private customersService = inject(CustomersService);
   private systemsParamsService = inject(SystemParametersServices);
   private platformId = inject(PLATFORM_ID); // ✅ Added
 
@@ -43,14 +46,32 @@ export class Units implements OnInit, AfterViewInit {
   @ViewChild('updateDialog') updateDialog!: TemplateRef<any>;
   @ViewChild('deleteDialog') deleteDialog!: TemplateRef<any>;
 
+    @ViewChild('newContractDialog') newContractDialog!: TemplateRef<any>;
+    @ViewChild('cancelContractDialog') cancelContractDialog!: TemplateRef<any>;
+
   loadAdding = false;
   loadUpdating = false;
   loadDeleting = false;
   isLoading = true; // ✅ Added
 
+  customers: any[] = [];
+
   unitForm!: FormGroup;
   updateUnitForm!: FormGroup;
+  contractForm!: FormGroup;
   selectedUnitId: string | null = null;
+  selectedContractId: string | null = null;
+  loadCancelling: boolean = false;
+
+
+  formatToYMD(dateString: string): string {
+    const date = new Date(dateString);
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  }
+
 
   displayedColumns: string[] = ['unit_number', 'unit_type', 'rent_amount', 'active_contract_deposit', 'balance', 'status', 'actions'];
   unitsObject: UnitsTable[] = [];
@@ -121,11 +142,33 @@ export class Units implements OnInit, AfterViewInit {
       }
 
       this.getProperties();
-      setTimeout(() => { this.initializeForm(); }, 1000);
+      this.loadCustomers();
+      setTimeout(() => { this.initializeForm(); this.intContractForm}, 1000);
     } else {
       console.log('⚠️ Units component running on server, skipping API calls');
     }
   }
+
+
+
+  loadCustomers() {
+    console.log('📡 Loading customers...');
+    this.customersService.getCustomers().subscribe({
+      next: (res) => {
+        this.customers = res;
+        console.log('✅ Customers loaded:', this.customers);
+        this.cdr.detectChanges();
+      },
+      error: (err) => {
+        console.error('❌ Error loading customers:', err);
+        if (err.status === 401) {
+          console.log('🔒 Unauthorized, redirecting to login...');
+          this.router.navigate(['/login']);
+        }
+      },
+    });
+  }
+
 
   getSystemParameters(propertyId: number) {
     console.log('📡 Loading system parameters for property:', propertyId);
@@ -158,6 +201,18 @@ export class Units implements OnInit, AfterViewInit {
       rent_amount: ['', [Validators.required, Validators.min(0)]],
       water_meter_reading: [0, [Validators.required, Validators.min(0)]],
       electricity_meter_reading: [0, [Validators.required, Validators.min(0)]],
+    });
+
+
+  }
+
+  intContractForm() {
+    this.contractForm = this.fb.group({
+      customer: ['', Validators.required],
+      start_date: ['', Validators.required],
+      rent_amount: ['', [Validators.required, Validators.min(0)]],
+      deposit_amount: ['', [Validators.required, Validators.min(0)]],
+      payment_frequency: ['', Validators.required],
     });
   }
 
@@ -437,10 +492,129 @@ export class Units implements OnInit, AfterViewInit {
   }
 
   openCreateContractDialog(id: any) {
+    this.selectedUnitId= id.id
     console.log(id);
+    this.contractForm.patchValue({  
+      rent_amount: id.rent_amount,
+      deposit_amount: id.rent_amount*this.systemParameters.rent_deposit_months ,
+      payment_frequency:'monthly',
+
+    })
   }
 
   openCancelContractDialog(id: any) {
     console.log(id);
   }
+
+
+  // add contract here
+
+
+   openNewContractDial() {
+
+      this.intContractForm();
+        let dialogRef = this.dialog.open(this.newContractDialog,{
+          maxWidth: '700px',
+        });
+        dialogRef.afterClosed().subscribe(result => {
+            // Note: If the user clicks outside the dialog or presses the escape key, there'll be no result
+            if (result !== undefined) {
+                if (result === 'yes') {
+                } else if (result === 'no') {
+                }
+            }
+        })
+
+
+    }
+
+    addContract() {
+    if (this.contractForm.invalid) {
+      this.contractForm.markAllAsTouched();
+      return;
+    }
+
+    this.loadAdding = true;
+    const formValues = this.contractForm.value;
+
+    const payload = {
+      customer: formValues.customer,
+      unit: this.selectedUnitId,
+      start_date: this.formatToYMD(formValues.start_date),
+      rent_amount: formValues.rent_amount,
+      deposit_amount: formValues.deposit_amount,
+      payment_frequency: formValues.payment_frequency,
+    };
+
+    console.log('📤 Adding contract:', payload);
+
+    this.contractsService.addContract(payload).subscribe({
+      next: () => {
+        console.log('✅ Contract added successfully');
+        this.loadAdding = false;
+        this.showSuccess('Contract added successfully!');
+        this.dialog.closeAll();
+        this.contractForm.reset();
+        this.getUnits();
+        this.cdr.detectChanges();
+      },
+      error: (err) => {
+        console.error('❌ Error adding contract:', err);
+        this.loadAdding = false;
+        this.showError('Failed to add contract.');
+        this.cdr.detectChanges();
+        if (err.status === 401) {
+          this.router.navigate(['/login']);
+          this.dialog.closeAll();
+        }
+      },
+    });
+  }
+
+  //cancel contract here
+
+    openCancelDialog(contract: any) {
+      this.selectedContractId = contract.contract_id;
+      this.dialog.open(this.cancelContractDialog, {
+        width: '500px',
+        disableClose: true
+      });
+    }
+  
+    confirmCancel() {
+      if (!this.selectedContractId) return;
+      this.loadCancelling = true;
+  
+      const payload = {
+        is_active: false,
+        cancellation_date: new Date().toISOString().split('T')[0]
+      };
+  
+      console.log('📤 Cancelling contract:', this.selectedContractId);
+  
+      this.contractsService.cancelContract(this.selectedContractId, payload).subscribe({
+        next: () => {
+          console.log('✅ Contract cancelled successfully');
+          this.showSuccess('Contract cancelled successfully!');
+          this.dialog.closeAll();
+          setTimeout(() => {
+            this.getUnits();
+          });
+          this.cdr.detectChanges();
+        },
+        error: (err) => {
+          console.error('❌ Error cancelling contract:', err);
+          this.loadCancelling = false;
+          this.showError('Failed to cancel contract.');
+          if (err.status === 401) {
+            console.log('🔒 Unauthorized, redirecting to login...');
+            this.router.navigate(['/login']);
+          }
+          this.cdr.detectChanges();
+        },
+      });
+    }
+  
+
+  
 }
