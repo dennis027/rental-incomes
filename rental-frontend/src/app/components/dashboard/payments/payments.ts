@@ -13,16 +13,26 @@ import { PropertiesService } from '../../../services/properties';
 export interface Payment {
   id: number;
   unit_id: number;
-  unit_number: string;
+  unit_name: string;
   property_id: number;
   property_name: string;
+  customer_name: string;
   amount: string;
   payment_date: string;
   method: string;
+  method_display: string;
+  type: 'IN' | 'OUT';
   reference: string;
   notes: string;
   created_at: string;
-  receipt: number;
+  receipt_number: string;
+}
+
+export interface MonthYear {
+  year: number;
+  month: number;
+  display: string;
+  value: string;
 }
 
 @Component({
@@ -42,12 +52,22 @@ export class Payments implements OnInit, AfterViewInit {
   private propertyService = inject(PropertiesService);
   private platformId = inject(PLATFORM_ID);
 
-  displayedColumns: string[] = ['amount', 'payment_date', 'method', 'reference', 'unit_number', 'notes', 'receipt', 'actions'];
+  displayedColumns: string[] = ['customer_name', 'unit_name', 'amount', 'payment_date', 'method', 'reference', 'receipt_number', 'actions'];
+  incomingColumns: string[] = ['customer_name', 'unit_name', 'amount', 'payment_date', 'method', 'reference', 'receipt_number', 'actions'];
+  outgoingColumns: string[] = ['notes','amount', 'payment_date', 'method', 'reference',  'actions'];
+  
   dataSource = new MatTableDataSource<Payment>([]);
+  incomingDataSource = new MatTableDataSource<Payment>([]);
+  outgoingDataSource = new MatTableDataSource<Payment>([]);
+  
   payments: Payment[] = [];
   filteredPayments: Payment[] = [];
+  incomingPayments: Payment[] = [];
+  outgoingPayments: Payment[] = [];
 
   @ViewChild(MatPaginator) paginator!: MatPaginator;
+  @ViewChild('incomingPaginator') incomingPaginator!: MatPaginator;
+  @ViewChild('outgoingPaginator') outgoingPaginator!: MatPaginator;
   @ViewChild('addPaymentDialog') addPaymentDialog!: TemplateRef<any>;
 
   addPaymentForm!: FormGroup;
@@ -56,6 +76,8 @@ export class Payments implements OnInit, AfterViewInit {
 
   properties: any[] = [];
   selectedProperty = new FormControl('');
+  availableMonths: MonthYear[] = [];
+  selectedMonth = new FormControl<string>('');
 
   ngOnInit() {
     this.initializeForm();
@@ -75,9 +97,20 @@ export class Payments implements OnInit, AfterViewInit {
       }
       
       this.getProperties();
+      this.setupFilters();
     } else {
       console.log('⚠️ Payments component running on server, skipping API calls');
     }
+  }
+
+  setupFilters() {
+    this.selectedMonth.valueChanges.subscribe(() => {
+      this.filterPaymentsByProperty();
+    });
+
+    this.selectedProperty.valueChanges.subscribe(() => {
+      this.filterPaymentsByProperty();
+    });
   }
 
   getProperties() {
@@ -108,8 +141,16 @@ export class Payments implements OnInit, AfterViewInit {
   }
 
   ngAfterViewInit() {
-    if (isPlatformBrowser(this.platformId) && this.paginator) {
-      this.dataSource.paginator = this.paginator;
+    if (isPlatformBrowser(this.platformId)) {
+      if (this.paginator) {
+        this.dataSource.paginator = this.paginator;
+      }
+      if (this.incomingPaginator) {
+        this.incomingDataSource.paginator = this.incomingPaginator;
+      }
+      if (this.outgoingPaginator) {
+        this.outgoingDataSource.paginator = this.outgoingPaginator;
+      }
     }
   }
 
@@ -118,6 +159,7 @@ export class Payments implements OnInit, AfterViewInit {
       amount: ['', [Validators.required, Validators.min(1)]],
       payment_date: ['', Validators.required],
       method: ['mpesa', Validators.required],
+      type: ['IN', Validators.required],
       reference: ['', Validators.required],
       notes: [''],
       contract: ['', Validators.required]
@@ -131,6 +173,7 @@ export class Payments implements OnInit, AfterViewInit {
       next: (res: Payment[]) => {
         console.log('✅ Payments loaded:', res);
         this.payments = res;
+        this.updateAvailableMonths();
         this.filterPaymentsByProperty();
         this.isLoading = false;
       },
@@ -149,16 +192,56 @@ export class Payments implements OnInit, AfterViewInit {
     });
   }
 
+  updateAvailableMonths(previouslySelected?: any) {
+    const monthsSet = new Set<string>();
+
+    this.payments.forEach(payment => {
+      const date = new Date(payment.payment_date);
+      const monthYear = `${date.getFullYear()}${String(date.getMonth() + 1).padStart(2, '0')}`;
+      monthsSet.add(monthYear);
+    });
+
+    this.availableMonths = Array.from(monthsSet)
+      .sort((a, b) => b.localeCompare(a))
+      .map(monthYear => {
+        const year = parseInt(monthYear.substring(0, 4));
+        const month = parseInt(monthYear.substring(4, 6));
+        const date = new Date(year, month - 1);
+        return {
+          year,
+          month,
+          display: date.toLocaleDateString('en-US', { year: 'numeric', month: 'long' }),
+          value: monthYear
+        };
+      });
+
+    if (!previouslySelected || !this.availableMonths.some(m => m.value === previouslySelected)) {
+      if (this.availableMonths.length > 0) {
+        this.selectedMonth.setValue(this.availableMonths[0].value, { emitEvent: false });
+      }
+    }
+  }
+
+  getSelectedMonthDisplay(): string {
+    const selected = this.availableMonths.find(m => m.value === this.selectedMonth.value);
+    return selected ? selected.display : '';
+  }
+
+  extractMonthYearFromPayment(payment: Payment): string {
+    const date = new Date(payment.payment_date);
+    return `${date.getFullYear()}${String(date.getMonth() + 1).padStart(2, '0')}`;
+  }
+
   filterPaymentsByProperty() {
     const propertyId = this.selectedProperty.value;
     
     console.log('🔍 Filtering payments by property:', propertyId);
     console.log('📊 Total payments:', this.payments.length);
     
+    let filtered = [...this.payments];
+
     if (propertyId) {
-      // ✅ Fixed: Added null/undefined checks
-      this.filteredPayments = this.payments.filter(payment => {
-        // Check if property_id exists and is not null/undefined
+      filtered = filtered.filter(payment => {
         if (payment.property_id === null || payment.property_id === undefined) {
           console.warn('⚠️ Payment missing property_id:', payment);
           return false;
@@ -166,17 +249,39 @@ export class Payments implements OnInit, AfterViewInit {
         return payment.property_id.toString() === propertyId;
       });
       
-      console.log('✅ Filtered payments:', this.filteredPayments.length);
-    } else {
-      this.filteredPayments = this.payments;
+      console.log('✅ Filtered by property:', filtered.length);
     }
 
+    // Filter by month
+    const monthYear = this.selectedMonth.value;
+    if (monthYear) {
+      filtered = filtered.filter(payment => {
+        const paymentMonthYear = this.extractMonthYearFromPayment(payment);
+        return paymentMonthYear === monthYear;
+      });
+      console.log('✅ Filtered by month:', filtered.length);
+    }
+
+    this.filteredPayments = filtered;
+
+    // Separate into incoming and outgoing
+    this.incomingPayments = filtered.filter(p => p.type === 'IN');
+    this.outgoingPayments = filtered.filter(p => p.type === 'OUT');
+
     this.dataSource.data = this.filteredPayments;
+    this.incomingDataSource.data = this.incomingPayments;
+    this.outgoingDataSource.data = this.outgoingPayments;
     
     if (isPlatformBrowser(this.platformId)) {
       setTimeout(() => {
         if (this.paginator) {
           this.dataSource.paginator = this.paginator;
+        }
+        if (this.incomingPaginator) {
+          this.incomingDataSource.paginator = this.incomingPaginator;
+        }
+        if (this.outgoingPaginator) {
+          this.outgoingDataSource.paginator = this.outgoingPaginator;
         }
       });
     }
@@ -185,9 +290,7 @@ export class Payments implements OnInit, AfterViewInit {
   }
 
   getPropertyName(propertyId: string): string {
-    // ✅ Added null check
     if (!propertyId) return 'All Properties';
-    
     const property = this.properties.find(p => p.id.toString() === propertyId);
     return property ? property.name : 'All Properties';
   }
@@ -214,7 +317,7 @@ export class Payments implements OnInit, AfterViewInit {
         this.dialog.closeAll();
         this.showSuccess('Payment added successfully!');
         this.getPayments();
-        this.addPaymentForm.reset({ method: 'mpesa' });
+        this.addPaymentForm.reset({ method: 'mpesa', type: 'IN' });
       },
       error: (err) => {
         console.error('❌ Error adding payment:', err);

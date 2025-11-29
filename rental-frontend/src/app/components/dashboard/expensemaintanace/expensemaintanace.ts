@@ -21,6 +21,7 @@ import { PropertiesService } from '../../../services/properties';
 import { UnitsService } from '../../../services/units';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { CustomersService } from '../../../services/customer';
+import { PaymentService } from '../../../services/payments';
 
 export interface expensesObject {
   description: string;
@@ -53,9 +54,18 @@ export class Expensemaintanace implements OnInit, AfterViewInit {
   private fb = inject(FormBuilder);
   private cdr = inject(ChangeDetectorRef);
   private customerService = inject(CustomersService);
-  private platformId = inject(PLATFORM_ID); // ✅ Add this
+  private platformId = inject(PLATFORM_ID);
+  private paymentService = inject(PaymentService);
 
   today = new Date();
+
+  expensePaymentForm!: FormGroup;
+  maintanancePaymentForm!: FormGroup;
+
+  expenseIDP: any;
+  maintananceIDP: any;
+
+  loadMakingPayments:boolean = false;
 
   //expenses dialogs
   @ViewChild('addExpeDial') addExpeDial!: TemplateRef<any>;
@@ -64,7 +74,13 @@ export class Expensemaintanace implements OnInit, AfterViewInit {
 
   // maintanance dialogs
   @ViewChild('addMaintanceDial') addMaintanceDial!: TemplateRef<any>;
+  @ViewChild('updateMaintanceDial') updateMaintanceDial!: TemplateRef<any>;
   @ViewChild('deleteMaintanceDial') deleteMaintanceDial!: TemplateRef<any>;
+
+  @ViewChild('maintananceChangeState') maintananceChangeState!: TemplateRef<any>;
+
+  @ViewChild('expensesPaymentsDial') expensesPaymentsDial!: TemplateRef<any>;
+  @ViewChild('maintancePaymentsDial') maintancePaymentsDial!: TemplateRef<any>;
 
   expenseForm!: FormGroup;
   updateExpenseForm!: FormGroup;
@@ -73,7 +89,7 @@ export class Expensemaintanace implements OnInit, AfterViewInit {
   properties: any[] = [];
   isSubmitting = false;
   isUpdateExpenseSubmit = false;
-  isLoading = false; // ✅ Add loading state
+  isLoading = false;
   expenseId: any;
   expenseName: any;
   filteredUnits: any[] = [];
@@ -88,6 +104,7 @@ export class Expensemaintanace implements OnInit, AfterViewInit {
   startDate: Date | null = null;
   endDate: Date | null = null;
   selectedProperty: any;
+  isUpdateSubmitting = false;
 
   expenseObject: expensesObject[] = [];
   displayedExpensesColumns: string[] = ['description', 'amount', 'expense_date', 'actions'];
@@ -101,7 +118,6 @@ export class Expensemaintanace implements OnInit, AfterViewInit {
   @ViewChild('maintancePaginator') maintancePaginator!: MatPaginator;
 
   ngAfterViewInit() {
-    // ✅ Only set paginator in browser
     if (isPlatformBrowser(this.platformId)) {
       this.dataExpenseSource.paginator = this.expensePaginator;
       this.dataMaintanceSource.paginator = this.maintancePaginator;
@@ -109,34 +125,81 @@ export class Expensemaintanace implements OnInit, AfterViewInit {
   }
 
   ngOnInit(): void {
-    // Initialize forms first (can run on server)
+    // Initialize forms first
     this.expenseSForm();
     this.updateExpensesForm();
     this.openMaintanaceForm();
     this.openUpdateMaintanaceForm();
+    this.expensePaymentsFormsInit();
+  
 
-    // ✅ CRITICAL: Only load data in browser
     if (isPlatformBrowser(this.platformId)) {
-      this.getExpenses();
-      this.getMaintanance();
-      this.getProperties();
-      this.getUnits();
-      this.getCustomers();
+      console.log('🔍 Expense & Maintenance component running in browser');
+      
+      const token = localStorage.getItem('access_token');
+      console.log('🔑 Token status:', token ? 'Token exists' : '❌ NO TOKEN!');
+      
+      if (!token) {
+        console.error('❌ No access token found, redirecting to login');
+        this.router.navigate(['/login']);
+        return;
+      }
 
-      // ✅ Automatically select the first property after data loads
-      setTimeout(() => {
-        if (this.properties?.length && !this.selectedProperty?.value) {
-          const firstPropertyId = this.properties[0].id;
-          this.onPropertyChange(firstPropertyId);
-        }
-      }, 300);
+      // ✅ Load units and properties first, then load data
+      this.loadInitialData();
+    } else {
+      console.log('⚠️ Expense & Maintenance component running on server, skipping API calls');
     }
+  }
+
+  // ✅ NEW: Load data in correct order
+  loadInitialData() {
+    // Load units first
+    this.unitsService.getUnits().subscribe({
+      next: (unitData) => {
+        console.log('✅ Units loaded:', unitData);
+        this.units = unitData;
+        
+        // Then load properties
+        this.propertyService.getProperties().subscribe({
+          next: (propData) => {
+            console.log('✅ Properties loaded:', propData);
+            this.properties = propData;
+            
+            // Set default property
+            if (this.properties.length) {
+              this.selectedPropertyId = this.properties[0].id;
+              this.onPropertyChange(this.selectedPropertyId);
+            }
+            
+            // Now load expenses and maintenance
+            this.getExpenses();
+            this.getMaintanance();
+            this.getCustomers();
+          },
+          error: (error) => {
+            this.showError('Failed to load properties.');
+            console.error('Error fetching properties:', error);
+            if (error.status === 401) {
+              this.router.navigate(['/login']);
+            }
+          }
+        });
+      },
+      error: (error) => {
+        this.showError('Failed to load units.');
+        console.error('Error fetching units:', error);
+        if (error.status === 401) {
+          this.router.navigate(['/login']);
+        }
+      }
+    });
   }
 
   getCustomers() {
     this.customerService.getCustomers().subscribe({
       next: (data) => {
-        console.log('Customers data:', data);
+        console.log('✅ Customers loaded:', data);
         this.customers = data;
       },
       error: (error) => {
@@ -179,64 +242,60 @@ export class Expensemaintanace implements OnInit, AfterViewInit {
     });
   }
 
-  getProperties() {
-    this.propertyService.getProperties().subscribe({
-      next: (data) => {
-        console.log('Properties data:', data);
-        this.properties = data;
 
-        // Set default to first property
-        if (this.properties.length > 0 && !this.selectedPropertyId) {
-          this.selectedPropertyId = this.properties[0].id;
-          this.filterDataByProperty();
-        }
-      },
-      error: (error) => {
-        this.showError('Failed to load properties.');
-        console.error('Error fetching properties:', error);
-        if (error.status === 401) {
-          this.router.navigate(['/login']);
-        }
-      }
+  expensePaymentsFormsInit() : void {  
+    this.expensePaymentForm = this.fb.group({
+      amount: ['', Validators.required],
+      method: ['', Validators.min(0)],
+      reference: ['', Validators.required],
+      notes: ['', [Validators.required]]
+    });
+
+
+  }
+
+  maintanancePaymentsFormsInit() : void {  
+
+    this.maintanancePaymentForm = this.fb.group({
+      amount: ['', Validators.required],
+      method: ['', Validators.min(0)],
+      reference: ['', Validators.required],
+      notes: ['', [Validators.required]]
     });
   }
 
-  getUnits() {
-    this.unitsService.getUnits().subscribe({
-      next: (data) => {
-        console.log('Units data:', data);
-        this.units = data;
-      },
-      error: (error) => {
-        this.showError('Failed to load units.');
-        console.error('Error fetching units:', error);
-        if (error.status === 401) {
-          this.router.navigate(['/login']);
-        }
-      }
-    });
-  }
+  onPropertyChange(propertyId: number) {
+    if (!propertyId) return;
+    
+    console.log('🔄 Property changed to:', propertyId);
+    console.log('📊 Available units:', this.units.length);
 
-  onPropertyChange(propertyId?: number) {
-    const selectedPropertyId = propertyId || this.properties[0]?.id;
-
-    if (!selectedPropertyId) return;
+    this.selectedPropertyId = propertyId;
 
     if (this.selectedProperty) {
-      this.selectedProperty.setValue(selectedPropertyId);
+      this.selectedProperty.setValue(propertyId);
     }
 
-    setTimeout(() => {
-      this.filteredUnits = this.units.filter(u => u.property === selectedPropertyId);
-    }, 100);
+    // Filter matching units
+    this.filteredUnits = this.units.filter(
+      u => u.property_id === propertyId || u.property === propertyId
+    );
+
+    console.log('✅ Filtered units:', this.filteredUnits.length);
+    
+    // ✅ CRITICAL: Filter data after property change
+    this.filterDataByProperty();
+    
+    this.cdr.detectChanges();
   }
 
   getExpenses() {
     this.expenseService.getExpenses().subscribe({
       next: (data) => {
-        console.log('Expenses data:', data);
+        console.log('✅ Expenses loaded:', data.length);
         this.allExpenses = data;
-        this.filterDataByProperty();
+        this.filterDataByProperty(); // ✅ Filter after loading
+        this.cdr.detectChanges();
       },
       error: (error) => {
         this.showError('Failed to load expenses.');
@@ -251,9 +310,9 @@ export class Expensemaintanace implements OnInit, AfterViewInit {
   getMaintanance() {
     this.maintanaceService.getMaintenanceRequests().subscribe({
       next: (data) => {
-        console.log('Maintenance data:', data);
+        console.log('✅ Maintenance loaded:', data.length);
         this.allMaintenance = data;
-        this.filterDataByProperty();
+        this.filterDataByProperty(); // ✅ Filter after loading
         this.cdr.detectChanges();
       },
       error: (error) => {
@@ -286,11 +345,13 @@ export class Expensemaintanace implements OnInit, AfterViewInit {
         this.expenseForm.reset();
         this.isSubmitting = false;
         this.dialog.closeAll();
+        this.cdr.detectChanges();
       },
       error: (err) => {
         console.error('Error submitting expense:', err);
         this.showError('Failed to add expense ❌');
         this.isSubmitting = false;
+        this.cdr.detectChanges();
       }
     });
   }
@@ -299,29 +360,11 @@ export class Expensemaintanace implements OnInit, AfterViewInit {
     let dialogRef = this.dialog.open(this.addExpeDial, {
       maxWidth: '700px',
     });
-    dialogRef.afterClosed().subscribe(result => {
-      if (result !== undefined) {
-        if (result === 'yes') {
-
-        } else if (result === 'no') {
-
-        }
-      }
-    });
   }
 
   openUpdateDial() {
     let dialogRef = this.dialog.open(this.updateExpenseDial, {
       maxWidth: '700px',
-    });
-    dialogRef.afterClosed().subscribe(result => {
-      if (result !== undefined) {
-        if (result === 'yes') {
-
-        } else if (result === 'no') {
-
-        }
-      }
     });
   }
 
@@ -356,11 +399,13 @@ export class Expensemaintanace implements OnInit, AfterViewInit {
         this.updateExpenseForm.reset();
         this.isUpdateExpenseSubmit = false;
         this.dialog.closeAll();
+        this.cdr.detectChanges();
       },
       error: (err) => {
         console.error('Error updating expense:', err);
         this.showError('Failed to update expense ❌');
         this.isUpdateExpenseSubmit = false;
+        this.cdr.detectChanges();
       }
     });
   }
@@ -370,27 +415,21 @@ export class Expensemaintanace implements OnInit, AfterViewInit {
     this.expenseName = element.description;
     let dialogRef = this.dialog.open(this.deleteExpensDial);
     dialogRef.afterClosed().subscribe(result => {
-      if (result !== undefined) {
-        if (result === 'yes') {
-          this.expenseService.deleteExpense(this.expenseId).subscribe({
-            next: (res) => {
-              this.showSuccess(`Expense ${this.expenseName} deleted successfully ✅`);
-              this.getExpenses();
-            },
-            error: (err) => {
-              console.error('Error deleting expense:', err);
-              this.showError('Failed to delete expense ❌');
-            }
-          });
-        } else if (result === 'no') {
-
-        }
+      if (result === 'yes') {
+        this.expenseService.deleteExpense(this.expenseId).subscribe({
+          next: (res) => {
+            this.showSuccess(`Expense ${this.expenseName} deleted successfully ✅`);
+            this.getExpenses();
+            this.cdr.detectChanges();
+          },
+          error: (err) => {
+            console.error('Error deleting expense:', err);
+            this.showError('Failed to delete expense ❌');
+            this.cdr.detectChanges();
+          }
+        });
       }
     });
-  }
-
-  openMaintanaceDialog(element: any) {
-    console.log('Open maintenance dialog for:', element);
   }
 
   openDeleteMainanceDialog(element: any) {
@@ -398,21 +437,19 @@ export class Expensemaintanace implements OnInit, AfterViewInit {
     this.maintanaceName = element.description;
     let dialogRef = this.dialog.open(this.deleteMaintanceDial);
     dialogRef.afterClosed().subscribe(result => {
-      if (result !== undefined) {
-        if (result === 'yes') {
-          this.maintanaceService.deleteMaintenanceRequest(this.maintananceId).subscribe({
-            next: (res) => {
-              this.showSuccess(`Maintanance ${this.maintanaceName} deleted successfully ✅`);
-              this.getMaintanance();
-            },
-            error: (err) => {
-              console.error('Error deleting maintanance:', err);
-              this.showError('Failed to delete maintanance ❌');
-            }
-          });
-        } else if (result === 'no') {
-
-        }
+      if (result === 'yes') {
+        this.maintanaceService.deleteMaintenanceRequest(this.maintananceId).subscribe({
+          next: (res) => {
+            this.showSuccess(`Maintenance ${this.maintanaceName} deleted successfully ✅`);
+            this.getMaintanance();
+            this.cdr.detectChanges();
+          },
+          error: (err) => {
+            console.error('Error deleting maintenance:', err);
+            this.showError('Failed to delete maintenance ❌');
+            this.cdr.detectChanges();
+          }
+        });
       }
     });
   }
@@ -434,27 +471,56 @@ export class Expensemaintanace implements OnInit, AfterViewInit {
         this.maintanaceForm.reset();
         this.isSubmitting = false;
         this.dialog.closeAll();
+        this.cdr.detectChanges();
       },
       error: (err) => {
         console.error('Error submitting maintenance request:', err);
         this.showError('Failed to add maintenance request ❌');
         this.isSubmitting = false;
+        this.cdr.detectChanges();
+      }
+    });
+  }
+
+  openUpdateMaintanaceDialog(element: any) {
+    this.maintananceId = element.id;
+    this.updateMaintanaceForm.patchValue({
+      unit: element.unit,
+      customer: element.customer,
+      description: element.description
+    });
+    this.isUpdateSubmitting = false;
+    this.dialog.open(this.updateMaintanceDial, { maxWidth: '780px' });
+  }
+
+  updateMaintanaceFormSubmit() {
+    if (this.updateMaintanaceForm.invalid) {
+      this.updateMaintanaceForm.markAllAsTouched();
+      return;
+    }
+
+    this.isUpdateSubmitting = true;
+    const payload = { ...this.updateMaintanaceForm.value, property: this.selectedPropertyId };
+
+    this.maintanaceService.updateMaintenanceRequest(this.maintananceId, payload).subscribe({
+      next: () => {
+        this.showSuccess('Maintenance request updated successfully ✅');
+        this.getMaintanance();
+        this.dialog.closeAll();
+        this.isUpdateSubmitting = false;
+        this.cdr.detectChanges();
+      },
+      error: () => {
+        this.showError('Failed to update maintenance request ❌');
+        this.isUpdateSubmitting = false;
+        this.cdr.detectChanges();
       }
     });
   }
 
   openAddMaintanaceDialog() {
-    let dialogRef = this.dialog.open(this.addMaintanceDial, {
+    this.dialog.open(this.addMaintanceDial, {
       maxWidth: '780px',
-    });
-    dialogRef.afterClosed().subscribe(result => {
-      if (result !== undefined) {
-        if (result === 'yes') {
-
-        } else if (result === 'no') {
-
-        }
-      }
     });
   }
 
@@ -475,12 +541,24 @@ export class Expensemaintanace implements OnInit, AfterViewInit {
   }
 
   filterDataByProperty() {
-    if (!this.selectedPropertyId) return;
+    // ✅ CRITICAL: Check if we have data AND a selected property
+    if (!this.selectedPropertyId) {
+      console.log('⚠️ No property selected, skipping filter');
+      return;
+    }
 
+    console.log('🔍 Filtering data for property:', this.selectedPropertyId);
+    console.log('📊 All Expenses:', this.allExpenses.length);
+    console.log('📊 All Maintenance:', this.allMaintenance.length);
+
+    // Filter expenses
     let filteredExpenses = this.allExpenses.filter(
       expense => expense.property === this.selectedPropertyId
     );
 
+    console.log('✅ Filtered Expenses:', filteredExpenses.length);
+
+    // Date filter for expenses
     if (this.startDate || this.endDate) {
       filteredExpenses = filteredExpenses.filter(expense => {
         const expenseDate = new Date(expense.expense_date);
@@ -498,10 +576,14 @@ export class Expensemaintanace implements OnInit, AfterViewInit {
 
     this.expenseObject = filteredExpenses;
 
+    // Filter maintenance
     let filteredMaintenance = this.allMaintenance.filter(
       maintenance => parseInt(maintenance.property_id) === this.selectedPropertyId
     );
 
+    console.log('✅ Filtered Maintenance:', filteredMaintenance.length);
+
+    // Date filter for maintenance
     if (this.startDate || this.endDate) {
       filteredMaintenance = filteredMaintenance.filter(maintenance => {
         const reportedDate = new Date(maintenance.reported_date);
@@ -519,7 +601,7 @@ export class Expensemaintanace implements OnInit, AfterViewInit {
 
     this.maintainanceObject = filteredMaintenance;
 
-    // ✅ Only update paginator in browser
+    // Update table data sources
     if (isPlatformBrowser(this.platformId)) {
       setTimeout(() => {
         this.dataExpenseSource.data = this.expenseObject;
@@ -527,6 +609,8 @@ export class Expensemaintanace implements OnInit, AfterViewInit {
 
         this.dataMaintanceSource.data = this.maintainanceObject;
         this.dataMaintanceSource.paginator = this.maintancePaginator;
+        
+        console.log('✅ Tables updated with filtered data');
       });
     }
   }
@@ -548,4 +632,159 @@ export class Expensemaintanace implements OnInit, AfterViewInit {
       verticalPosition: 'top'
     });
   }
+
+
+
+  openChangeStatusDialog(element: any) {
+    console.log("Change status for:", element);
+    this.maintananceId= element.id;
+  }
+
+
+  // change status dialog
+
+changeMaintanaceStatus() {
+  const dialogRef = this.dialog.open(this.maintananceChangeState, {
+    maxWidth: '700px',
+    panelClass: 'confirm-dialog'
+  });
+
+  dialogRef.afterClosed().subscribe(result => {
+    if (!result) return;
+
+    const data =
+      result === 'yes'
+        ? { status: 'in_progress' }
+        : { status: 'resolved' };
+
+    this.maintanaceService.updateStatusRequest(this.maintananceId, data).subscribe({
+      next: () => {
+        this.showSuccess('Maintenance status updated successfully ✅');
+        this.getMaintanance();
+        this.dialog.closeAll();
+        this.cdr.detectChanges();
+      },
+      error: () => {
+        this.showError('Failed to update maintenance status ❌');
+        this.cdr.detectChanges();
+      }
+    });
+  });
+}
+
+
+// payments dialogs functions
+
+  openMakeExpensesPaymentDialog(element: any) {
+    console.log("Make payment for:", element);
+    this.expenseIDP = element.id;
+
+     let dialogRef = this.dialog.open(this.expensesPaymentsDial,{
+      maxWidth: '700px',
+     });
+    dialogRef.afterClosed().subscribe(result => {
+      if (result !== undefined) {
+        if (result === 'yes') {
+          // Handle yes
+        } else if (result === 'no') {
+          // Handle no
+        }
+      }
+    });
+  }
+
+ addExpensePayment() {
+    this.loadMakingPayments = true;
+    const data = {
+      expense: this.expenseIDP,
+      amount: this.expensePaymentForm.value.amount,
+      method: this.expensePaymentForm.value.method,
+      reference: this.expensePaymentForm.value.reference,
+      notes: this.expensePaymentForm.value.notes,
+      type:"OUT"
+    };
+
+    console.log('📤 Making payment:', data);
+
+    this.paymentService.makePayment(data).subscribe({
+      next: (res) => {
+        console.log('✅ Payment made successfully:', res);
+        this.loadMakingPayments = false;
+        this.showSuccess("Payment Made successfully");
+        this.getExpenses()
+        this.dialog.closeAll();
+        this.expensePaymentForm.reset();
+        this.cdr.detectChanges();
+      },
+      error: (err) => {
+        console.error('❌ Error making payment:', err);
+        this.loadMakingPayments = false;
+        this.cdr.detectChanges();
+        this.showError("Kindly check your details");
+        if (err.status === 401) {
+          this.router.navigate(['/login']);
+          this.dialog.closeAll();
+        }
+      }
+    });
+  }
+
+
+  openMakeMaintancePaymentDialog(element: any) {
+    console.log("Make payment for:", element);
+    this.maintanancePaymentsFormsInit();
+    this.maintananceIDP = element.id;
+
+     let dialogRef = this.dialog.open(this.maintancePaymentsDial,{
+      maxWidth: '700px',
+     });
+    dialogRef.afterClosed().subscribe(result => {
+      if (result !== undefined) {
+        if (result === 'yes') {
+          // Handle yes
+        } else if (result === 'no') {
+          // Handle no
+        }
+      }
+    });
+  }
+
+
+   addMaintancePayment() {
+    this.loadMakingPayments = true;
+    const data = {
+      maintenance_request: this.maintananceIDP ,
+      amount: this.maintanancePaymentForm.value.amount,
+      method: this.maintanancePaymentForm.value.method,
+      reference: this.maintanancePaymentForm.value.reference,
+      notes: this.maintanancePaymentForm.value.notes,
+      type:"OUT"
+    };
+
+    console.log('📤 Making payment:', data);
+
+    this.paymentService.makePayment(data).subscribe({
+      next: (res) => {
+        console.log('✅ Payment made successfully:', res);
+        this.loadMakingPayments = false;
+        this.showSuccess("Payment Made successfully");
+        this.getMaintanance()
+        this.dialog.closeAll();
+        this.maintanancePaymentForm.reset();
+        this.cdr.detectChanges();
+      },
+      error: (err) => {
+        console.error('❌ Error making payment:', err);
+        this.loadMakingPayments = false;
+        this.cdr.detectChanges();
+        this.showError("Kindly check your details");
+        if (err.status === 401) {
+          this.router.navigate(['/login']);
+          this.dialog.closeAll();
+        }
+      }
+    });
+  }
+
+
 }

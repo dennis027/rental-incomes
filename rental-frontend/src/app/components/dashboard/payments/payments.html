@@ -3,19 +3,30 @@
     <h2><i class="fas fa-money-bill-wave"></i> Payments</h2>
     
     <div class="header-actions">
-      @if (properties.length >1 ){
-        <mat-form-field appearance="outline" class="property-filter">
-        <mat-label>Filter by Property</mat-label>
-        <mat-select [formControl]="selectedProperty" (selectionChange)="filterPaymentsByProperty()">
-          @for (property of properties; track property.id) {
-            <mat-option [value]="property.id.toString()">
-              {{ property.name }}
+      <mat-form-field appearance="outline" class="month-filter">
+        <mat-label>Filter by Month</mat-label>
+        <mat-select [formControl]="selectedMonth">
+          <mat-option value="">All Months</mat-option>
+          @for (month of availableMonths; track month.value) {
+            <mat-option [value]="month.value">
+              {{ month.display }}
             </mat-option>
           }
         </mat-select>
       </mat-form-field>
-      } 
 
+      @if (properties.length > 1) {
+        <mat-form-field appearance="outline" class="property-filter">
+          <mat-label>Filter by Property</mat-label>
+          <mat-select [formControl]="selectedProperty">
+            @for (property of properties; track property.id) {
+              <mat-option [value]="property.id.toString()">
+                {{ property.name }}
+              </mat-option>
+            }
+          </mat-select>
+        </mat-form-field>
+      }
 
       <!-- <button mat-raised-button color="primary" (click)="openAddPaymentDialog()">
         <mat-icon>add</mat-icon> Add Payment
@@ -25,16 +36,35 @@
 
   <div class="payment-summary">
     <span class="summary-text">
-      Showing {{ dataSource.data.length }} payment(s)
+      Showing {{ incomingPayments.length + outgoingPayments.length }} payment(s)
+      @if (selectedMonth.value) {
+        <span> for {{ getSelectedMonthDisplay() }}</span>
+      }
       @if (selectedProperty.value) {
-        <span> for {{ getPropertyName(selectedProperty.value) }}</span>
+        <span> in {{ getPropertyName(selectedProperty.value) }}</span>
       }
     </span>
   </div>
 
+  <!-- Incoming Payments Table -->
+  <h3 style="margin-top: 24px; margin-bottom: 8px; color: #4caf50; display: flex; align-items: center; gap: 8px;">
+    <mat-icon style="vertical-align: middle;">arrow_downward</mat-icon>
+    <span>Incoming Payments ({{ incomingPayments.length }})</span>
+  </h3>
   <div class="table-container mat-elevation-z8">
-    <!--  -->
-    <table mat-table [dataSource]="dataSource" class="full-width-table" ngSkipHydration>
+    <table mat-table [dataSource]="incomingDataSource" class="full-width-table" ngSkipHydration>
+
+      <!-- Customer Name -->
+      <ng-container matColumnDef="customer_name">
+        <th mat-header-cell *matHeaderCellDef>Customer</th>
+        <td mat-cell *matCellDef="let element">{{ element.customer_name }}</td>
+      </ng-container>
+
+      <!-- Unit -->
+      <ng-container matColumnDef="unit_name">
+        <th mat-header-cell *matHeaderCellDef>Unit</th>
+        <td mat-cell *matCellDef="let element">{{ element.unit_name }}</td>
+      </ng-container>
 
       <!-- Amount -->
       <ng-container matColumnDef="amount">
@@ -60,22 +90,10 @@
         <td mat-cell *matCellDef="let element">{{ element.reference }}</td>
       </ng-container>
 
-      <!-- Unit -->
-      <ng-container matColumnDef="unit_number">
-        <th mat-header-cell *matHeaderCellDef>Unit</th>
-        <td mat-cell *matCellDef="let element">{{ element.unit_number }}</td>
-      </ng-container>
-
-      <!-- Notes -->
-      <ng-container matColumnDef="notes">
-        <th mat-header-cell *matHeaderCellDef>Notes</th>
-        <td mat-cell *matCellDef="let element">{{ element.notes || '-' }}</td>
-      </ng-container>
-
       <!-- Receipt -->
-      <ng-container matColumnDef="receipt">
+      <ng-container matColumnDef="receipt_number">
         <th mat-header-cell *matHeaderCellDef>Receipt</th>
-        <td mat-cell *matCellDef="let element">{{ element.receipt }}</td>
+        <td mat-cell *matCellDef="let element">{{ element.receipt_number }}</td>
       </ng-container>
 
       <!-- Actions -->
@@ -91,22 +109,103 @@
         </td>
       </ng-container>
 
-      <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
-      <tr mat-row *matRowDef="let row; columns: displayedColumns"></tr>
+      <tr mat-header-row *matHeaderRowDef="incomingColumns"></tr>
+      <tr mat-row *matRowDef="let row; columns: incomingColumns"></tr>
 
-      @if (dataSource.data.length === 0) {
+      @if (incomingDataSource.data.length === 0) {
         <tr class="mat-row">
-          <td class="mat-cell" [attr.colspan]="displayedColumns.length">
+          <td class="mat-cell" [attr.colspan]="incomingColumns.length">
             <div class="no-data">
               <mat-icon>inbox</mat-icon>
-              <p>No payments found</p>
+              <p>No incoming payments found</p>
             </div>
           </td>
         </tr>
       }
     </table>
 
-    <mat-paginator [pageSizeOptions]="[5, 10, 20]" showFirstLastButtons></mat-paginator>
+    <mat-paginator #incomingPaginator [pageSizeOptions]="[5, 10, 20]" showFirstLastButtons></mat-paginator>
+  </div>
+
+  <!-- Outgoing Payments Table -->
+  <h3 style="margin-top: 32px; margin-bottom: 8px; color: #f44336; display: flex; align-items: center; gap: 8px;">
+    <mat-icon style="vertical-align: middle;">arrow_upward</mat-icon>
+    <span>Outgoing Payments ({{ outgoingPayments.length }})</span>
+  </h3>
+  <div class="table-container mat-elevation-z8">
+    <table mat-table [dataSource]="outgoingDataSource" class="full-width-table" ngSkipHydration>
+
+      <!-- Customer Name -->
+      <ng-container matColumnDef="customer_name">
+        <th mat-header-cell *matHeaderCellDef>Payee</th>
+        <td mat-cell *matCellDef="let element">{{ element.customer_name }}</td>
+      </ng-container>
+
+      <!-- Unit -->
+      <ng-container matColumnDef="unit_name">
+        <th mat-header-cell *matHeaderCellDef>Unit</th>
+        <td mat-cell *matCellDef="let element">{{ element.unit_name }}</td>
+      </ng-container>
+
+      <!-- Amount -->
+      <ng-container matColumnDef="amount">
+        <th mat-header-cell *matHeaderCellDef>Amount</th>
+        <td mat-cell *matCellDef="let element">{{ element.amount | number:'1.2-2' }}</td>
+      </ng-container>
+
+      <!-- Date -->
+      <ng-container matColumnDef="payment_date">
+        <th mat-header-cell *matHeaderCellDef>Date</th>
+        <td mat-cell *matCellDef="let element">{{ element.payment_date | date }}</td>
+      </ng-container>
+
+      <!-- Method -->
+      <ng-container matColumnDef="method">
+        <th mat-header-cell *matHeaderCellDef>Method</th>
+        <td mat-cell *matCellDef="let element">{{ element.method | titlecase }}</td>
+      </ng-container>
+
+      <!-- Reference -->
+      <ng-container matColumnDef="reference">
+        <th mat-header-cell *matHeaderCellDef>Reference</th>
+        <td mat-cell *matCellDef="let element">{{ element.reference }}</td>
+      </ng-container>
+
+      <!-- Notes -->
+      <ng-container matColumnDef="notes">
+        <th mat-header-cell *matHeaderCellDef>Notes</th>
+        <td mat-cell *matCellDef="let element">{{ element.notes || '-' }}</td>
+      </ng-container>
+
+      <!-- Actions -->
+      <ng-container matColumnDef="actions">
+        <th mat-header-cell *matHeaderCellDef>Actions</th>
+        <td mat-cell *matCellDef="let element">
+          <button mat-icon-button color="primary" matTooltip="Edit">
+            <mat-icon>edit</mat-icon>
+          </button>
+          <button mat-icon-button color="warn" matTooltip="Delete">
+            <mat-icon>delete</mat-icon>
+          </button>
+        </td>
+      </ng-container>
+
+      <tr mat-header-row *matHeaderRowDef="outgoingColumns"></tr>
+      <tr mat-row *matRowDef="let row; columns: outgoingColumns"></tr>
+
+      @if (outgoingDataSource.data.length === 0) {
+        <tr class="mat-row">
+          <td class="mat-cell" [attr.colspan]="outgoingColumns.length">
+            <div class="no-data">
+              <mat-icon>inbox</mat-icon>
+              <p>No outgoing payments found</p>
+            </div>
+          </td>
+        </tr>
+      }
+    </table>
+
+    <mat-paginator #outgoingPaginator [pageSizeOptions]="[5, 10, 20]" showFirstLastButtons></mat-paginator>
   </div>
 </div>
 
@@ -115,6 +214,13 @@
   <h2 mat-dialog-title>Add Payment</h2>
   <mat-dialog-content>
     <form [formGroup]="addPaymentForm" class="payment-form">
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>Payment Type</mat-label>
+        <mat-select formControlName="type">
+          <mat-option value="IN">Money In (Incoming)</mat-option>
+          <mat-option value="OUT">Money Out (Outgoing)</mat-option>
+        </mat-select>
+      </mat-form-field>
 
       <mat-form-field appearance="outline" class="full-width">
         <mat-label>Amount</mat-label>
@@ -161,7 +267,6 @@
           <mat-error>Contract ID is required</mat-error>
         }
       </mat-form-field>
-
     </form>
   </mat-dialog-content>
   <mat-dialog-actions align="end">

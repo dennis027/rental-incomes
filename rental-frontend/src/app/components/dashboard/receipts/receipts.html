@@ -402,8 +402,21 @@
             <p><strong>Apartment No:</strong> {{ houseNameNo }}</p>
           </div>
           <div class="col-6">
-            <p><strong>Current Water Reading:</strong> {{ receipt?.current_water_reading }}</p>
-            <p><strong>Previous Water Reading:</strong> {{ receipt?.previous_water_reading }}</p>
+          @if (toNumber(receipt?.water_bill) !== 0) {
+            <div>
+                <p><strong>Current Water Reading:</strong> {{ receipt?.current_water_reading }}</p>
+                <p><strong>Previous Water Reading:</strong> {{ receipt?.previous_water_reading }}</p>
+            </div>
+            }
+  
+            @if (toNumber(receipt?.electricity_bill) !== 0) {
+            <div>
+                <p><strong>Current Electricity Reading:</strong> {{ receipt?.current_electricity_reading }}</p>
+                <p><strong>Previous Electricity Reading:</strong> {{ receipt?.previous_electricity_reading }}</p>
+            </div>
+            }
+ 
+        
           </div>
         </div>
       </div>
@@ -491,16 +504,19 @@
                     </mat-form-field>
                   </div>
                 </div>
-              </div>
-
-              <div class="row">
-                <div class="col-md-12">
-                    <mat-form-field appearance="outline" class="full-width">
-                      <mat-label>Notes</mat-label>
-                      <textarea matInput formControlName="notes" rows="3"></textarea>
-                    </mat-form-field>
+                <div class="row">
+                  <div class="col-md-8">
+                      <mat-form-field style="width: 100%;" appearance="outline" class="full-width">
+                        <mat-label>Notes</mat-label>
+                        <textarea matInput formControlName="notes" rows="3"></textarea>
+                      </mat-form-field>
+                  </div>
+                  <div class="col-md-4">
+                  </div>
                 </div>
               </div>
+
+        
 
           </form>
 

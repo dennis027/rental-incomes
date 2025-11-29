@@ -92,6 +92,8 @@ export class Settings implements OnInit {
       default_other_charge: ['0.00'],
       electicity_unit_cost: ['0.00'],
       water_unit_cost: ['0.00'],
+      water_deposit_amount : ['0.00'],
+      electricity_deposit_amount  : ['0.00']
     });
   }
 

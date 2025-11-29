@@ -20,7 +20,7 @@ import { MatNativeDateModule } from '@angular/material/core';
 import { MatExpansionModule } from '@angular/material/expansion';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
-
+import { MatListModule } from '@angular/material/list';
 
 // ✅ Export all of them in a single array
 export const SharedImports = [
@@ -46,5 +46,6 @@ export const SharedImports = [
   MatExpansionModule,
   MatMenuModule,
   MatIconModule,
+  MatListModule,
   MatSlideToggleModule
 ];

@@ -37,6 +37,8 @@ export interface Receipt {
   other_charges: string;
   previous_water_reading: string;
   current_water_reading: string;
+  current_electricity_reading: string;
+  previous_electricity_reading: string;
   total_amount: string;
   balance: string;
 }
@@ -88,6 +90,10 @@ export class Receipts implements OnInit, AfterViewInit {
   private systemParametersSerice = inject(SystemParametersServices);
   private paymentService = inject(PaymentService);
   private platformId = inject(PLATFORM_ID);
+
+  toNumber(value: any): number {
+  return Number(value) || 0;
+}
 
   displayedColumns: string[] = [
     'receipt_number', 'contract_number', 'unit',

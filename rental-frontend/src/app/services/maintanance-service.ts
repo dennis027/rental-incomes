@@ -33,6 +33,11 @@ export class MaintenanceService {
     return this.http.put<any>(`${this.maintenanceURL}${id}/`, data, { headers });
   }
 
+    updateStatusRequest(id: string | number, data: any): Observable<any> {
+    const headers = this.getAuthHeaders();
+    return this.http.patch<any>(`${this.maintenanceURL}${id}/`, data, { headers });
+  }
+
   /** 🔹 Delete Maintenance Request (DELETE /api/maintenance-requests/:id/) */
   deleteMaintenanceRequest(id: string | number): Observable<any> {
     const headers = this.getAuthHeaders();

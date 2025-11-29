@@ -19,3 +19,47 @@
   min-width: 250px;
   margin-left: auto;
 }
+
+
+.status-badge {
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 13px;
+  font-weight: 600;
+  color: white;
+}
+
+.status-resolved {
+  background-color: #1976d2; /* Blue */
+}
+
+.status-inprogress {
+  background-color: #ff4081; /* Accent */
+}
+
+.status-pending {
+  background-color: #f44336; /* Warn */
+}
+
+
+/* Paid → success (green) */
+.row-paid {
+  background-color: #e8f5e9 !important;
+}
+
+/* Unpaid → warn (red) */
+.row-unpaid {
+  background-color: #ffebee !important;
+}
+
+/* Partial → accent (indigo/blue) */
+.row-partial {
+  background-color: #e8eaf6 !important;
+}
+
+/* Optional: stronger text for visibility */
+.row-paid td,
+.row-unpaid td,
+.row-partial td {
+  font-weight: 500;
+}
