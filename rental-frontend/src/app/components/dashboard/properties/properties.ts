@@ -7,6 +7,7 @@ import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { SharedImports } from '../../../shared-imports/imports';
+import { MatTableResponsiveDirective } from '../../../directives/mat-table-responsive-directive';
 
 export interface PropertiesTable {
   id: string;
@@ -19,7 +20,7 @@ export interface PropertiesTable {
   selector: 'app-properties',
   standalone: true,
   // 💡 CORRECTED: Removed MatIconButton from imports; MatButtonModule covers the buttons.
-  imports: [SharedImports],
+  imports: [SharedImports,MatTableResponsiveDirective],
   templateUrl: './properties.html',
   styleUrls: ['./properties.css']
 })

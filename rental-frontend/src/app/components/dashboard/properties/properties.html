@@ -6,13 +6,7 @@
         <div class="table-container"> <br>
      <button style="float: right;" (click)="openAddPropertyDialog()" matButton="elevated">Add Property</button> <br>
      <div class="mat-elevation-z8">
-    <table  mat-table [dataSource]="dataSource">
-
-   
-        <!-- <ng-container matColumnDef="id">
-        <th mat-header-cell *matHeaderCellDef> ID. </th>
-        <td mat-cell *matCellDef="let element"> {{element.id}} </td>
-        </ng-container> -->
+    <table appMatTableResponsive  mat-table [dataSource]="dataSource">
 
       
         <ng-container matColumnDef="name">
