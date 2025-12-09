@@ -1,0 +1,371 @@
+.style-card{
+    /* display: flex; */
+padding: 20px;
+align-items: flex-start;
+align-self: stretch;
+border-radius: 8px;
+border: 0.5px solid #BDBDBD;
+margin-top: 10px;
+}
+
+
+.receipt-summary {
+  margin-bottom: 16px;
+  padding: 12px;
+  background-color: #f5f5f5;
+  border-radius: 4px;
+  border-left: 4px solid #1976d2;
+}
+
+.summary-text {
+  font-size: 14px;
+  color: #424242;
+  font-weight: 500;
+}
+
+
+.container-fluid {
+    padding: 20px;
+    background-color: #f8f9fa;
+}
+
+.header {
+    margin-bottom: 20px;
+    padding: 15px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border-radius: 10px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.header h2 {
+    margin: 0;
+    font-size: 24px;
+    font-weight: 600;
+}
+
+.export-buttons .btn {
+    background: white;
+    color: #667eea;
+    border: none;
+    font-weight: 600;
+    padding: 8px 16px;
+    transition: all 0.3s ease;
+}
+
+.export-buttons .btn:hover {
+    background: #f8f9fa;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+.export-buttons .btn i {
+    margin-right: 5px;
+}
+
+.receipt-summary {
+    background-color: #fff;
+    padding: 15px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.summary-text {
+    color: #6c757d;
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.style-card {
+    background: white;
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    text-align: center;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    margin-bottom: 15px;
+}
+
+.style-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.style-card p:first-child {
+    color: #6c757d;
+    font-size: 14px;
+    margin-bottom: 10px;
+    font-weight: 500;
+}
+
+.style-card p:last-child {
+    color: #2c3e50;
+    font-size: 24px;
+    font-weight: 700;
+    margin: 0;
+}
+
+/* Properties Carousel Styles */
+.properties-section {
+    background: white;
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.section-header h4 {
+    color: #2c3e50;
+    font-weight: 600;
+    margin: 0;
+}
+
+.carousel-controls {
+    display: flex;
+    align-items: center;
+}
+
+.carousel-indicator {
+    font-size: 14px;
+    color: #6c757d;
+    font-weight: 500;
+}
+
+.carousel-wrapper {
+    position: relative;
+    overflow: hidden;
+    width: 100%;
+    margin-top: 20px;
+}
+
+.carousel-container {
+    display: flex;
+    transition: transform 0.5s ease-in-out;
+    width: 100%;
+}
+
+.carousel-slide {
+    min-width: 100%;
+    flex-shrink: 0;
+}
+
+.property-carousel-card {
+    background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+    border-radius: 12px;
+    padding: 25px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.property-header {
+    border-bottom: 2px solid #e0e0e0;
+    padding-bottom: 15px;
+    margin-bottom: 20px;
+}
+
+.property-header h5 {
+    color: #2c3e50;
+    font-size: 22px;
+    font-weight: 700;
+    margin: 0 0 8px 0;
+}
+
+.property-address {
+    color: #6c757d;
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.property-stat-card {
+    background: white;
+    border-radius: 10px;
+    padding: 15px;
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+    transition: transform 0.3s ease;
+    margin-bottom: 15px;
+}
+
+.property-stat-card:hover {
+    transform: translateY(-3px);
+}
+
+.property-stat-card.occupied {
+    border-left: 4px solid #28a745;
+}
+
+.property-stat-card.vacant {
+    border-left: 4px solid #ffc107;
+}
+
+.property-stat-card.occupancy {
+    border-left: 4px solid #17a2b8;
+}
+
+.stat-icon {
+    font-size: 32px;
+    color: #667eea;
+    width: 50px;
+    text-align: center;
+}
+
+.property-stat-card.occupied .stat-icon {
+    color: #28a745;
+}
+
+.property-stat-card.vacant .stat-icon {
+    color: #ffc107;
+}
+
+.property-stat-card.occupancy .stat-icon {
+    color: #17a2b8;
+}
+
+.stat-content {
+    display: flex;
+    flex-direction: column;
+}
+
+.stat-label {
+    font-size: 12px;
+    color: #6c757d;
+    font-weight: 500;
+    text-transform: uppercase;
+}
+
+.stat-value {
+    font-size: 24px;
+    color: #2c3e50;
+    font-weight: 700;
+}
+
+.financial-card {
+    background: white;
+    border-radius: 10px;
+    padding: 20px;
+    text-align: center;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+    transition: transform 0.3s ease;
+    margin-bottom: 15px;
+}
+
+.financial-card:hover {
+    transform: translateY(-3px);
+}
+
+.financial-card.revenue {
+    border-top: 4px solid #28a745;
+}
+
+.financial-card.expenses {
+    border-top: 4px solid #dc3545;
+}
+
+.financial-card.outstanding {
+    border-top: 4px solid #ffc107;
+}
+
+.financial-card.expected {
+    border-top: 4px solid #17a2b8;
+}
+
+.financial-label {
+    display: block;
+    font-size: 13px;
+    color: #6c757d;
+    font-weight: 500;
+    margin-bottom: 8px;
+    text-transform: uppercase;
+}
+
+.financial-value {
+    display: block;
+    font-size: 20px;
+    color: #2c3e50;
+    font-weight: 700;
+}
+
+.info-card {
+    background: white;
+    border-radius: 8px;
+    padding: 15px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.06);
+}
+
+.info-card i {
+    font-size: 24px;
+    color: #667eea;
+}
+
+.info-card span {
+    color: #6c757d;
+    font-size: 14px;
+}
+
+.info-card strong {
+    color: #2c3e50;
+    font-weight: 700;
+}
+
+/* Carousel Dots */
+.carousel-dots {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    margin-top: 20px;
+    padding: 10px 0;
+}
+
+.dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background-color: #d1d5db;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.dot:hover {
+    background-color: #9ca3af;
+    transform: scale(1.2);
+}
+
+.dot.active {
+    background-color: #667eea;
+    width: 30px;
+    border-radius: 6px;
+}
+
+/* Responsive styles */
+@media (max-width: 768px) {
+    .carousel-controls {
+        flex-direction: column;
+        gap: 10px;
+    }
+    
+    .property-stat-card {
+        flex-direction: column;
+        text-align: center;
+    }
+    
+    .stat-icon {
+        margin-bottom: 10px;
+    }
+    
+    .carousel-dots {
+        gap: 6px;
+    }
+    
+    .dot {
+        width: 8px;
+        height: 8px;
+    }
+    
+    .dot.active {
+        width: 20px;
+    }
+}

@@ -20,9 +20,9 @@ export class ReportsService {
   // Financial Reports
 
 
-  getTotalRevenue (propertyId:any,start_date:any,end_date:any): Observable<any> {
+  getTotalRevenue (start_date:any,end_date:any): Observable<any> {
     const headers = this.getAuthHeaders();
-    return this.http.get<any>(`${this.reportsAPI}revenue/total/?property_id=${propertyId}&start_date=${start_date}&end_date=${end_date}`, { headers });
+    return this.http.get<any>(`${this.reportsAPI}revenue/total/?&start_date=${start_date}&end_date=${end_date}`, { headers });
   }
 
   getOutstandingPayments (propertyId:any,min_balance:any,status:any): Observable<any> {

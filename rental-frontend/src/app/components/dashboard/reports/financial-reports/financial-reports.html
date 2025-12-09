@@ -1,0 +1,229 @@
+<div class="container-fluid">       
+    <div class="header">
+        <div class="d-flex justify-content-between align-items-center">
+            <h2><i class="fas fa-money-bill-wave"></i> Financial Reports</h2>
+            <div class="export-buttons">
+                <button class="btn btn-light me-2" (click)="downloadPDF()" title="Download PDF">
+                    <i class="fas fa-file-pdf"></i> PDF
+                </button>
+                <button class="btn btn-light" (click)="downloadExcel()" title="Download Excel">
+                    <i class="fas fa-file-excel"></i> Excel
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <form [formGroup]="revenueForm" class="p-3">
+        <div class="row">
+            <div class="col-md-6">
+                <mat-form-field appearance="outline" class="w-100">
+                    <mat-label>Start Date</mat-label>
+                    <input (dateChange)="searchData()" matInput [matDatepicker]="startPicker" formControlName="start_date">
+                    <mat-datepicker-toggle matSuffix [for]="startPicker"></mat-datepicker-toggle>
+                    <mat-datepicker #startPicker></mat-datepicker>
+
+                    @if (revenueForm.get('start_date')?.touched && revenueForm.get('start_date')?.invalid) {
+                        <mat-error>Start date is required</mat-error>
+                    }
+                </mat-form-field>
+            </div>
+
+            <div class="col-md-6">
+                <mat-form-field appearance="outline" class="w-100">
+                    <mat-label>End Date</mat-label>
+                    <input (dateChange)="searchData()" matInput [matDatepicker]="endPicker" formControlName="end_date">
+                    <mat-datepicker-toggle matSuffix [for]="endPicker"></mat-datepicker-toggle>
+                    <mat-datepicker #endPicker></mat-datepicker>
+
+                    @if (revenueForm.get('end_date')?.touched && revenueForm.get('end_date')?.invalid) {
+                        <mat-error>End date is required</mat-error>
+                    }
+                </mat-form-field>
+            </div>
+        </div>
+    </form>
+
+    <div class="receipt-summary">
+        <span class="summary-text">
+            Showing results from {{ totalRevenue?.period?.start_date}} to {{totalRevenue?.period?.end_date}}
+        </span>
+    </div>
+
+    <div class="row">
+        <div class="col-md-2">
+            <div class="style-card">
+                <p>Properties</p>
+                <p>{{ totalRevenue?.totals?.total_properties }}</p>
+            </div>
+        </div>
+
+        <div class="col-md-2">
+            <div class="style-card">
+                <p>Total Units</p>
+                <p>{{ totalRevenue?.totals?.total_units }}</p>
+            </div>
+        </div>
+
+        <div class="col-md-2">
+            <div class="style-card">
+                <p>Total Occupied</p>
+                <p>{{ totalRevenue?.totals?.total_occupied }}</p>
+            </div>
+        </div>
+
+        <div class="col-md-2">
+            <div class="style-card">
+                <p>Total Revenue</p>
+                <p>{{ totalRevenue?.totals?.total_revenue | currency:'KES' }}</p>
+            </div>
+        </div>
+
+        <div class="col-md-2">
+            <div class="style-card">
+                <p>Total Expenses</p>
+                <p>{{ totalRevenue?.totals?.total_expenses | currency:'KES' }}</p>
+            </div>
+        </div>
+
+        <div class="col-md-2">
+            <div class="style-card">
+                <p>Total Outstanding</p>
+                <p>{{ totalRevenue?.totals?.total_outstanding | currency:'KES' }}</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Properties Carousel -->
+    <div class="properties-section mt-4">
+        <div class="section-header d-flex justify-content-between align-items-center mb-3">
+            <h4><i class="fas fa-building"></i> Properties Overview</h4>
+            <div class="carousel-controls">
+                <button class="btn btn-sm btn-outline-primary me-2" (click)="previousProperty()">
+                    <i class="fas fa-chevron-left"></i>
+                </button>
+                <span class="carousel-indicator">{{ currentPropertyIndex + 1 }} / {{ totalRevenue?.properties?.length || 0 }}</span>
+                <button class="btn btn-sm btn-outline-primary ms-2" (click)="nextProperty()">
+                    <i class="fas fa-chevron-right"></i>
+                </button>
+            </div>
+        </div>
+
+        <div class="carousel-wrapper" (mouseenter)="pauseAutoSlide()" (mouseleave)="resumeAutoSlide()">
+            <div class="carousel-container" [style.transform]="'translateX(-' + (currentPropertyIndex * 100) + '%)'">
+                @for (property of totalRevenue?.properties; track property.property_id) {
+                    <div class="carousel-slide">
+                        <div class="property-carousel-card">
+                            <div class="property-header">
+                                <h5>{{ property.property_name }}</h5>
+                                <span class="property-address"><i class="fas fa-map-marker-alt"></i> {{ property.address }}</span>
+                            </div>
+
+                            <div class="row mt-3">
+                                <div class="col-md-3">
+                                    <div class="property-stat-card">
+                                        <div class="stat-icon">
+                                            <i class="fas fa-door-open"></i>
+                                        </div>
+                                        <div class="stat-content">
+                                            <span class="stat-label">Total Units</span>
+                                            <span class="stat-value">{{ property.units?.total || 0 }}</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="col-md-3">
+                                    <div class="property-stat-card occupied">
+                                        <div class="stat-icon">
+                                            <i class="fas fa-users"></i>
+                                        </div>
+                                        <div class="stat-content">
+                                            <span class="stat-label">Occupied</span>
+                                            <span class="stat-value">{{ property.units?.occupied || 0 }}</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="col-md-3">
+                                    <div class="property-stat-card vacant">
+                                        <div class="stat-icon">
+                                            <i class="fas fa-door-closed"></i>
+                                        </div>
+                                        <div class="stat-content">
+                                            <span class="stat-label">Vacant</span>
+                                            <span class="stat-value">{{ property.units?.vacant || 0 }}</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="col-md-3">
+                                    <div class="property-stat-card occupancy">
+                                        <div class="stat-icon">
+                                            <i class="fas fa-percentage"></i>
+                                        </div>
+                                        <div class="stat-content">
+                                            <span class="stat-label">Occupancy Rate</span>
+                                            <span class="stat-value">{{ property.units?.occupancy_rate || 0 }}%</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="row mt-3">
+                                <div class="col-md-3">
+                                    <div class="financial-card revenue">
+                                        <span class="financial-label">Revenue</span>
+                                        <span class="financial-value">{{ property.financial?.revenue || 0 | currency:'KES' }}</span>
+                                    </div>
+                                </div>
+
+                                <div class="col-md-3">
+                                    <div class="financial-card expenses">
+                                        <span class="financial-label">Expenses</span>
+                                        <span class="financial-value">{{ property.financial?.expenses || 0 | currency:'KES' }}</span>
+                                    </div>
+                                </div>
+
+                                <div class="col-md-3">
+                                    <div class="financial-card outstanding">
+                                        <span class="financial-label">Outstanding</span>
+                                        <span class="financial-value">{{ property.financial?.outstanding || 0 | currency:'KES' }}</span>
+                                    </div>
+                                </div>
+
+                                <div class="col-md-3">
+                                    <div class="financial-card expected">
+                                        <span class="financial-label">Expected Monthly</span>
+                                        <span class="financial-value">{{ property.financial?.expected_monthly_revenue || 0 | currency:'KES' }}</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="row mt-3">
+                                <div class="col-md-6">
+                                    <div class="info-card">
+                                        <i class="fas fa-file-contract"></i>
+                                        <span>Active Contracts: <strong>{{ property.contracts?.active || 0 }}</strong></span>
+                                    </div>
+                                </div>
+
+                                <div class="col-md-6">
+                                    <div class="info-card">
+                                        <i class="fas fa-chart-line"></i>
+                                        <span>Collection Rate: <strong>{{ property.financial?.collection_rate || 0 }}%</strong></span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+            
+            <!-- Dots Indicator -->
+            <div class="carousel-dots">
+                @for (property of totalRevenue?.properties; track property.property_id; let i = $index) {
+                    <span class="dot" [class.active]="i === currentPropertyIndex" (click)="goToProperty(i)"></span>
+                }
+            </div>
+        </div>
+    </div>
+</div>
