@@ -11,23 +11,37 @@ This project provides a web interface for managing properties, tenants, units, r
 ### Dashboard
 ![dashboard](./src/assets/images/dashboard.png)
 
+This has the summary of properies and payments they have happened with visual show
+
 ### Property Managment
-![dashboard](./src/assets/images/dashboard.png)
+![dashboard](./src/assets/images/properies.png)
+
+Here you can add, Update, Delete a property or an Apartments
 
 ### Settings of Properties
 ![dashboard](./src/assets/images/settings.png)
 
+Here allows users to set parameters eg, Rent deposit months, if water or electricty should be included in the system etc...
+
 ### Units Managment
 ![dashboard](./src/assets/images/units.png)
 
-### Receipt Generation
+Here allows you to add update or delete Units of a particular property and display units detail, also allows filtering via properties
+
+### Invoice Generation
 ![receipt-generation](./src/assets/images/receipt.png)
+
+Allows one to generate invoice for a property
 
 ### Payment Tracking
 ![payment-tracking](./src/assets/images/Payment.png)
 
+Tracks Payment in and out of a property
+
 ### Maintance and Expenses Tracking
 ![payment-tracking](./src/assets/images/maintainexpense.png)
+
+Tracks different maintanance and Expenses in a property
 
 
 
