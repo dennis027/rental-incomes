@@ -1,60 +1,86 @@
-# RentalFrontend
+# Rental Management Frontend
 
-This project was generated using [Angular CLI](https://github.com/angular/angular-cli) version 20.3.2.
+React frontend for a rental management system.
 
-## Development server
+## Project Overview
 
-To start a local development server, run:
+This project provides a web interface for managing properties, tenants, units, rent receipts, payments, and maintenance requests.
 
-```bash
-ng serve
+## Screenshots
+
+### Dashboard
+![dashboard](./images/dashboard.png)
+
+### Receipt Generation
+![receipt-generation](./images/receipt-generation.png)
+
+### Payment Tracking
+![payment-tracking](./images/payment-tracking.png)
+
+(Add your actual images in an /images/ folder)
+
+## Installation
+
+Clone the repository:
+```
+git clone https://github.com/yourusername/rental-management-frontend.git
+cd rental-management-frontend
 ```
 
-Once the server is running, open your browser and navigate to `http://localhost:4200/`. The application will automatically reload whenever you modify any of the source files.
-
-## Code scaffolding
-
-Angular CLI includes powerful code scaffolding tools. To generate a new component, run:
-
-```bash
-ng generate component component-name
+Install dependencies:
+```
+npm install
 ```
 
-For a complete list of available schematics (such as `components`, `directives`, or `pipes`), run:
-
-```bash
-ng generate --help
+Create environment file:
+```
+cp .env.example .env
 ```
 
-## Building
-
-To build the project run:
-
-```bash
-ng build
+Update .env with your backend API URL:
+```
+REACT_APP_API_URL=http://localhost:8000/api
 ```
 
-This will compile your project and store the build artifacts in the `dist/` directory. By default, the production build optimizes your application for performance and speed.
-
-## Running unit tests
-
-To execute unit tests with the [Karma](https://karma-runner.github.io) test runner, use the following command:
-
-```bash
-ng test
+Start development server:
+```
+npm start
 ```
 
-## Running end-to-end tests
+## Environment Variables
 
-For end-to-end (e2e) testing, run:
-
-```bash
-ng e2e
+Create a .env file:
+```
+REACT_APP_API_URL=http://localhost:8000/api
+REACT_APP_ENV=development
 ```
 
-Angular CLI does not come with an end-to-end testing framework by default. You can choose one that suits your needs.
+## Project Structure
+```
+src/
+  components/
+  pages/
+  services/
+  context/
+  hooks/
+  utils/
+  assets/
+public/
+images/
+```
 
-## Additional Resources
+## Usage
 
-For more information on using the Angular CLI, including detailed command references, visit the [Angular CLI Overview and Command Reference](https://angular.dev/tools/cli) page.
-# rental-managment
+Default local URL:
+```
+http://localhost:3000
+```
+
+## Build for Production
+```
+npm run build
+```
+
+## Notes
+
+Update API URL in .env before running the project.
