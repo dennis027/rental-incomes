@@ -64,19 +64,19 @@
 
     <ng-container matColumnDef="description">
       <th mat-header-cell *matHeaderCellDef> Description. </th>
-      <td mat-cell *matCellDef="let element"> {{element.description}} </td>
+      <td mat-cell *matCellDef="let element" [attr.data-label]="'Description'"> {{element.description}} </td>
     </ng-container>
 
 
     <ng-container matColumnDef="amount">
       <th mat-header-cell *matHeaderCellDef> Amount </th>
-      <td mat-cell *matCellDef="let element"> {{element.amount}} </td>
+      <td mat-cell *matCellDef="let element" [attr.data-label]="'Amount'"> {{element.amount}} </td>
     </ng-container>
 
 
     <ng-container matColumnDef="expense_date">
       <th mat-header-cell *matHeaderCellDef> Expenses Date </th>
-      <td mat-cell *matCellDef="let element"> {{element.expense_date}} </td>
+      <td mat-cell *matCellDef="let element"[attr.data-label]="'Expense Date'"> {{element.expense_date}} </td>
     </ng-container>
 
     <ng-container matColumnDef="actions">
@@ -129,13 +129,13 @@
  
     <ng-container matColumnDef="unit_number">
       <th mat-header-cell *matHeaderCellDef> Unit. </th>
-      <td mat-cell *matCellDef="let element"> {{element.unit_number}} </td>
+      <td mat-cell *matCellDef="let element" [attr.data-label]="'Unit'"> {{element.unit_number}} </td>
     </ng-container>
 
 
     <ng-container matColumnDef="description">
       <th mat-header-cell *matHeaderCellDef> Description </th>
-      <td mat-cell *matCellDef="let element"> {{element.description}} </td>
+      <td mat-cell *matCellDef="let element" [attr.data-label]="'Description'"> {{element.description}} </td>
     </ng-container>
 
 

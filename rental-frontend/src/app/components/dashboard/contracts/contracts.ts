@@ -149,9 +149,7 @@ export class Contracts implements OnInit, AfterViewInit {
       this.loadCustomers();
       this.loadUnits();
       this.loadProperties();
-      setTimeout(() => {
-      this.loadContracts();
-      }, 200);
+ 
     } else {
       console.log('⚠️ Contracts component running on server, skipping API calls');
     }
@@ -269,6 +267,10 @@ export class Contracts implements OnInit, AfterViewInit {
         console.log('✅ Properties loaded:', this.properties);
         this.selectedPropertyId = this.properties[0]?.id;
         this.onPropertyChange(this.selectedPropertyId);
+
+      setTimeout(() => {
+      this.loadContracts();
+      }, 200);
         this.cdr.detectChanges();
       },
       error: (err) => {

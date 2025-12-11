@@ -44,31 +44,31 @@
           <!-- First Name Column -->
           <ng-container matColumnDef="first_name">
             <th mat-header-cell *matHeaderCellDef>First Name</th>
-            <td mat-cell *matCellDef="let element">{{ element.first_name }}</td>
+            <td mat-cell *matCellDef="let element" [attr.data-label]="'First Name'">{{ element.first_name }}</td>
           </ng-container>
 
           <!-- Last Name Column -->
           <ng-container matColumnDef="last_name">
             <th mat-header-cell *matHeaderCellDef>Last Name</th>
-            <td mat-cell *matCellDef="let element">{{ element.last_name }}</td>
+            <td mat-cell *matCellDef="let element" [attr.data-label]="'Last Name'">{{ element.last_name }}</td>
           </ng-container>
 
           <!-- Phone Number Column -->
           <ng-container matColumnDef="phone_number">
             <th mat-header-cell *matHeaderCellDef>Phone Number</th>
-            <td mat-cell *matCellDef="let element">{{ element.phone_number }}</td>
+            <td mat-cell *matCellDef="let element" [attr.data-label]="'Phone Number'" >{{ element.phone_number }}</td>
           </ng-container>
 
           <!-- Email Column -->
           <ng-container matColumnDef="email">
             <th mat-header-cell *matHeaderCellDef>Email</th>
-            <td mat-cell *matCellDef="let element">{{ element.email }}</td>
+            <td mat-cell *matCellDef="let element" [attr.data-label]="'Email'">{{ element.email }}</td>
           </ng-container>
 
           <!-- ID Number Column -->
           <ng-container matColumnDef="id_number">
             <th mat-header-cell *matHeaderCellDef>ID Number</th>
-            <td mat-cell *matCellDef="let element">{{ element.id_number }}</td>
+            <td mat-cell *matCellDef="let element" [attr.data-label]="'ID Number'">{{ element.id_number }}</td>
           </ng-container>
 
           <!-- Actions Column -->

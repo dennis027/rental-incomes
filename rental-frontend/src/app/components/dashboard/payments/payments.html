@@ -57,43 +57,43 @@
       <!-- Customer Name -->
       <ng-container matColumnDef="customer_name">
         <th mat-header-cell *matHeaderCellDef>Customer</th>
-        <td mat-cell *matCellDef="let element">{{ element.customer_name }}</td>
+        <td mat-cell *matCellDef="let element" [attr.data-label]="'Customer'">{{ element.customer_name }}</td>
       </ng-container>
 
       <!-- Unit -->
       <ng-container matColumnDef="unit_name">
         <th mat-header-cell *matHeaderCellDef>Unit</th>
-        <td mat-cell *matCellDef="let element">{{ element.unit_name }}</td>
+        <td mat-cell *matCellDef="let element" [attr.data-label]="'Unit'">{{ element.unit_name }}</td>
       </ng-container>
 
       <!-- Amount -->
       <ng-container matColumnDef="amount">
         <th mat-header-cell *matHeaderCellDef>Amount</th>
-        <td mat-cell *matCellDef="let element">{{ element.amount | number:'1.2-2' }}</td>
+        <td mat-cell *matCellDef="let element" [attr.data-label]="'Amount'">{{ element.amount | number:'1.2-2' }}</td>
       </ng-container>
 
       <!-- Date -->
       <ng-container matColumnDef="payment_date">
         <th mat-header-cell *matHeaderCellDef>Date</th>
-        <td mat-cell *matCellDef="let element">{{ element.payment_date | date }}</td>
+        <td mat-cell *matCellDef="let element" [attr.data-label]="'Date'">{{ element.payment_date | date }}</td>
       </ng-container>
 
       <!-- Method -->
       <ng-container matColumnDef="method">
         <th mat-header-cell *matHeaderCellDef>Method</th>
-        <td mat-cell *matCellDef="let element">{{ element.method | titlecase }}</td>
+        <td mat-cell *matCellDef="let element" [attr.data-label]="'Method'">{{ element.method | titlecase }}</td>
       </ng-container>
 
       <!-- Reference -->
       <ng-container matColumnDef="reference">
         <th mat-header-cell *matHeaderCellDef>Reference</th>
-        <td mat-cell *matCellDef="let element">{{ element.reference }}</td>
+        <td mat-cell *matCellDef="let element" [attr.data-label]="'Reference'">{{ element.reference }}</td>
       </ng-container>
 
       <!-- Receipt -->
       <ng-container matColumnDef="receipt_number">
         <th mat-header-cell *matHeaderCellDef>Receipt</th>
-        <td mat-cell *matCellDef="let element">{{ element.receipt_number }}</td>
+        <td mat-cell *matCellDef="let element" [attr.data-label]="'Receipt'">{{ element.receipt_number }}</td>
       </ng-container>
 
       <!-- Actions -->
@@ -138,43 +138,43 @@
       <!-- Customer Name -->
       <ng-container matColumnDef="customer_name">
         <th mat-header-cell *matHeaderCellDef>Payee</th>
-        <td mat-cell *matCellDef="let element">{{ element.customer_name }}</td>
+        <td mat-cell *matCellDef="let element" [attr.data-label]="'Payee'">{{ element.customer_name }}</td>
       </ng-container>
 
       <!-- Unit -->
       <ng-container matColumnDef="unit_name">
         <th mat-header-cell *matHeaderCellDef>Unit</th>
-        <td mat-cell *matCellDef="let element">{{ element.unit_name }}</td>
+        <td mat-cell *matCellDef="let element"[attr.data-label]="'Unit'">{{ element.unit_name }}</td>
       </ng-container>
 
       <!-- Amount -->
       <ng-container matColumnDef="amount">
         <th mat-header-cell *matHeaderCellDef>Amount</th>
-        <td mat-cell *matCellDef="let element">{{ element.amount | number:'1.2-2' }}</td>
+        <td mat-cell *matCellDef="let element"[attr.data-label]="'Amount'">{{ element.amount | number:'1.2-2' }}</td>
       </ng-container>
 
       <!-- Date -->
       <ng-container matColumnDef="payment_date">
         <th mat-header-cell *matHeaderCellDef>Date</th>
-        <td mat-cell *matCellDef="let element">{{ element.payment_date | date }}</td>
+        <td mat-cell *matCellDef="let element"[attr.data-label]="'Date'">{{ element.payment_date | date }}</td>
       </ng-container>
 
       <!-- Method -->
       <ng-container matColumnDef="method">
         <th mat-header-cell *matHeaderCellDef>Method</th>
-        <td mat-cell *matCellDef="let element">{{ element.method | titlecase }}</td>
+        <td mat-cell *matCellDef="let element"[attr.data-label]="'Method'">{{ element.method | titlecase }}</td>
       </ng-container>
 
       <!-- Reference -->
       <ng-container matColumnDef="reference">
         <th mat-header-cell *matHeaderCellDef>Reference</th>
-        <td mat-cell *matCellDef="let element">{{ element.reference }}</td>
+        <td mat-cell *matCellDef="let element"[attr.data-label]="'Reference'">{{ element.reference }}</td>
       </ng-container>
 
       <!-- Notes -->
       <ng-container matColumnDef="notes">
         <th mat-header-cell *matHeaderCellDef>Notes</th>
-        <td mat-cell *matCellDef="let element">{{ element.notes || '-' }}</td>
+        <td mat-cell *matCellDef="let element"[attr.data-label]="'Notes'">{{ element.notes || '-' }}</td>
       </ng-container>
 
       <!-- Actions -->

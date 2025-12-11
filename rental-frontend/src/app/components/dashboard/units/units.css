@@ -1,73 +1,19 @@
+/* ===========================
+   PROPERTY UNITS CONTAINER
+   =========================== */
+
 .property-units-container {
   padding: 2rem;
+  max-width: 1400px;
+  margin: 0 auto;
   background: #fafafa;
   border-radius: 12px;
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
 }
 
-.header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.full-width {
-  width: 100%;
-}
-
-.mt-2 {
-  margin-top: 0.75rem;
-}
-
-.mt-3 {
-  margin-top: 1rem;
-}
-
-.table-container {
-  margin-top: 1rem;
-  border-radius: 10px;
-  overflow: hidden;
-  background: #fff;
-}
-
-.full-width-table {
-  width: 100%;
-}
-
-.occupied {
-  color: #2e7d32;
-  font-weight: 600;
-}
-
-.vacant {
-  color: #c62828;
-  font-weight: 600;
-}
-
-.text-center {
-  text-align: center;
-}
-
-.actions-cell {
-  text-align: center;
-}
-
-mat-paginator {
-  border-top: 1px solid #eee;
-}
-
-h2 {
-  font-weight: 600;
-  color: #2c3e50;
-  margin: 0;
-}
-
-
-.property-units-container {
-  padding: 20px;
-  max-width: 1400px;
-  margin: 0 auto;
-}
+/* ===========================
+   HEADER
+   =========================== */
 
 .header {
   display: flex;
@@ -80,8 +26,12 @@ h2 {
   margin: 0;
   font-size: 24px;
   font-weight: 600;
-  color: #333;
+  color: #2c3e50;
 }
+
+/* ===========================
+   UTILITY CLASSES
+   =========================== */
 
 .full-width {
   width: 100%;
@@ -99,10 +49,20 @@ h2 {
   margin-bottom: 24px;
 }
 
+.text-center {
+  text-align: center;
+}
+
+/* ===========================
+   TABLE STYLES
+   =========================== */
+
 .table-container {
+  margin-top: 1rem;
   background: white;
   border-radius: 8px;
   overflow: hidden;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
 }
 
 .full-width-table {
@@ -122,10 +82,15 @@ h2 {
 }
 
 .full-width-table tr:hover {
-  background-color: #fafafa;
+  background-color: #f5f5f5;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
 }
 
-/* Status badges */
+/* ===========================
+   STATUS BADGES
+   =========================== */
+
 .occupied {
   display: inline-block;
   padding: 4px 12px;
@@ -159,16 +124,18 @@ h2 {
   text-transform: uppercase;
 }
 
-/* Actions cell */
+/* ===========================
+   ACTIONS CELL
+   =========================== */
+
 .actions-cell {
   text-align: center;
 }
 
-.text-center {
-  text-align: center;
-}
+/* ===========================
+   NO DATA MESSAGE
+   =========================== */
 
-/* No data message */
 .no-data {
   display: flex;
   flex-direction: column;
@@ -191,7 +158,10 @@ h2 {
   font-size: 16px;
 }
 
-/* Dialog styles */
+/* ===========================
+   DIALOG STYLES
+   =========================== */
+
 .unit-form {
   display: flex;
   flex-direction: column;
@@ -214,16 +184,95 @@ mat-dialog-actions {
   gap: 8px;
 }
 
-/* Button with spinner */
+/* ===========================
+   BUTTON STYLES
+   =========================== */
+
+button[mat-raised-button] {
+  text-transform: uppercase;
+  font-weight: 500;
+  letter-spacing: 0.5px;
+}
+
+button[mat-icon-button] {
+  transition: transform 0.2s ease;
+}
+
+button[mat-icon-button]:hover {
+  transform: scale(1.1);
+}
+
 button mat-spinner {
   display: inline-block;
   margin-right: 8px;
 }
 
-/* Responsive design */
+/* ===========================
+   LOADING STATE
+   =========================== */
+
+.loading-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 40px;
+}
+
+/* ===========================
+   MATERIAL OVERRIDES
+   =========================== */
+
+::ng-deep .mat-mdc-dialog-container {
+  border-radius: 8px;
+}
+
+::ng-deep .mat-mdc-dialog-title {
+  font-size: 20px;
+  font-weight: 600;
+  margin-bottom: 16px;
+}
+
+::ng-deep .mat-mdc-header-row {
+  background-color: #f5f5f5;
+}
+
+::ng-deep .mat-mdc-row:hover {
+  background-color: #f5f5f5;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+::ng-deep .mat-mdc-paginator {
+  border-top: 1px solid #e0e0e0;
+  background-color: #fafafa;
+}
+
+/* ===========================
+   SNACKBAR STYLES
+   =========================== */
+
+::ng-deep .success-snackbar {
+  background-color: #4caf50 !important;
+  color: white !important;
+}
+
+::ng-deep .error-snackbar {
+  background-color: #f44336 !important;
+  color: white !important;
+}
+
+::ng-deep .success-snackbar .mat-simple-snackbar-action,
+::ng-deep .error-snackbar .mat-simple-snackbar-action {
+  color: white !important;
+}
+
+/* ===========================
+   RESPONSIVE DESIGN
+   =========================== */
+
 @media (max-width: 768px) {
   .property-units-container {
-    padding: 10px;
+    padding: 1rem;
   }
 
   .header {
@@ -250,7 +299,6 @@ button mat-spinner {
     margin: 0 2px;
   }
 
-  /* Stack columns on mobile */
   .mat-mdc-table {
     display: block;
     overflow-x: auto;
@@ -259,7 +307,7 @@ button mat-spinner {
 
 @media (max-width: 480px) {
   .property-units-container {
-    padding: 8px;
+    padding: 0.5rem;
   }
 
   .header h2 {
@@ -276,82 +324,4 @@ button mat-spinner {
     padding: 2px 8px;
     font-size: 11px;
   }
-}
-
-/* Material overrides */
-::ng-deep .mat-mdc-dialog-container {
-  border-radius: 8px;
-}
-
-::ng-deep .mat-mdc-dialog-title {
-  font-size: 20px;
-  font-weight: 600;
-  margin-bottom: 16px;
-}
-
-/* Success/Error snackbar styles */
-::ng-deep .success-snackbar {
-  background-color: #4caf50 !important;
-  color: white !important;
-}
-
-::ng-deep .error-snackbar {
-  background-color: #f44336 !important;
-  color: white !important;
-}
-
-::ng-deep .success-snackbar .mat-simple-snackbar-action,
-::ng-deep .error-snackbar .mat-simple-snackbar-action {
-  color: white !important;
-}
-
-/* Loading state */
-.loading-container {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  padding: 40px;
-}
-
-/* Table elevation */
-.mat-elevation-z8 {
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-}
-
-/* Form field appearance */
-mat-form-field {
-  font-size: 14px;
-}
-
-/* Button styles */
-button[mat-raised-button] {
-  text-transform: uppercase;
-  font-weight: 500;
-  letter-spacing: 0.5px;
-}
-
-button[mat-icon-button] {
-  transition: transform 0.2s ease;
-}
-
-button[mat-icon-button]:hover {
-  transform: scale(1.1);
-}
-
-/* Paginator */
-::ng-deep .mat-mdc-paginator {
-  border-top: 1px solid #e0e0e0;
-  background-color: #fafafa;
-}
-
-/* Table header */
-::ng-deep .mat-mdc-header-row {
-  background-color: #f5f5f5;
-}
-
-/* Table row hover effect */
-::ng-deep .mat-mdc-row:hover {
-  background-color: #f5f5f5;
-  cursor: pointer;
-  transition: background-color 0.2s ease;
 }

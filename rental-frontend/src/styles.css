@@ -18,63 +18,269 @@ body { margin: 0; font-family: Roboto, "Helvetica Neue", sans-serif; }
 }
 
 
+/* ===========================
+   BASE TABLE (Desktop)
+   =========================== */
+.table-container {
+  width: 100%;
+  overflow-x: auto;
+  max-width: 1400px;
+  margin: 0 auto;
+}
 
-.responsive-table-wrapper {
-	 overflow-x: auto;
-	 width: 100%;
+.full-width-table {
+  width: 100%;
 }
- .mat-table.desktop-view {
-	 width: 100%;
+
+.mat-mdc-table {
+  width: 100%;
+  border-spacing: 0;
 }
- .mat-table.tablet-view {
-	 width: 100%;
+
+/* Desktop table improvements */
+.mat-mdc-table .mat-mdc-header-cell {
+  background-color: #f5f5f5;
+  font-weight: 600;
+  color: #333;
+  padding: 16px;
+  font-size: 14px;
 }
- .mat-table.tablet-view .mat-header-cell {
-	 font-size: 0.9rem;
-	 padding: 8px;
+
+.mat-mdc-table .mat-mdc-cell {
+  padding: 16px;
+  font-size: 14px;
+  color: #333;
 }
- .mat-table.tablet-view .mat-cell {
-	 font-size: 0.85rem;
-	 padding: 8px;
+
+.mat-mdc-table .mat-mdc-row {
+  border-bottom: 1px solid #e0e0e0;
+  transition: background-color 0.2s ease;
 }
- .mat-table.mobile-view {
-	 border: 0;
+
+.mat-mdc-table .mat-mdc-row:hover {
+  background-color: #f9f9f9;
 }
- .mat-table.mobile-view .mat-header-row {
-	 display: none;
+
+/* ===========================
+   MOBILE MODE (≤768px)
+   =========================== */
+@media screen and (max-width: 768px) {
+  
+  /* Center the table container */
+  .table-container {
+    padding: 0 12px;
+    max-width: 600px;
+    margin: 0 auto;
+  }
+
+  /* 1. RESET THE TABLE CONTAINER */
+  .mat-mdc-table {
+    display: block !important;
+    background: transparent !important;
+    width: 100% !important;
+  }
+
+  /* 2. HIDE HEADER */
+  .mat-mdc-table .mat-mdc-header-row {
+    display: none !important;
+  }
+
+  /* 3. CARD STYLE ROW - CENTERED */
+  .mat-mdc-table .mat-mdc-row {
+    display: flex !important;
+    flex-direction: column !important;
+    height: auto !important;
+    min-height: unset !important;
+    background: #fff;
+    border: 1px solid #e0e0e0;
+    border-radius: 12px;
+    margin-left: auto !important;
+    margin-right: auto !important;
+    margin-bottom: 16px !important;
+    padding: 16px !important;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    overflow: visible !important;
+    max-width: 500px !important;
+  }
+
+  /* 4. CELL STYLING */
+  .mat-mdc-table .mat-mdc-cell {
+    display: flex !important;
+    flex-direction: row !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    height: auto !important;
+    min-height: 48px !important;
+    border-bottom: 1px solid #f0f0f0;
+    padding: 12px 0 !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+    overflow: visible !important;
+  }
+
+  /* Remove border from last cell */
+  .mat-mdc-table .mat-mdc-cell:last-child {
+    border-bottom: none;
+  }
+
+  /* 5. LABEL (Left Side) */
+  .mat-mdc-table .mat-mdc-cell::before {
+    content: attr(data-label);
+    font-weight: 700;
+    color: #555;
+    font-size: 13px;
+    text-transform: uppercase;
+    flex: 0 0 110px;
+    text-align: left;
+    margin-right: 16px;
+    display: flex;
+    align-items: center;
+    letter-spacing: 0.3px;
+  }
+
+  /* 6. CONTENT (Right Side) */
+  .mat-mdc-table .mat-mdc-cell > * {
+    flex: 1;
+    text-align: right;
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    font-size: 14px;
+    color: #333;
+    font-weight: 500;
+    white-space: normal;
+  }
+
+  /* Status badges */
+  .mat-mdc-table .mat-mdc-cell .occupied,
+  .mat-mdc-table .mat-mdc-cell .vacant {
+    display: inline-block !important;
+    padding: 6px 14px;
+    border-radius: 16px;
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .occupied {
+    background-color: #e8f5e9;
+    color: #2e7d32;
+  }
+
+  .vacant {
+    background-color: #fff3e0;
+    color: #ef6c00;
+  }
+
+  /* --- ACTIONS CELL FIX --- */
+  .mat-mdc-table .mat-mdc-cell.actions-cell {
+    flex-direction: column !important;
+    align-items: flex-end !important;
+    padding-top: 16px !important;
+    margin-top: 8px;
+    border-top: 2px solid #f0f0f0;
+    border-bottom: none;
+  }
+
+  .mat-mdc-table .mat-mdc-cell.actions-cell::before {
+    display: none !important;
+  }
+  
+  .mat-mdc-table .mat-mdc-cell.actions-cell > * {
+    display: flex;
+    width: 100%;
+    justify-content: flex-end;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  /* Action buttons styling */
+  .actions-cell button {
+    margin: 0 !important;
+  }
+
+  /* No data row */
+  .mat-mdc-table .mat-mdc-no-data-row {
+    display: block !important;
+  }
+
+  .mat-mdc-table .mat-mdc-no-data-row td {
+    display: block !important;
+    padding: 40px 20px !important;
+    text-align: center !important;
+    border: none !important;
+  }
+
+  .mat-mdc-table .mat-mdc-no-data-row td::before {
+    display: none !important;
+  }
+
+  /* Paginator */
+  .mat-mdc-paginator {
+    border-top: none !important;
+    margin-top: 16px;
+    border-radius: 8px;
+    background: #fff;
+  }
 }
- .mat-table.mobile-view .mat-row {
-	 display: block;
-	 margin-bottom: 16px;
-	 border: 1px solid #ddd;
-	 border-radius: 8px;
-	 box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+
+/* ===========================
+   TABLET MODE (769px-1024px)
+   =========================== */
+@media screen and (max-width: 1024px) and (min-width: 769px) {
+  .table-container {
+    overflow-x: auto;
+    padding: 0 16px;
+  }
+  
+  .full-width-table {
+    min-width: 800px;
+  }
+
+  .mat-mdc-table .mat-mdc-header-cell,
+  .mat-mdc-table .mat-mdc-cell {
+    padding: 12px 10px;
+    font-size: 13px;
+  }
 }
- .mat-table.mobile-view .mat-cell {
-	 display: flex;
-	 justify-content: space-between;
-	 align-items: center;
-	 padding: 12px 16px;
-	 border-bottom: 1px solid #eee;
+
+/* ===========================
+   VERY SMALL MOBILE (≤480px)
+   =========================== */
+@media screen and (max-width: 480px) {
+  .table-container {
+    padding: 0 8px;
+  }
+
+  .mat-mdc-table .mat-mdc-row {
+    padding: 12px !important;
+    margin-bottom: 12px !important;
+  }
+
+  .mat-mdc-table .mat-mdc-cell {
+    padding: 10px 0 !important;
+    min-height: 44px !important;
+  }
+
+  .mat-mdc-table .mat-mdc-cell::before {
+    flex: 0 0 100px;
+    font-size: 12px;
+  }
+
+  .mat-mdc-table .mat-mdc-cell > * {
+    font-size: 13px;
+  }
+
+  /* Stack action buttons on tiny screens */
+  .mat-mdc-table .mat-mdc-cell.actions-cell > * {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .actions-cell button {
+    width: 100%;
+    max-width: 200px;
+    margin-bottom: 6px !important;
+  }
 }
- .mat-table.mobile-view .mat-cell:last-child {
-	 border-bottom: none;
-}
- .mat-table.mobile-view .mat-cell::before {
-	 content: attr(data-label);
-	 font-weight: 600;
-	 margin-right: 12px;
-	 min-width: 100px;
-	 color: #666;
-}
- .mat-table.mobile-view.stack-layout .mat-cell {
-	 flex-direction: column;
-	 align-items: flex-start;
-}
- .mat-table.mobile-view.stack-layout .mat-cell::before {
-	 margin-bottom: 4px;
-	 font-size: 0.75rem;
-	 text-transform: uppercase;
-	 letter-spacing: 0.5px;
-}
- 
