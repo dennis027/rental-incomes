@@ -9,7 +9,7 @@ This project provides a web interface for managing properties, tenants, units, r
 ## Screenshots
 
 ### Dashboard
-![dashboard](./images/dashboard.png)
+![dashboard](./src/assets/images/dashboard.png)
 
 ### Receipt Generation
 ![receipt-generation](./images/receipt-generation.png)
@@ -23,7 +23,7 @@ This project provides a web interface for managing properties, tenants, units, r
 
 Clone the repository:
 ```
-git clone https://github.com/yourusername/rental-management-frontend.git
+git clone https://github.com/dennis027/rental-managment.git
 cd rental-management-frontend
 ```
 
