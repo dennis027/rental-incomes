@@ -34,7 +34,7 @@ Here allows you to add update or delete Units of a particular property and displ
 Allows one to generate invoice for a property
 
 ### Payment Tracking
-![payment-tracking](./src/assets/images/Payment.png)
+![payment-tracking](./src/assets/images/Payments.png)
 
 Tracks Payment in and out of a property
 
