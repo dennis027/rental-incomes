@@ -11,13 +11,25 @@ This project provides a web interface for managing properties, tenants, units, r
 ### Dashboard
 ![dashboard](./src/assets/images/dashboard.png)
 
+### Property Managment
+![dashboard](./src/assets/images/dashboard.png)
+
+### Settings of Properties
+![dashboard](./src/assets/images/settings.png)
+
+### Units Managment
+![dashboard](./src/assets/images/units.png)
+
 ### Receipt Generation
-![receipt-generation](./images/receipt-generation.png)
+![receipt-generation](./src/assets/images/receipt.png)
 
 ### Payment Tracking
-![payment-tracking](./images/payment-tracking.png)
+![payment-tracking](./src/assets/images/Payment.png)
 
-(Add your actual images in an /images/ folder)
+### Maintance and Expenses Tracking
+![payment-tracking](./src/assets/images/maintainexpense.png)
+
+
 
 ## Installation
 
