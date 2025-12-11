@@ -14,7 +14,7 @@ This project provides a web interface for managing properties, tenants, units, r
 This has the summary of properies and payments they have happened with visual show
 
 ### Property Managment
-![dashboard](./src/assets/images/properies.png)
+![dashboard](./src/assets/images/properties.png)
 
 Here you can add, Update, Delete a property or an Apartments
 
