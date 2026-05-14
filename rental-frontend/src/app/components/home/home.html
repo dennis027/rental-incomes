@@ -1,5 +1,155 @@
-<p>home works!</p>
+<!-- home.html -->
+<div class="homepage">
+  <!-- Navigation Bar -->
+  <nav class="navbar">
+    <div class="nav-container">
+      <div class="nav-brand">
+        <!-- <span class="brand-icon">🏠</span> -->
+        <span class="brand-text">Rental System</span>
+      </div>
 
-<button (click)="testButton()">
-    test wee
-</button>
+      <!-- Desktop Menu -->
+      <div class="nav-menu desktop-menu">
+        <a href="#features" class="nav-link">Features</a>
+        <a href="#roles" class="nav-link">For You</a>
+        <!-- <a href="#pricing" class="nav-link">Pricing</a> -->
+        <a href="#contact" class="nav-link">Contact</a>
+      </div>
+
+      <!-- Auth Buttons -->
+      <div class="nav-actions desktop-menu">
+        <button class="btn-secondary" (click)="navigateToLogin()">Login</button>
+        <button class="btn-primary" (click)="navigateToSignup()">Get Started</button>
+      </div>
+
+      <!-- Mobile Menu Button -->
+      <button class="mobile-menu-btn" (click)="toggleMobileMenu()">
+        <span class="hamburger-icon" [class.open]="mobileMenuOpen">☰</span>
+      </button>
+    </div>
+
+    <!-- Mobile Menu -->
+    <div class="mobile-nav" [class.open]="mobileMenuOpen">
+      <a href="#features" class="mobile-nav-link">Features</a>
+      <a href="#roles" class="mobile-nav-link">For You</a>
+      <!-- <a href="#pricing" class="mobile-nav-link">Pricing</a> -->
+      <a href="#contact" class="mobile-nav-link">Contact</a>
+      <div class="mobile-nav-actions">
+        <button class="btn-secondary" (click)="navigateToLogin()">Login</button>
+        <button class="btn-primary" (click)="navigateToSignup()">Get Started</button>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Hero Section -->
+  <section class="hero">
+    <div class="hero-content">
+      <h1 class="hero-title">
+        Smart Rental Management System
+      </h1>
+      <p class="hero-subtitle">
+        For Landlords, Tenants & Property Managers
+      </p>
+      <p class="hero-description">
+        Simplify property management, automate rent collection, and provide a seamless experience for everyone involved.
+      </p>
+      <div class="hero-actions">
+        <button class="btn-primary-large" (click)="navigateToSignup()">Get Started Free</button>
+        <button class="btn-secondary-large" (click)="requestDemo()">Request Demo</button>
+      </div>
+
+      <!-- Stats -->
+      <div class="stats-grid">
+        <div class="stat-item" *ngFor="let stat of stats">
+          <div class="stat-number">{{ stat.number }}</div>
+          <div class="stat-label">{{ stat.label }}</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Roles Section -->
+  <section class="roles-section" id="roles">
+    <div class="section-container">
+      <h2 class="section-title">Built for Everyone in Rental Management</h2>
+      <p class="section-subtitle">Choose your role and discover how we can help you</p>
+
+      <div class="roles-grid">
+        <div 
+          class="role-card" 
+          *ngFor="let role of roles"
+          [class.selected]="selectedRole === role.id"
+          (click)="selectRole(role.id)">
+          <div class="role-icon">{{ role.icon }}</div>
+          <h3 class="role-title">{{ role.title }}</h3>
+          <p class="role-description">{{ role.description }}</p>
+          <ul class="role-features">
+            <li *ngFor="let feature of role.features">
+              <span class="check-icon">✓</span>
+              {{ feature }}
+            </li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Features Section -->
+  <section class="features-section" id="features">
+    <div class="section-container">
+      <h2 class="section-title">Powerful Features at Your Fingertips</h2>
+      <p class="section-subtitle">Everything you need to manage rentals efficiently</p>
+
+      <div class="features-grid">
+        <div class="feature-card" *ngFor="let feature of features">
+          <div class="feature-icon">{{ feature.icon }}</div>
+          <h3 class="feature-title">{{ feature.title }}</h3>
+          <p class="feature-description">{{ feature.description }}</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA Section -->
+  <section class="cta-section">
+    <div class="cta-content">
+      <h2 class="cta-title">Ready to Transform Your Rental Management?</h2>
+      <p class="cta-description">Join thousands of landlords and property managers who trust our platform</p>
+      <div class="cta-actions">
+        <button class="btn-primary-large" (click)="navigateToSignup()">Start Free Trial</button>
+        <button class="btn-secondary-large" (click)="requestDemo()">Schedule Demo</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="footer-content">
+      <div class="footer-section">
+        <h4 class="footer-title">Rental System</h4>
+        <p class="footer-text">Making rental management simple and efficient for everyone.</p>
+      </div>
+      <div class="footer-section">
+        <h4 class="footer-title">Product</h4>
+        <a href="#" class="footer-link">Features</a>
+        <a href="#" class="footer-link">Pricing</a>
+        <a href="#" class="footer-link">Security</a>
+      </div>
+      <div class="footer-section">
+        <h4 class="footer-title">Company</h4>
+        <a href="#" class="footer-link">About</a>
+        <a href="#" class="footer-link">Contact</a>
+        <a href="#" class="footer-link">Careers</a>
+      </div>
+      <div class="footer-section">
+        <h4 class="footer-title">Legal</h4>
+        <a href="#" class="footer-link">Privacy</a>
+        <a href="#" class="footer-link">Terms</a>
+        <a href="#" class="footer-link">Cookie Policy</a>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <p>© 2026 Rental System. All rights reserved.</p>
+    </div>
+  </footer>
+</div>

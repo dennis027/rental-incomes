@@ -493,3 +493,12 @@
   .form-row   { grid-template-columns: 1fr; }
   .form-title { font-size: 1.6rem; }
 }
+
+.back-link {
+  display: inline-flex; align-items: center; gap: 0.45rem;
+  font-family: var(--font-body); font-size: 0.8rem; font-weight: 600;
+  color: var(--text-muted); text-decoration: none; margin-bottom: 1.8rem;
+  transition: color 0.15s;
+}
+.back-link:hover { color: var(--blue-mid); }
+.back-link svg { width: 14px; height: 14px; fill: currentColor; }
