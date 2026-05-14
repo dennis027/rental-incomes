@@ -13,11 +13,13 @@ import { Units } from './components/dashboard/units/units';
 import { Expensemaintanace } from './components/dashboard/expensemaintanace/expensemaintanace';
 import { Payments } from './components/dashboard/payments/payments';
 import { Reports } from './components/dashboard/reports/reports';
+import { RequestDemoComponent } from './components/home/request-demo-component/request-demo-component';
 
 export const routes: Routes = [
   // 🌍 Public pages
   { path: '', component: Home },
   { path: 'login', component: Login }, 
+  {path:'request-demo', component:RequestDemoComponent},
 
   // 💼 Protected dashboard section
   {
