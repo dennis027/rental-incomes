@@ -1,23 +1,97 @@
-<div class="login-container">
-  <form [formGroup]="loginForm" (ngSubmit)="onSubmit()">
-    <h2>Login</h2>
-
-    <div class="form-group">
-      <label for="identifier">Username or Email</label>
-      <input id="identifier" type="text" formControlName="identifier" required>
+<!-- login.component.html -->
+<div class="login-page">
+  <!-- Left Side - Branding -->
+  <div class="login-brand">
+    <div class="brand-content">
+      <div class="brand-header">
+        <h1 class="brand-title">Rental System</h1>
+      </div>
+      <p class="brand-tagline">Smart property management for modern landlords and tenants</p>
+      
+      <div class="brand-features">
+        <div class="brand-feature">
+          <span class="feature-icon">✓</span>
+          <span>Real-time rent tracking</span>
+        </div>
+        <div class="brand-feature">
+          <span class="feature-icon">✓</span>
+          <span>Automated reminders</span>
+        </div>
+        <div class="brand-feature">
+          <span class="feature-icon">✓</span>
+          <span>Secure payments</span>
+        </div>
+        <div class="brand-feature">
+          <span class="feature-icon">✓</span>
+          <span>24/7 support</span>
+        </div>
+      </div>
     </div>
+  </div>
 
-    <div class="form-group">
-      <label for="password">Password</label>
-      <input id="password" type="password" formControlName="password" required>
+  <!-- Right Side - Login Form -->
+  <div class="login-form-container">
+    <div class="login-form-wrapper">
+      <div class="form-header">
+        <h2 class="form-title">Welcome Back</h2>
+        <p class="form-subtitle">Sign in to your account to continue</p>
+      </div>
+
+      <form [formGroup]="loginForm" (ngSubmit)="onSubmit()" class="login-form">
+        <div class="form-group">
+          <label for="identifier" class="form-label">Username or Email</label>
+          <div class="input-wrapper">
+            <input 
+              id="identifier" 
+              type="text" 
+              formControlName="identifier" 
+              class="form-input"
+              placeholder="Enter your username or email"
+              required>
+          </div>
+          <span class="form-error" *ngIf="loginForm.get('identifier')?.touched && loginForm.get('identifier')?.invalid">
+            Username or email is required
+          </span>
+        </div>
+
+        <div class="form-group">
+          <label for="password" class="form-label">Password</label>
+          <div class="input-wrapper">
+       
+            <input 
+              id="password" 
+              type="password" 
+              formControlName="password" 
+              class="form-input"
+              placeholder="Enter your password"
+              required>
+          </div>
+          <span class="form-error" *ngIf="loginForm.get('password')?.touched && loginForm.get('password')?.invalid">
+            Password is required
+          </span>
+        </div>
+
+        <div class="form-options">
+          <label class="checkbox-label">
+            <input type="checkbox" class="checkbox-input">
+            <span>Remember me</span>
+          </label>
+          <a href="#" class="forgot-password">Forgot password?</a>
+        </div>
+
+        <button type="submit" class="submit-btn" [disabled]="loading()">
+          @if (!loading()) {
+            <span>Sign In</span>
+          } @else {
+            <span class="loader"></span>
+            <span>Signing in...</span>
+          }
+        </button>
+
+      
+
+
+      </form>
     </div>
-
-    <button type="submit" [disabled]="loading()">
-      @if (!loading()) {
-        <span>Login</span>
-      } @else {
-        <span class="loader"></span>
-      }
-    </button>
-  </form>
+  </div>
 </div>
