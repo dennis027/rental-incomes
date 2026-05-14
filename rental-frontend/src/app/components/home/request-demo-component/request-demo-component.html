@@ -1,0 +1,242 @@
+<!-- request-demo-component.html -->
+<div class="login-page">
+
+  <!-- ── Left Side — Branding ── -->
+  <div class="login-brand">
+    <div class="brand-content">
+      <div class="brand-header">
+        <h1 class="brand-title">Rental System</h1>
+      </div>
+      <p class="brand-tagline">Smart property management for modern landlords and tenants</p>
+      <div class="brand-features">
+        <div class="brand-feature"><span class="feature-icon">✓</span><span>Real-time rent tracking</span></div>
+        <div class="brand-feature"><span class="feature-icon">✓</span><span>Automated reminders</span></div>
+        <div class="brand-feature"><span class="feature-icon">✓</span><span>Secure payments</span></div>
+        <div class="brand-feature"><span class="feature-icon">✓</span><span>24/7 support</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Right Side ── -->
+  <div class="login-form-container">
+    <div class="login-form-wrapper">
+
+      <!-- Progress bar -->
+      <div class="progress-bar">
+        <div class="progress-fill" [style.width]="progressWidth()"></div>
+      </div>
+
+      <div class="form-inner">
+
+        <!-- ══ STEP 1 ══ -->
+        @if (currentStep() === 1 && !submitted) {
+          <div class="step-panel">
+            <div class="form-header">
+                
+              <span class="demo-badge">Free Demo</span>
+              <h2 class="form-title">Get your demo account</h2>
+            </div>
+
+            <div class="steps-indicator">
+              <div class="step-item active">
+                <span class="step-num">1</span><span>Your info</span>
+              </div>
+              <div class="step-line"></div>
+              <div class="step-item">
+                <span class="step-num">2</span><span>Portfolio</span>
+              </div>
+              <div class="step-line"></div>
+              <div class="step-item">
+                <span class="step-num">3</span><span>Done</span>
+              </div>
+            </div>
+
+            <form [formGroup]="step1Form" (ngSubmit)="goToStep2()" class="login-form">
+
+              <div class="form-row">
+                <div class="form-group">
+                  <label class="form-label">First Name</label>
+                  <div class="input-wrapper">
+                    <span class="input-icon">👤</span>
+                    <input type="text" formControlName="firstName" class="form-input" placeholder="John" />
+                  </div>
+                  @if (step1Form.get('firstName')?.touched && step1Form.get('firstName')?.invalid) {
+                    <span class="form-error">First name is required</span>
+                  }
+                </div>
+
+                <div class="form-group">
+                  <label class="form-label">Last Name</label>
+                  <div class="input-wrapper">
+                    <span class="input-icon">👤</span>
+                    <input type="text" formControlName="lastName" class="form-input" placeholder="Doe" />
+                  </div>
+                  @if (step1Form.get('lastName')?.touched && step1Form.get('lastName')?.invalid) {
+                    <span class="form-error">Last name is required</span>
+                  }
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label">Work Email</label>
+                <div class="input-wrapper">
+                  <span class="input-icon">✉️</span>
+                  <input type="email" formControlName="email" class="form-input" placeholder="you@company.com" />
+                </div>
+                @if (step1Form.get('email')?.touched && step1Form.get('email')?.invalid) {
+                  <span class="form-error">Enter a valid email address</span>
+                }
+              </div>
+
+              <div class="form-group">
+                <label class="form-label">Phone Number</label>
+                <div class="input-wrapper">
+                  <span class="input-icon">📞</span>
+                  <input type="tel" formControlName="phone" class="form-input" placeholder="+254 700 000 000" />
+                </div>
+                @if (step1Form.get('phone')?.touched && step1Form.get('phone')?.invalid) {
+                  <span class="form-error">Phone number is required</span>
+                }
+              </div>
+
+              <button type="submit" class="submit-btn">
+                <span>Continue</span>
+                <span>→</span>
+              </button>
+
+              <p class="signup-prompt">
+                Already have an account?
+                <a routerLink="/login" class="signup-link">Sign in</a>
+              </p>
+
+            </form>
+          </div>
+        }
+
+        <!-- ══ STEP 2 ══ -->
+        @if (currentStep() === 2 && !submitted) {
+          <div class="step-panel">
+            <div class="form-header">
+              <span class="demo-badge">Step 2 of 2</span>
+              <h2 class="form-title">About your portfolio</h2>
+              <p class="form-subtitle">Help us tailor your demo to your needs</p>
+            </div>
+
+            <div class="steps-indicator">
+              <div class="step-item done">
+                <span class="step-num">✓</span><span>Your info</span>
+              </div>
+              <div class="step-line"></div>
+              <div class="step-item active">
+                <span class="step-num">2</span><span>Portfolio</span>
+              </div>
+              <div class="step-line"></div>
+              <div class="step-item">
+                <span class="step-num">3</span><span>Done</span>
+              </div>
+            </div>
+
+            <form [formGroup]="step2Form" (ngSubmit)="onSubmit()" class="login-form">
+
+              <div class="form-group">
+                <label class="form-label">I am a…</label>
+                <div class="input-wrapper">
+                  <span class="input-icon">🏠</span>
+                  <select formControlName="role" class="form-input form-select">
+                    <option value="" disabled>Select your role</option>
+                    <option value="landlord">Landlord / Property Owner</option>
+                    <option value="agent">Property Agent</option>
+                    <option value="manager">Property Manager</option>
+                    <option value="tenant">Tenant</option>
+                    <option value="other">Other</option>
+                  </select>
+                </div>
+                @if (step2Form.get('role')?.touched && step2Form.get('role')?.invalid) {
+                  <span class="form-error">Please select your role</span>
+                }
+              </div>
+
+              <div class="form-group">
+                <label class="form-label">Number of Units</label>
+                <div class="input-wrapper">
+                  <span class="input-icon">🏢</span>
+                  <select formControlName="units" class="form-input form-select">
+                    <option value="" disabled>How many units do you manage?</option>
+                    <option value="1-5">1 – 5</option>
+                    <option value="6-20">6 – 20</option>
+                    <option value="21-50">21 – 50</option>
+                    <option value="51+">51 and above</option>
+                  </select>
+                </div>
+                @if (step2Form.get('units')?.touched && step2Form.get('units')?.invalid) {
+                  <span class="form-error">Please select a range</span>
+                }
+              </div>
+
+              <div class="form-group">
+                <label class="form-label">How did you hear about us?</label>
+                <div class="input-wrapper">
+                  <span class="input-icon">📣</span>
+                  <select formControlName="source" class="form-input form-select">
+                    <option value="" disabled>Select a source</option>
+                    <option value="search">Google / Search</option>
+                    <option value="social">Social media</option>
+                    <option value="referral">Referred by someone</option>
+                    <option value="event">Event or webinar</option>
+                    <option value="other">Other</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="btn-row">
+                <button type="button" class="btn-back" (click)="goToStep1()" title="Back">←</button>
+                <button type="submit" class="submit-btn" [disabled]="loading()">
+                  @if (!loading()) {
+                    <span>Request Demo Account</span>
+                  } @else {
+                    <span class="loader"></span>
+                    <span>Submitting…</span>
+                  }
+                </button>
+              </div>
+
+              <p class="signup-prompt">
+                Already have an account?
+                <a routerLink="/login" class="signup-link">Sign in</a>
+              </p>
+
+            </form>
+          </div>
+        }
+
+        <!-- ══ SUCCESS ══ -->
+        @if (submitted) {
+          <div class="success-state">
+            <div class="success-icon-ring">✓</div>
+            <h2 class="form-title">You're all set!</h2>
+            <p class="form-subtitle">
+              Your demo credentials will arrive in your inbox within <strong>24 hours</strong>.
+            </p>
+            <div class="success-steps">
+              <div class="success-step">
+                <span class="step-number">1</span>
+                <span>Check your email for login credentials</span>
+              </div>
+              <div class="success-step">
+                <span class="step-number">2</span>
+                <span>Sign in and explore the full dashboard</span>
+              </div>
+              <div class="success-step">
+                <span class="step-number">3</span>
+                <span>Contact support to upgrade your plan anytime</span>
+              </div>
+            </div>
+            <button routerLink="/login" class="submit-btn">Go to Sign In</button>
+          </div>
+        }
+
+      </div>
+    </div>
+  </div>
+
+</div>
