@@ -1,4 +1,6 @@
-/* Contract Preview Dialog Styles */
+/* ==========================================================================
+   ORIGINAL SCREEN INTERFACE STYLES (RETAINED)
+   ========================================================================== */
 .contract-preview-container {
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
   color: #2c3e50;
@@ -293,22 +295,22 @@
   color: #adb5bd;
 }
 
+/* Active contracts - green/success */
+.active-row {
+  background-color: #d4edda !important;
+}
 
+.active-row:hover {
+  background-color: #c3e6cb !important;
+}
 
-/* Print Styles */
-@media print {
-  .contract-preview-container {
-    print-color-adjust: exact;
-    -webkit-print-color-adjust: exact;
-  }
-  
-  .contract-section {
-    page-break-inside: avoid;
-  }
-  
-  .signature-section {
-    page-break-before: auto;
-  }
+/* Inactive contracts - red/error */
+.inactive-row {
+  background-color: #f8d7da !important;
+}
+
+.inactive-row:hover {
+  background-color: #f5c6cb !important;
 }
 
 /* Responsive adjustments */
@@ -329,22 +331,203 @@
 }
 
 
-
-
-/* Active contracts - green/success */
-.active-row {
-  background-color: #d4edda !important;
+/* ==========================================================================
+   NEW EXCLUSIVE FORMAT: BLACK & WHITE KENYAN LEGAL PRINT VIEW
+   ========================================================================== */
+.contract-print-sheet {
+  background: #ffffff !important;
+  color: #000000 !important;
+  font-family: 'Times New Roman', Times, serif !important;
+  line-height: 1.5 !important;
+  font-size: 12pt !important;
+  padding: 15px;
 }
 
-.active-row:hover {
-  background-color: #c3e6cb !important;
+.contract-legal-header {
+  text-align: center;
+  margin-bottom: 25px;
 }
 
-/* Inactive contracts - red/error */
-.inactive-row {
-  background-color: #f8d7da !important;
+.contract-legal-header h1 {
+  font-size: 22pt !important;
+  font-weight: bold !important;
+  text-decoration: underline !important;
+  color: #000000 !important;
+  margin: 0 0 4px 0;
+  letter-spacing: 1px;
 }
 
-.inactive-row:hover {
-  background-color: #f5c6cb !important;
+.legal-sub-header {
+  font-size: 13pt;
+  font-weight: bold;
+  color: #000000;
+  letter-spacing: 2px;
+  margin-bottom: 6px;
+}
+
+.contract-ref-no {
+  font-size: 11pt;
+  font-family: 'Courier New', Courier, monospace;
+  font-weight: bold;
+  color: #000000;
+}
+
+.header-divider {
+  border-top: 1px solid #000000;
+  border-bottom: 3px double #000000;
+  height: 4px;
+  margin-top: 10px;
+}
+
+.meta-date-row {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 30px;
+  font-size: 11pt;
+  color: #000000;
+  border-bottom: 1px dashed #000000;
+  padding-bottom: 6px;
+}
+
+.legal-section {
+  margin-bottom: 25px;
+}
+
+.legal-section-title {
+  font-weight: bold;
+  text-transform: uppercase;
+  font-size: 12pt;
+  color: #000000;
+  margin-bottom: 10px;
+  border-bottom: 1px solid #000000;
+}
+
+.legal-data-table {
+  width: 100%;
+  margin-bottom: 12px;
+}
+
+.legal-data-table td {
+  padding: 6px 0;
+  vertical-align: top;
+  color: #000000;
+}
+
+.legal-financial-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 10px;
+  margin-bottom: 10px;
+}
+
+.legal-financial-table th {
+  border-top: 1px solid #000000 !important;
+  border-bottom: 1px solid #000000 !important;
+  background: transparent !important;
+  text-align: left;
+  padding: 8px;
+  font-size: 11pt;
+  font-weight: bold;
+  color: #000000 !important;
+}
+
+.legal-financial-table td {
+  border-bottom: 1px solid #d0d0d0 !important;
+  background: transparent !important;
+  padding: 8px;
+  font-size: 11pt;
+  color: #000000 !important;
+}
+
+.legal-financial-table .total-row-highlight td {
+  border-top: 1px solid #000000 !important;
+  border-bottom: 3px double #000000 !important;
+  font-weight: bold !important;
+}
+
+ol.legal-covenants {
+  padding-left: 20px;
+  margin: 0;
+}
+
+ol.legal-covenants li {
+  margin-bottom: 8px;
+  text-align: justify;
+  color: #000000;
+}
+
+.sig-title {
+  font-weight: bold;
+  text-decoration: underline;
+  color: #000000;
+  margin-bottom: 40px;
+}
+
+.sig-line {
+  margin-top: 10px;
+  color: #000000;
+}
+
+.legal-footer {
+  margin-top: 45px;
+  text-align: center;
+  font-size: 9pt;
+  color: #000000;
+}
+
+.footer-border {
+  border-top: 1px solid #000000;
+  margin-bottom: 8px;
+}
+
+/* Custom alignment styles */
+.w-30 { width: 30%; }
+.font-bold { font-weight: bold; }
+.font-mono { font-family: monospace; }
+.text-right { text-align: right; }
+.mt-2 { margin-top: 8px; }
+.legal-text-sm { font-size: 10pt; font-style: italic; }
+
+
+/* ==========================================================================
+   STRICT MEDIA PRINT OVERRIDES (FOR PRINTER & PDF ONLY)
+   ========================================================================== */
+@media print {
+  /* Clear web gradients, wrappers and backgrounds */
+  body, .contracts-container, mat-dialog-container, .cdk-overlay-pane {
+    background: #ffffff !important;
+    color: #000000 !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  /* Force print settings to remove screen assets */
+  .no-print, 
+  .header, 
+  .table-section, 
+  mat-paginator, 
+  mat-dialog-actions,
+  button,
+  .dialog-header-clean,
+  .contract-preview-container {
+    display: none !important;
+  }
+
+  /* Reveal the clean Kenyan legal sheet format */
+  .contract-print-sheet {
+    display: block !important;
+    width: 100% !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  .legal-section {
+    page-break-inside: avoid !important;
+  }
+
+  .execution-block {
+    page-break-inside: avoid !important;
+  }
 }
