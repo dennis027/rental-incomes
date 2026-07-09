@@ -15,16 +15,16 @@ import { AuthService } from '../../services/auth';
 })
 export class Dashboard {
 links = [
-  { name: 'Dashboard', route: '/dashboard/home', icon: 'fas fa-chart-pie' },
-  { name: 'Properties', route: '/dashboard/properties', icon: 'fas fa-building' },
-  { name: 'Units', route: '/dashboard/units', icon: 'fas fa-building' },
-  { name: 'Rental Customers', route: '/dashboard/rental-customers', icon: 'fas fa-money-bill-wave' },
-  { name: 'Receipts', route: '/dashboard/receipts', icon: 'fas fa-receipt' },
-  { name: 'Contracts', route: '/dashboard/contracts', icon: 'fas fa-file-signature' },
-  {name: 'Expense & Maintenance', route: '/dashboard/expensesmaintain', icon: 'fas fa-tools' },
-  { name: 'Payments', route: '/dashboard/payments', icon: 'fas fa-user-friends' },
-  { name: 'Reports', route: '/dashboard/reports', icon: 'fas fa-cog' },
-  { name: 'Settings', route: '/dashboard/settings', icon: 'fas fa-cog' },
+  { name: 'Dashboard',           route: '/dashboard/home',              icon: 'fas fa-chart-pie' },
+  { name: 'Properties',          route: '/dashboard/properties',        icon: 'fas fa-building' },
+  { name: 'Units',               route: '/dashboard/units',             icon: 'fas fa-door-open' },
+  { name: 'Rental Customers',    route: '/dashboard/rental-customers',  icon: 'fas fa-users' },
+  { name: 'Receipts',            route: '/dashboard/receipts',          icon: 'fas fa-receipt' },
+  { name: 'Contracts',           route: '/dashboard/contracts',         icon: 'fas fa-file-signature' },
+  { name: 'Expense & Maintenance', route: '/dashboard/expensesmaintain', icon: 'fas fa-wrench' },
+  { name: 'Payments',            route: '/dashboard/payments',          icon: 'fas fa-credit-card' },
+  { name: 'Reports',             route: '/dashboard/reports',           icon: 'fas fa-chart-bar' },
+  { name: 'Settings',            route: '/dashboard/settings',          icon: 'fas fa-sliders-h' },
 ];
 
 
