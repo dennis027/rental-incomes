@@ -24,7 +24,6 @@ import { MatListModule } from '@angular/material/list';
 import { MatTabsModule } from '@angular/material/tabs';
 import { MatTableResponsiveDirective } from '../directives/mat-table-responsive-directive';
 
-
 // ✅ Export all of them in a single array
 export const SharedImports = [
   CommonModule,

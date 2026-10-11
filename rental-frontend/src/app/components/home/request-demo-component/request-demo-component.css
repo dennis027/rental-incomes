@@ -12,13 +12,13 @@
 .login-page {
   display: flex;
   min-height: 100vh;
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  font-family: var(--font-sans);
 }
 
 /* ── Left Side — Branding ── */
 .login-brand {
   flex: 1;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: #465fff;
   color: white;
   display: flex;
   align-items: center;
@@ -127,7 +127,7 @@
 
 .progress-fill {
   height: 100%;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: #465fff;
   transition: width 0.5s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
@@ -140,8 +140,8 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  background: rgba(102, 126, 234, 0.1);
-  color: #667eea;
+  background: rgba(70, 95, 255, 0.1);
+  color: #465fff;
   font-size: 0.72rem;
   font-weight: 700;
   letter-spacing: 0.07em;
@@ -184,7 +184,7 @@
   transition: color 0.3s;
 }
 
-.step-item.active { color: #667eea; }
+.step-item.active { color: #465fff; }
 .step-item.done   { color: #28a745; }
 
 .step-num {
@@ -203,8 +203,8 @@
 }
 
 .step-item.active .step-num {
-  border-color: #667eea;
-  background: #667eea;
+  border-color: #465fff;
+  background: #465fff;
   color: white;
 }
 
@@ -275,8 +275,8 @@
 
 .form-input:focus {
   outline: none;
-  border-color: #667eea;
-  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.12);
+  border-color: #465fff;
+  box-shadow: 0 0 0 3px rgba(70, 95, 255, 0.12);
 }
 
 .form-input::placeholder {
@@ -330,8 +330,8 @@
 }
 
 .btn-back:hover {
-  border-color: #667eea;
-  color: #667eea;
+  border-color: #465fff;
+  color: #465fff;
 }
 
 .btn-row .submit-btn {
@@ -343,7 +343,7 @@
 .submit-btn {
   width: 100%;
   padding: 0.875rem 1rem;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: #465fff;
   color: white;
   border: none;
   border-radius: 8px;
@@ -361,7 +361,7 @@
 
 .submit-btn:hover:not(:disabled) {
   transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+  box-shadow: 0 6px 20px rgba(70, 95, 255, 0.4);
 }
 
 .submit-btn:active:not(:disabled) {
@@ -397,13 +397,13 @@
 }
 
 .signup-link {
-  color: #667eea;
+  color: #465fff;
   text-decoration: none;
   font-weight: 600;
   transition: color 0.25s;
 }
 
-.signup-link:hover { color: #764ba2; }
+.signup-link:hover { color: #3641f5; }
 
 /* ── Step transition animation ── */
 .step-panel {
@@ -472,7 +472,7 @@
   width: 28px;
   height: 28px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: #465fff;
   color: white;
   font-size: 0.75rem;
   font-weight: 700;

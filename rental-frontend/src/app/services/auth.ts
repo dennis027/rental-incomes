@@ -1,6 +1,6 @@
 import { Injectable, Inject, PLATFORM_ID } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable, tap } from 'rxjs';
+import { Observable, of, tap } from 'rxjs';
 import { isPlatformBrowser } from '@angular/common';
 import { HttpHeaders } from '@angular/common/http';
 import { environment } from '../../environments/environment';
@@ -37,31 +37,20 @@ logout(): Observable<any> {
     ? localStorage.getItem('refresh_token')
     : null;
 
-
-  let headers = new HttpHeaders();
-  if (accessToken) {
-    headers = headers.set('Authorization', `Bearer ${accessToken}`);
+  // The session ends locally straight away, whatever the server answers
+  if (isPlatformBrowser(this.platformId)) {
+    localStorage.removeItem('access_token');
+    localStorage.removeItem('refresh_token');
   }
 
-  // 🟡 Django expects the refresh token in the body
-  const body = { refresh: refreshToken };
+  // Nothing to revoke on the server
+  if (!accessToken || !refreshToken) {
+    return of(null);
+  }
 
-  return this.http.post<any>(this.logoutUrl, body, { headers }).pipe(
-    tap({
-      next: () => {
-        if (isPlatformBrowser(this.platformId)) {
-          localStorage.removeItem('access_token');
-          localStorage.removeItem('refresh_token');
-        }
-      },
-      error: () => {
-        if (isPlatformBrowser(this.platformId)) {
-          localStorage.removeItem('access_token');
-          localStorage.removeItem('refresh_token');
-        }
-      }
-    })
-  );
+  // Django expects the refresh token in the body
+  const headers = new HttpHeaders().set('Authorization', `Bearer ${accessToken}`);
+  return this.http.post<any>(this.logoutUrl, { refresh: refreshToken }, { headers });
 }
 
 }

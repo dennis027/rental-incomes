@@ -7,19 +7,15 @@ import { OccupancyReports } from './occupancy-reports/occupancy-reports';
 import { TenantscustomersReports } from './tenantscustomers-reports/tenantscustomers-reports';
 import { UtilitymaintanaceReports } from './utilitymaintanace-reports/utilitymaintanace-reports';
 import { ExecutiveReports } from './executive-reports/executive-reports';
+import { ReportViewer } from './report-viewer/report-viewer';
+import { FINANCIAL_REPORTS } from './report-viewer/report-definitions';
 
 @Component({
   selector: 'app-reports',
-  imports: [SharedImports,FinancialReports,OccupancyReports,TenantscustomersReports,UtilitymaintanaceReports,ExecutiveReports],
+  imports: [SharedImports,FinancialReports,OccupancyReports,TenantscustomersReports,UtilitymaintanaceReports,ExecutiveReports,ReportViewer],
   templateUrl: './reports.html',
   styleUrl: './reports.css',
 })
 export class Reports {
-
-
-  ngOnInit(): void {
-
-  } 
-
-
+  financialReports = FINANCIAL_REPORTS;
 }

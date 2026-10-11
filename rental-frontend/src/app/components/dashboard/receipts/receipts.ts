@@ -1,4 +1,5 @@
-import { Component, OnInit, AfterViewInit, ViewChild, inject, TemplateRef, ChangeDetectorRef, ElementRef, PLATFORM_ID } from '@angular/core';
+import { PropertyContext } from '../../../services/property-context';
+import { Component, OnInit, AfterViewInit, ViewChild, inject, TemplateRef, ChangeDetectorRef, PLATFORM_ID, effect, untracked } from '@angular/core';
 import { isPlatformBrowser } from '@angular/common';
 import { MatDialog } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
@@ -10,10 +11,9 @@ import { ReceiptService } from '../../../services/receipts';
 import { PropertiesService } from '../../../services/properties';
 import { Router } from '@angular/router';
 import { forkJoin } from 'rxjs';
-import jsPDF from 'jspdf';
-import html2canvas from 'html2canvas';
+import { RentDocument, RentDocumentData, invoiceNumber } from '../rent-document/rent-document';
+import { openRecordPayment } from '../record-payment/record-payment-dialog';
 import { SystemParametersServices } from '../../../services/system-parameters-services';
-import { PaymentService } from '../../../services/payments';
 
 export interface Receipt {
   id: number;
@@ -75,11 +75,27 @@ export interface UnitReading {
 @Component({
   selector: 'app-receipts',
   standalone: true,
-  imports: [SharedImports],
+  imports: [SharedImports, RentDocument],
   templateUrl: './receipts.html',
   styleUrl: './receipts.css'
 })
 export class Receipts implements OnInit, AfterViewInit {
+
+  // The property chosen in the top bar; this page follows it
+  private propertyContext = inject(PropertyContext);
+  private propertySync = effect(() => {
+    const propertyId = this.propertyContext.selectedId();
+    untracked(() => this.followProperty(propertyId));
+  });
+
+  private followProperty(propertyId: number | null): void {
+    if (propertyId === null || this.properties.length === 0 || this.selectedProperty.value === String(propertyId)) {
+      return;
+    }
+    // The page already reacts to this control changing
+    this.selectedProperty.setValue(String(propertyId));
+  }
+
   private dialog = inject(MatDialog);
   private fb = inject(FormBuilder);
   private router = inject(Router);
@@ -88,7 +104,6 @@ export class Receipts implements OnInit, AfterViewInit {
   private receiptService = inject(ReceiptService);
   private propertyService = inject(PropertiesService);
   private systemParametersSerice = inject(SystemParametersServices);
-  private paymentService = inject(PaymentService);
   private platformId = inject(PLATFORM_ID);
 
   toNumber(value: any): number {
@@ -96,9 +111,32 @@ export class Receipts implements OnInit, AfterViewInit {
 }
 
   displayedColumns: string[] = [
-    'receipt_number', 'contract_number', 'unit',
-    'monthly_rent', 'electricity_bill', 'water_bill', 'service_charge', 'total_amount', 'balance', 'actions'
+    'receipt_number', 'unit', 'issue_date',
+    'monthly_rent', 'electricity_bill', 'water_bill', 'service_charge', 'total_amount', 'balance', 'status', 'actions'
   ];
+
+  /** Totals for the receipts currently listed */
+  private sumOf(field: string): number {
+    return this.dataSource.data.reduce((total, receipt: any) => total + (Number(receipt[field]) || 0), 0);
+  }
+
+  // Charges only: the balance brought forward was already billed on an earlier invoice
+  get totalBilled(): number {
+    return this.sumOf('charges');
+  }
+
+  get totalCollected(): number {
+    return this.sumOf('amount_paid');
+  }
+
+  // Each tenant's balance sits on their latest invoice, so nothing is counted twice
+  get totalOutstanding(): number {
+    return this.sumOf('balance_due');
+  }
+
+  get unpaidCount(): number {
+    return this.dataSource.data.filter((receipt: any) => Number(receipt.balance_due) > 0).length;
+  }
   dataSource = new MatTableDataSource<Receipt>([]);
   receipts: Receipt[] = [];
   filteredReceipts: Receipt[] = [];
@@ -114,14 +152,11 @@ export class Receipts implements OnInit, AfterViewInit {
   @ViewChild('generateMonthlyDialog') generateMonthlyDialog!: TemplateRef<any>;
   @ViewChild('meterReadingsDialog') meterReadingsDialog!: TemplateRef<any>;
   @ViewChild('receiptPreviewDialog') receiptPreviewDialog!: TemplateRef<any>;
-  @ViewChild('paymentsDial') paymentsDial!: TemplateRef<any>;
-  @ViewChild('receiptPreview', { static: false }) receiptPreview!: ElementRef;
 
   addReceiptForm!: FormGroup;
   updateReceiptForm!: FormGroup;
   generateMonthlyForm!: FormGroup;
   meterReadingsForm!: FormGroup;
-  paymentForm!: FormGroup;
   loadAdding = false;
   loadGenerating = false;
   loadingUnits = false;
@@ -130,12 +165,7 @@ export class Receipts implements OnInit, AfterViewInit {
   currentYear: any;
 
   receipt: Receipt | null = null;
-  loadMakingPayments = false;
   systemParametersObject: any = null;
-  receiptItems: { label: string; amount: number }[] = [];
-  formattedDate: string = '';
-  receiptClientName: string = '';
-  houseNameNo: string = '';
   
   // New properties for meter readings
   unitReadings: UnitReading[] = [];
@@ -149,10 +179,8 @@ export class Receipts implements OnInit, AfterViewInit {
     this.initializeForms();
 
     if (isPlatformBrowser(this.platformId)) {
-      console.log('🔍 Receipts component running in browser');
 
       const token = localStorage.getItem('access_token');
-      console.log('🔑 Token status:', token ? 'Token exists' : '❌ NO TOKEN!');
 
       if (!token) {
         console.error('❌ No access token found, redirecting to login');
@@ -164,23 +192,19 @@ export class Receipts implements OnInit, AfterViewInit {
       this.loadData();
       this.setupFilters();
     } else {
-      console.log('⚠️ Receipts component running on server, skipping API calls');
     }
   }
 
   getSystemParameters() {
     const propertyId = this.selectedProperty.value;
-    console.log('📡 Loading system parameters for property:', propertyId);
     
     this.systemParametersSerice.getSystemParams(propertyId ? Number(propertyId) : this.properties[0].id).subscribe({
       next: (res) => {
-        console.log('✅ System parameters loaded:', res);
         this.systemParametersObject = res;
       },
       error: (err) => {
         console.error('❌ Error loading system parameters:', err);
         if (err.status === 401) {
-          console.log('🔒 Unauthorized, redirecting to login...');
           this.router.navigate(['/login']);
         }
       }
@@ -194,21 +218,18 @@ export class Receipts implements OnInit, AfterViewInit {
   }
 
   loadProperties() {
-    console.log('📡 Loading properties...');
     
     this.propertyService.getProperties().subscribe({
       next: (res) => {
-        console.log('✅ Properties loaded:', res);
         this.properties = res;
         if (this.properties && this.properties.length > 0) {
-          this.selectedProperty.setValue(String(this.properties[0].id));
+          this.selectedProperty.setValue(String(this.propertyContext.resolve(this.properties)));
         }
         this.getSystemParameters();
       },
       error: (err) => {
         console.error('❌ Error loading properties:', err);
         if (err.status === 401) {
-          console.log('🔒 Unauthorized, redirecting to login...');
           this.router.navigate(['/login']);
         }
       }
@@ -256,13 +277,6 @@ export class Receipts implements OnInit, AfterViewInit {
     this.meterReadingsForm = this.fb.group({
       readings: this.fb.array([])
     });
-
-    this.paymentForm = this.fb.group({
-      amount: ['', Validators.required],
-      method: ['', Validators.min(0)],
-      reference: ['', Validators.required],
-      notes: [`Payment for ${this.currentMonth} ${this.currentYear}`, [Validators.required]]
-    });
   }
 
   get readingsArray(): FormArray {
@@ -270,14 +284,12 @@ export class Receipts implements OnInit, AfterViewInit {
   }
 
   loadData() {
-    console.log('📡 Loading receipts and properties...');
     
     forkJoin({
       receipts: this.receiptService.getReceipts(),
       properties: this.propertyService.getProperties()
     }).subscribe({
       next: ({ receipts, properties }) => {
-        console.log('✅ Data loaded successfully');
         this.receipts = receipts;
         this.properties = properties.filter((p: Property) => p.is_active);
         this.updateAvailableMonths();
@@ -293,7 +305,6 @@ export class Receipts implements OnInit, AfterViewInit {
       error: (err) => {
         console.error('❌ Error loading data:', err);
         if (err.status === 401) {
-          console.log('🔒 Unauthorized, redirecting to login...');
           this.router.navigate(['/login']);
         }
       }
@@ -328,6 +339,9 @@ export class Receipts implements OnInit, AfterViewInit {
         return receiptMonthYear === monthYear;
       });
     }
+
+    // Newest first: the invoice a tenant pays is their latest one
+    filtered.sort((a: any, b: any) => new Date(b.issue_date).getTime() - new Date(a.issue_date).getTime() || b.id - a.id);
 
     this.filteredReceipts = filtered;
     this.dataSource.data = filtered;
@@ -387,11 +401,8 @@ export class Receipts implements OnInit, AfterViewInit {
     const prevSelectedMonth = this.selectedMonth.value;
     const prevSelectedProperty = this.selectedProperty.value;
 
-    console.log('📡 Reloading receipts...');
-
     this.receiptService.getReceipts().subscribe({
       next: (res: Receipt[]) => {
-        console.log('✅ Receipts reloaded:', res);
         this.receipts = res;
         this.updateAvailableMonths(prevSelectedMonth);
 
@@ -414,7 +425,6 @@ export class Receipts implements OnInit, AfterViewInit {
       error: (err) => {
         console.error('❌ Error fetching receipts:', err);
         if (err.status === 401) {
-          console.log('🔒 Unauthorized, redirecting to login...');
           this.router.navigate(['/login']);
         }
       }
@@ -476,7 +486,6 @@ loadActiveUnitsForReadings() {
   // GET /api/units/active/?property_id={propertyId}
   this.receiptService.getActiveUnitsForProperty(propertyId).subscribe({
     next: (response: any) => {
-      console.log('✅ Active units loaded:', response);
       this.loadingUnits = false;
 
       const units = response.active_units || [];
@@ -617,11 +626,8 @@ submitMeterReadingsAndGenerate() {
     }))
   };
 
-  console.log('📤 Generating monthly receipts with meter readings:', payload);
-
   this.receiptService.addMonthlyReceiptsWithReadings(payload).subscribe({
     next: (response) => {
-      console.log('✅ Monthly receipts generated:', response);
       this.loadGenerating = false;
       this.dialog.closeAll();
       this.showSuccess(`Successfully generated ${response.count || 'monthly'} receipts!`);
@@ -656,11 +662,8 @@ submitMeterReadingsAndGenerate() {
     this.loadAdding = true;
     const newReceipt = this.addReceiptForm.value;
 
-    console.log('📤 Adding receipt:', newReceipt);
-
     this.receiptService.addReceipt(newReceipt).subscribe({
       next: () => {
-        console.log('✅ Receipt added successfully');
         this.loadAdding = false;
         this.dialog.closeAll();
         this.showSuccess('Receipt added successfully!');
@@ -693,11 +696,8 @@ submitMeterReadingsAndGenerate() {
       property_id: this.selectedProperty.value
     };
 
-    console.log('📤 Generating monthly receipts:', payload);
-
     this.receiptService.addMonthlyReceipts(payload).subscribe({
       next: (response) => {
-        console.log('✅ Monthly receipts generated:', response);
         this.loadGenerating = false;
         this.dialog.closeAll();
         this.showSuccess(`Successfully generated ${response.count || 'monthly'} receipts!`);
@@ -720,11 +720,9 @@ submitMeterReadingsAndGenerate() {
     if (this.updateReceiptForm.invalid || !this.selectedReceiptId) return;
 
     const updatedData = this.updateReceiptForm.value;
-    console.log('📤 Updating receipt:', this.selectedReceiptId, updatedData);
 
     this.receiptService.updateReceipt(this.selectedReceiptId, updatedData).subscribe({
       next: () => {
-        console.log('✅ Receipt updated successfully');
         this.dialog.closeAll();
         this.showSuccess('Receipt updated successfully!');
         this.getReceipts();
@@ -745,16 +743,14 @@ submitMeterReadingsAndGenerate() {
     dialogRef.afterClosed().subscribe(result => {
       if (result !== undefined) {
         if (result === 'yes') {
-          console.log('🗑️ Deleting receipt:', id);
           this.receiptService.deleteReceipt(id).subscribe({
             next: () => {
-              console.log('✅ Receipt deleted successfully');
-              this.showSuccess('Receipt deleted successfully!');
+              this.showSuccess('Invoice deleted');
               this.getReceipts();
             },
             error: (err) => {
               console.error('❌ Error deleting receipt:', err);
-              this.showError('Failed to delete receipt.');
+              this.showError(err.error?.error || 'The invoice could not be deleted.');
               if (err.status === 401) {
                 this.router.navigate(['/login']);
               }
@@ -783,72 +779,70 @@ submitMeterReadingsAndGenerate() {
     });
   }
 
+  // The invoice shown in the preview dialog
+  documentData: RentDocumentData | null = null;
+
+  /** Invoices are stored with an RCT- number; they are shown as INV- */
+  inv(stored: string): string {
+    return invoiceNumber(stored);
+  }
+
   generateReceipt(receipt: Receipt) {
-    console.log('📄 Generating receipt for:', receipt);
-
     this.receipt = receipt;
-    this.receiptClientName = receipt.customer;
-    this.houseNameNo = receipt.unit;
-    this.formattedDate = new Date(receipt.issue_date).toLocaleDateString();
 
-    this.receiptItems = [
-      { label: 'Monthly Rent', amount: parseFloat(receipt.monthly_rent) || 0 },
-      { label: 'Rental Deposit', amount: parseFloat(receipt.rental_deposit) || 0 },
-      { label: 'Electricity Deposit', amount: parseFloat(receipt.electricity_deposit) || 0 },
-      { label: 'Electricity Bill', amount: parseFloat(receipt.electricity_bill) || 0 },
-      { label: 'Water Deposit', amount: parseFloat(receipt.water_deposit) || 0 },
-      { label: 'Water Bill', amount: parseFloat(receipt.water_bill) || 0 },
-      { label: 'Service Charge', amount: parseFloat(receipt.service_charge) || 0 },
-      { label: 'Security Charge', amount: parseFloat(receipt.security_charge) || 0 },
-      { label: 'Previous Balance', amount: parseFloat(receipt.previous_balance) || 0 },
-      { label: 'Other Charges', amount: parseFloat(receipt.other_charges) || 0 }
-    ].filter(item => item.amount > 0);
-  }
+    const data = receipt as any;
+    const amount = (value: any) => parseFloat(value) || 0;
+    const reading = (from: any, to: any) => `Meter reading ${amount(from)} to ${amount(to)}`;
 
-  openPaymentDial() {
-    let dialogRef = this.dialog.open(this.paymentsDial);
-    dialogRef.afterClosed().subscribe(result => {
-      if (result !== undefined) {
-        if (result === 'yes') {
-          // Handle yes
-        } else if (result === 'no') {
-          // Handle no
-        }
-      }
-    });
-  }
+    const lines = [
+      { label: 'Monthly Rent', amount: amount(receipt.monthly_rent) },
+      { label: 'Rental Deposit', amount: amount(receipt.rental_deposit) },
+      { label: 'Electricity Deposit', amount: amount(receipt.electricity_deposit) },
+      { label: 'Electricity Bill', amount: amount(receipt.electricity_bill),
+        detail: reading(receipt.previous_electricity_reading, receipt.current_electricity_reading) },
+      { label: 'Water Deposit', amount: amount(receipt.water_deposit) },
+      { label: 'Water Bill', amount: amount(receipt.water_bill),
+        detail: reading(receipt.previous_water_reading, receipt.current_water_reading) },
+      { label: 'Service Charge', amount: amount(receipt.service_charge) },
+      { label: 'Security Charge', amount: amount(receipt.security_charge) },
+      amount(receipt.previous_balance) < 0
+        ? { label: 'Credit From Earlier Payments', amount: amount(receipt.previous_balance) }
+        : { label: 'Balance Brought Forward', amount: amount(receipt.previous_balance) },
+      { label: 'Other Charges', amount: amount(receipt.other_charges) },
+      { label: 'Late Payment Penalty', amount: amount(data.late_penalty), detail: 'Earlier invoices were unpaid after the grace period' }
+    ].filter(item => item.amount !== 0);
 
-  addPayment() {
-    this.loadMakingPayments = true;
-    const data = {
-      receipt: this.receipt?.id,
-      amount: this.paymentForm.value.amount,
-      method: this.paymentForm.value.method,
-      reference: this.paymentForm.value.reference,
-      notes: this.paymentForm.value.notes
+    // Payment is due once the grace period in the property's settings has passed
+    const issued = new Date(receipt.issue_date);
+    const graceDays = Number(this.systemParametersObject?.grace_period_days);
+    const dueDate = Number.isFinite(graceDays) ? new Date(issued.getTime() + graceDays * 86400000) : null;
+
+    this.documentData = {
+      kind: 'invoice',
+      number: invoiceNumber(receipt.receipt_number),
+      date: receipt.issue_date,
+      dueDate,
+      status: data.status ?? 'unpaid',
+      property: { name: receipt.property, address: data.property_address },
+      tenant: { name: data.customer_name || receipt.customer, phone: data.customer_phone },
+      unit: receipt.unit,
+      contractNumber: receipt.contract_number,
+      lines,
+      total: amount(receipt.total_amount),
+      paid: amount(data.amount_paid),
+      balance: amount(receipt.balance),
     };
+  }
 
-    console.log('📤 Making payment:', data);
-
-    this.paymentService.makePayment(data).subscribe({
-      next: (res) => {
-        console.log('✅ Payment made successfully:', res);
-        this.loadMakingPayments = false;
-        this.showSuccess("Payment Made successfully");
+  openPaymentDial(invoice: any) {
+    openRecordPayment(this.dialog, {
+      invoiceId: invoice.id,
+      tenant: invoice.customer_name || invoice.customer,
+      unit: invoice.unit,
+      owes: parseFloat(invoice.balance_due) || 0,
+    }).subscribe(recorded => {
+      if (recorded) {
         this.getReceipts();
-        this.dialog.closeAll();
-        this.paymentForm.reset();
-        this.cdr.detectChanges();
-      },
-      error: (err) => {
-        console.error('❌ Error making payment:', err);
-        this.loadMakingPayments = false;
-        this.cdr.detectChanges();
-        this.showError("Kindly check your details");
-        if (err.status === 401) {
-          this.router.navigate(['/login']);
-          this.dialog.closeAll();
-        }
       }
     });
   }
@@ -856,6 +850,8 @@ submitMeterReadingsAndGenerate() {
   openReceiptReview() {
     const dialogRef = this.dialog.open(this.receiptPreviewDialog, {
       width: '800px',
+      // Material caps dialogs at 560px unless told otherwise, which cut the sheet off
+      maxWidth: '95vw',
       height: 'auto',
       panelClass: 'receipt-preview-dialog'
     });
@@ -868,64 +864,6 @@ submitMeterReadingsAndGenerate() {
           // Handle no
         }
       }
-    });
-  }
-
-  generatePDF() {
-    const element = this.receiptPreview.nativeElement;
-    html2canvas(element, { scale: 2 }).then(canvas => {
-      const imgData = canvas.toDataURL('image/png');
-
-      const pdf = new jsPDF('p', 'mm', 'a5');
-      const pageWidth = 148;
-      const pageHeight = 210;
-      const margin = 10;
-      const contentWidth = pageWidth - (2 * margin);
-
-      const imgWidth = contentWidth;
-      const imgHeight = (canvas.height * imgWidth) / canvas.width;
-
-      const availableHeight = pageHeight - (2 * margin);
-
-      let position = margin;
-      let remainingHeight = imgHeight;
-
-      if (imgHeight <= availableHeight) {
-        pdf.addImage(imgData, 'PNG', margin, position, imgWidth, imgHeight);
-      } else {
-        let currentPage = 0;
-
-        while (remainingHeight > 0) {
-          if (currentPage > 0) {
-            pdf.addPage();
-          }
-
-          const heightToShow = Math.min(availableHeight, remainingHeight);
-          const sourceY = currentPage * availableHeight * (canvas.height / imgHeight);
-          const sourceHeight = heightToShow * (canvas.height / imgHeight);
-
-          const pageCanvas = document.createElement('canvas');
-          pageCanvas.width = canvas.width;
-          pageCanvas.height = sourceHeight;
-          const pageCtx = pageCanvas.getContext('2d');
-
-          if (pageCtx) {
-            pageCtx.drawImage(
-              canvas,
-              0, sourceY, canvas.width, sourceHeight,
-              0, 0, canvas.width, sourceHeight
-            );
-
-            const pageImgData = pageCanvas.toDataURL('image/png');
-            pdf.addImage(pageImgData, 'PNG', margin, margin, imgWidth, heightToShow);
-          }
-
-          remainingHeight -= availableHeight;
-          currentPage++;
-        }
-      }
-
-      pdf.save(`receipt_${this.receipt?.receipt_number}.pdf`);
     });
   }
 }

@@ -106,7 +106,6 @@ export class FinancialReports implements OnInit, OnDestroy {
       (response) => {
         this.properties = response;
         this.cdr.detectChanges();
-        console.log('Properties fetched:', this.properties);
       },
       (error) => {
         console.error('Error fetching properties:', error);
@@ -119,7 +118,6 @@ export class FinancialReports implements OnInit, OnDestroy {
     this.reportsService.getTotalRevenue(start_date, end_date).subscribe(
       (response) => {
         this.totalRevenue = response;
-        console.log('Total Revenue:', this.totalRevenue);
 
         if (this.totalRevenue?.properties?.length > 0) {
           setTimeout(() => {
@@ -136,7 +134,6 @@ export class FinancialReports implements OnInit, OnDestroy {
       (error) => {
         console.error('Error fetching total revenue:', error);
         if (error.status === 401) {
-          console.log('Unauthorized access - redirecting to login.');
           this.router.navigate(['/login']);
         }
         this.cdr.detectChanges();
@@ -155,7 +152,6 @@ export class FinancialReports implements OnInit, OnDestroy {
     this.reportsService.getTotalRevenue(startDate, endDate).subscribe(
       (response) => {
         this.totalRevenue = response;
-        console.log('Total Revenue:', this.totalRevenue);
         
         if (this.totalRevenue?.properties && this.totalRevenue.properties.length > 0) {
           this.currentPropertyIndex = 0;
@@ -172,7 +168,6 @@ export class FinancialReports implements OnInit, OnDestroy {
       (error) => {
         console.error('Error fetching total revenue:', error);
         if (error.status === 401) {
-          console.log('Unauthorized access - redirecting to login.');
           this.router.navigate(['/login']);
         }
         this.cdr.detectChanges();
@@ -324,7 +319,7 @@ export class FinancialReports implements OnInit, OnDestroy {
           header: {
             fontSize: 22,
             bold: true,
-            color: '#667eea'
+            color: '#465fff'
           },
           subheader: {
             fontSize: 14,

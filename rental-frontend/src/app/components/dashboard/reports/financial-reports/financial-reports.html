@@ -45,7 +45,7 @@
 
     <div class="receipt-summary">
         <span class="summary-text">
-            Showing results from {{ totalRevenue?.period?.start_date}} to {{totalRevenue?.period?.end_date}}
+            Showing results from {{ totalRevenue?.period?.start_date | date:'d MMM y' }} to {{ totalRevenue?.period?.end_date | date:'d MMM y' }}
         </span>
     </div>
 
@@ -74,21 +74,21 @@
         <div class="col-md-2">
             <div class="style-card">
                 <p>Total Revenue</p>
-                <p>{{ totalRevenue?.totals?.total_revenue | currency:'KES' }}</p>
+                <p>{{ totalRevenue?.totals?.total_revenue | currency:'KES ' }}</p>
             </div>
         </div>
 
         <div class="col-md-2">
             <div class="style-card">
                 <p>Total Expenses</p>
-                <p>{{ totalRevenue?.totals?.total_expenses | currency:'KES' }}</p>
+                <p>{{ totalRevenue?.totals?.total_expenses | currency:'KES ' }}</p>
             </div>
         </div>
 
         <div class="col-md-2">
             <div class="style-card">
                 <p>Total Outstanding</p>
-                <p>{{ totalRevenue?.totals?.total_outstanding | currency:'KES' }}</p>
+                <p>{{ totalRevenue?.totals?.total_outstanding | currency:'KES ' }}</p>
             </div>
         </div>
     </div>
@@ -172,28 +172,28 @@
                                 <div class="col-md-3">
                                     <div class="financial-card revenue">
                                         <span class="financial-label">Revenue</span>
-                                        <span class="financial-value">{{ property.financial?.revenue || 0 | currency:'KES' }}</span>
+                                        <span class="financial-value">{{ property.financial?.revenue || 0 | currency:'KES ' }}</span>
                                     </div>
                                 </div>
 
                                 <div class="col-md-3">
                                     <div class="financial-card expenses">
                                         <span class="financial-label">Expenses</span>
-                                        <span class="financial-value">{{ property.financial?.expenses || 0 | currency:'KES' }}</span>
+                                        <span class="financial-value">{{ property.financial?.expenses || 0 | currency:'KES ' }}</span>
                                     </div>
                                 </div>
 
                                 <div class="col-md-3">
                                     <div class="financial-card outstanding">
                                         <span class="financial-label">Outstanding</span>
-                                        <span class="financial-value">{{ property.financial?.outstanding || 0 | currency:'KES' }}</span>
+                                        <span class="financial-value">{{ property.financial?.outstanding || 0 | currency:'KES ' }}</span>
                                     </div>
                                 </div>
 
                                 <div class="col-md-3">
                                     <div class="financial-card expected">
                                         <span class="financial-label">Expected Monthly</span>
-                                        <span class="financial-value">{{ property.financial?.expected_monthly_revenue || 0 | currency:'KES' }}</span>
+                                        <span class="financial-value">{{ property.financial?.expected_monthly_revenue || 0 | currency:'KES ' }}</span>
                                     </div>
                                 </div>
                             </div>

@@ -1,65 +1,277 @@
-/* ========== Header Section ========== */
-.header {
+.em-page {
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.page-header {
   display: flex;
+  align-items: flex-start;
   justify-content: space-between;
-  align-items: center;
-  margin-bottom: 24px;
   gap: 16px;
-  flex-wrap: wrap;
+  margin-bottom: 20px;
 }
 
-.header h2 {
+.page-header h2 {
+  margin: 0 0 4px;
+}
+
+.page-sub {
   margin: 0;
-  font-size: 28px;
-  font-weight: 500;
-  color: #333;
+  font-size: 14px;
+  color: var(--gray-500);
 }
 
-.header mat-form-field {
-  min-width: 250px;
-  margin-left: auto;
+/* ---------- Totals ---------- */
+.summary-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 16px;
+  margin-bottom: 20px;
 }
 
+.summary-card {
+  --tone: #465fff;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 16px 18px;
+  background: #fff;
+  border: 1px solid var(--gray-200);
+  border-radius: 16px;
+}
 
-.status-badge {
-  padding: 4px 10px;
+.tone-blue   { --tone: #465fff; }
+.tone-pink   { --tone: #fb2e86; }
+.tone-purple { --tone: #7e33e0; }
+.tone-navy   { --tone: #151875; }
+
+.summary-icon {
+  flex-shrink: 0;
+  width: 44px;
+  height: 44px;
   border-radius: 12px;
+  background: var(--tone);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+}
+
+.summary-card span {
+  display: block;
   font-size: 13px;
-  font-weight: 600;
-  color: white;
+  color: var(--gray-500);
 }
 
-.status-resolved {
-  background-color: #1976d2; /* Blue */
+.summary-card strong {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--gray-900);
 }
 
-.status-inprogress {
-  background-color: #ff4081; /* Accent */
+/* ---------- Table card ---------- */
+.table-card {
+  background: #fff;
+  border: 1px solid var(--gray-200);
+  border-radius: 16px;
+  overflow: hidden;
 }
 
-.status-pending {
-  background-color: #f44336; /* Warn */
+.toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--gray-200);
 }
 
-
-/* Paid → success (green) */
-.row-paid {
-  background-color: #e8f5e9 !important;
+.toolbar-filters {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
 }
 
-/* Unpaid → warn (red) */
-.row-unpaid {
-  background-color: #ffebee !important;
+.property-field {
+  width: 200px;
 }
 
-/* Partial → accent (indigo/blue) */
-.row-partial {
-  background-color: #e8eaf6 !important;
+.date-field {
+  width: 170px;
 }
 
-/* Optional: stronger text for visibility */
-.row-paid td,
-.row-unpaid td,
-.row-partial td {
+.segmented {
+  display: inline-flex;
+  padding: 4px;
+  border-radius: 10px;
+  background: var(--gray-100);
+}
+
+.segmented button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--gray-500);
+  font-size: 14px;
   font-weight: 500;
+  cursor: pointer;
 }
+
+.segmented button.active {
+  background: #fff;
+  color: var(--gray-900);
+  box-shadow: var(--shadow-xs);
+}
+
+.segmented .count {
+  min-width: 22px;
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: var(--gray-200);
+  color: var(--gray-700);
+  font-size: 12px;
+}
+
+.segmented button.active .count {
+  background: var(--brand-50);
+  color: var(--brand-500);
+}
+
+.num {
+  text-align: right !important;
+  font-variant-numeric: tabular-nums;
+}
+
+.owing {
+  font-weight: 600;
+  color: var(--error-600);
+}
+
+.unit-cell {
+  display: flex;
+  flex-direction: column;
+}
+
+.unit-cell strong {
+  font-weight: 500;
+  color: var(--gray-800);
+}
+
+.unit-cell small {
+  color: var(--gray-500);
+}
+
+.row-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 4px;
+}
+
+.pay-btn {
+  --mat-button-outlined-label-text-color: var(--brand-500);
+  --mat-button-outlined-outline-color: var(--brand-100);
+  background: var(--brand-25);
+}
+
+/* ---------- Chips ---------- */
+.chip {
+  display: inline-block;
+  padding: 2px 10px;
+  border-radius: 999px;
+  background: var(--gray-100);
+  color: var(--gray-700);
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.chip--success { background: var(--success-50); color: var(--success-600); }
+.chip--warning { background: var(--warning-50); color: var(--warning-600); }
+.chip--error   { background: var(--error-50);   color: var(--error-600); }
+.chip--neutral { background: var(--gray-100);   color: var(--gray-500); }
+
+.state-row {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 56px 20px;
+  color: var(--gray-500);
+}
+
+.state-row p {
+  margin: 0;
+  font-size: 14px;
+}
+
+@media (max-width: 1100px) {
+  .summary-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 768px) {
+  .page-header {
+    flex-direction: column;
+  }
+
+  .toolbar-filters,
+  .property-field,
+  .date-field {
+    width: 100%;
+  }
+
+  .summary-card strong {
+    font-size: 17px;
+  }
+}
+
+/* Expense and maintenance types */
+.type-field { width: 190px; }
+
+.type-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: var(--gray-100);
+  color: var(--gray-700);
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+.type-chip i { color: var(--gray-500); font-size: 12px; }
+
+.breakdown {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 14px 20px;
+  border-bottom: 1px solid var(--gray-200);
+}
+.breakdown-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  border: 1px solid var(--gray-200);
+  border-radius: 999px;
+  background: #fff;
+  color: var(--gray-700);
+  font-size: 13px;
+  cursor: pointer;
+}
+.breakdown-chip i { color: var(--gray-500); font-size: 12px; }
+.breakdown-chip strong { font-weight: 600; color: var(--gray-900); font-variant-numeric: tabular-nums; }
+.breakdown-chip:hover { border-color: var(--brand-100); }
+.breakdown-chip.active { border-color: var(--brand-500); background: var(--brand-50); color: var(--brand-600); }
+.breakdown-chip.active i, .breakdown-chip.active strong { color: var(--brand-600); }

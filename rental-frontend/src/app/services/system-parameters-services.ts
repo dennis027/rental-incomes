@@ -27,7 +27,6 @@ export class SystemParametersServices {
       const headers = this.getAuthHeaders();
       return this.http.patch<any>(`${this.systemParamsURL}${id}/system-parameters/`, data, { headers });
     }
-  
 
   /** 🔹 Helper: Get Auth Headers with Bearer Token */
   private getAuthHeaders(): HttpHeaders {

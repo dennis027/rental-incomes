@@ -1,4 +1,5 @@
-import { Component, inject, ViewChild, AfterViewInit, OnInit, ChangeDetectorRef, TemplateRef, PLATFORM_ID } from '@angular/core';
+import { PropertyContext } from '../../../services/property-context';
+import { Component, inject, ViewChild, AfterViewInit, OnInit, ChangeDetectorRef, TemplateRef, PLATFORM_ID, effect, untracked } from '@angular/core';
 import { isPlatformBrowser } from '@angular/common';
 import { PropertiesService } from '../../../services/properties';
 import { Router } from '@angular/router';
@@ -17,6 +18,22 @@ import { SystemParametersServices } from '../../../services/system-parameters-se
   styleUrl: './settings.css'
 })
 export class Settings implements OnInit {
+
+  // The property chosen in the top bar; this page follows it
+  private propertyContext = inject(PropertyContext);
+  private propertySync = effect(() => {
+    const propertyId = this.propertyContext.selectedId();
+    untracked(() => this.followProperty(propertyId));
+  });
+
+  private followProperty(propertyId: number | null): void {
+    if (propertyId === null || this.properties.length === 0 || this.selectedPropertyId === propertyId) {
+      return;
+    }
+    this.selectedPropertyId = propertyId;
+    this.loadSystemParameters();
+  }
+
   private snackBar = inject(MatSnackBar);
   private cdr = inject(ChangeDetectorRef);
   private propertiesService = inject(PropertiesService);
@@ -55,11 +72,9 @@ export class Settings implements OnInit {
 
     // ✅ CRITICAL: Only load data in browser
     if (isPlatformBrowser(this.platformId)) {
-      console.log('🔍 Settings component running in browser');
       
       // Verify token exists
       const token = localStorage.getItem('access_token');
-      console.log('🔑 Token status:', token ? 'Token exists' : '❌ NO TOKEN!');
       
       if (!token) {
         console.error('❌ No access token found, redirecting to login');
@@ -69,7 +84,6 @@ export class Settings implements OnInit {
       
       this.getProperties();
     } else {
-      console.log('⚠️ Settings component running on server, skipping API calls');
     }
   }
 
@@ -99,23 +113,19 @@ export class Settings implements OnInit {
 
   /** 🏢 Get all properties */
   getProperties() {
-    console.log('📡 Loading properties...');
     
     this.propertiesService.getProperties().subscribe({
       next: (data) => {
-        console.log('✅ Properties loaded:', data);
         this.properties = data;
-        if (!this.selectedPropertyId && this.properties.length > 0) {
-          this.selectedPropertyId = this.properties[0].id;
+        if (this.properties.length > 0) {
+          this.selectedPropertyId = this.propertyContext.resolve(this.properties);
         }
-        console.log('Selected Property ID on Init:', this.selectedPropertyId);
         if (this.properties.length > 0) this.loadSystemParameters();
         this.cdr.detectChanges();
       },
       error: (error) => {
         console.error('❌ Error fetching properties:', error);
         if (error.status === 401) {
-          console.log('🔒 Unauthorized, redirecting to login...');
           this.router.navigate(['/login']);
         }
       }
@@ -125,11 +135,9 @@ export class Settings implements OnInit {
   /** ⚙️ Load System Parameters for selected property */
   loadSystemParameters() {
     const propertyId = this.selectedPropertyId ?? this.properties[0]?.id;
-    console.log('📡 Loading system parameters for property:', propertyId);
     
     this.systemParametersService.getSystemParams(propertyId).subscribe({
       next: (data) => {
-        console.log('✅ System Parameters loaded:', data);
         this.systemParameters = data;
         this.updateSystemParams.patchValue(data); // ✅ auto-fill form
         this.cdr.detectChanges();
@@ -137,7 +145,6 @@ export class Settings implements OnInit {
       error: (error) => {
         console.error('❌ Error fetching system parameters:', error);
         if (error.status === 401) {
-          console.log('🔒 Unauthorized, redirecting to login...');
           this.router.navigate(['/login']);
         }
       }
@@ -147,7 +154,6 @@ export class Settings implements OnInit {
   /** 🧩 On property change */
   getPropertyID(event: any) {
     this.selectedPropertyId = event.value;
-    console.log('🔄 Property changed to:', this.selectedPropertyId);
     this.loadSystemParameters();
   }
 
@@ -161,11 +167,8 @@ export class Settings implements OnInit {
     const payload = this.updateSystemParams.value;
     const propertyId = this.selectedPropertyId ?? this.properties[0]?.id;
 
-    console.log('📤 Updating system parameters:', payload);
-
     this.systemParametersService.updateSystemParams(propertyId, payload).subscribe({
       next: (res) => {
-        console.log('✅ System parameters updated:', res);
         this.showSuccess('✅ System parameters updated successfully!');
         this.loadSystemParameters();
       },
@@ -173,7 +176,6 @@ export class Settings implements OnInit {
         console.error('❌ Error updating system parameters:', err);
         this.showError('❌ Failed to update system parameters');
         if (err.status === 401) {
-          console.log('🔒 Unauthorized, redirecting to login...');
           this.router.navigate(['/login']);
         }
       }

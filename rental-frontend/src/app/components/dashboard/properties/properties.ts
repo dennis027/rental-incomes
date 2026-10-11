@@ -1,4 +1,6 @@
-import { AfterViewInit, Component, ViewChild, TemplateRef, OnInit, inject } from '@angular/core';
+import { PropertyContext } from '../../../services/property-context';
+import { AfterViewInit, Component, ViewChild, TemplateRef, OnInit, inject, PLATFORM_ID } from '@angular/core';
+import { isPlatformBrowser } from '@angular/common';
 import { MatPaginator } from '@angular/material/paginator';
 import { MatTableDataSource } from '@angular/material/table';
 import { PropertiesService } from '../../../services/properties';
@@ -26,24 +28,23 @@ export interface PropertiesTable {
 })
 export class Properties implements OnInit, AfterViewInit { // Added OnInit interface
     private snackBar = inject(MatSnackBar);
+    private platformId = inject(PLATFORM_ID);
+    private propertyContext = inject(PropertyContext);
   // ViewChild for the dialog template
   @ViewChild('openAddDialog') openAddDialog!: TemplateRef<any>;
    @ViewChild('updateDialog') updateDialog!: TemplateRef<any>;
   @ViewChild('deleteDialog') deleteDialog!: TemplateRef<any>;
 
-
   loadAdding= false;
   loadUpdating= false;
   loadDeleting= false;
 
-  
     propertyForm!: FormGroup;
     updatePropertyForm!: FormGroup;
     selectedPropertyId: number | null = null;
 
   displayedColumns: string[] = [ 'name', 'address', 'description', 'actions'];
   propertiesObject: PropertiesTable[] = [];
-
 
    showSuccess(message: string) {
     this.snackBar.open(message, 'Close', {
@@ -63,8 +64,6 @@ export class Properties implements OnInit, AfterViewInit { // Added OnInit inter
     });
   }
 
-
-
   dataSource = new MatTableDataSource<PropertiesTable>(this.propertiesObject);
 
   // ViewChild for the paginator
@@ -81,7 +80,10 @@ export class Properties implements OnInit, AfterViewInit { // Added OnInit inter
   }
 
   ngOnInit() {  
-    this.getProperties();
+    // Data is only loaded in the browser, not while the page is prerendered
+    if (isPlatformBrowser(this.platformId)) {
+      this.getProperties();
+    }
       this.initializeForm();
   }
 
@@ -98,6 +100,8 @@ export class Properties implements OnInit, AfterViewInit { // Added OnInit inter
       next: (res: PropertiesTable[] | any) => { // Use 'any' or correct type if API response is not PropertiesTable[] directly
         this.propertiesObject = res; 
         this.dataSource.data = this.propertiesObject;
+        // Keep the top-bar property switcher in step with adds, edits and deletes
+        this.propertyContext.setProperties(res);
         
       },
       error: (err) => {
@@ -128,9 +132,7 @@ export class Properties implements OnInit, AfterViewInit { // Added OnInit inter
     dialogRef.afterClosed().subscribe(result => {
         if (result !== undefined) {
             if (result === 'yes') {
-                console.log('User clicked yes.');
             } else if (result === 'no') {
-                console.log('User clicked no.');
             }
         }
     });
@@ -210,10 +212,8 @@ export class Properties implements OnInit, AfterViewInit { // Added OnInit inter
     });
   }
 
-
   deleteProperty(id: string) {
       let currentData = this.propertiesObject.find((p) => p.id ===  id);
-      console.log('Current Data for delete:', currentData);
       // Implement delete logic here
   }
 
@@ -249,8 +249,7 @@ export class Properties implements OnInit, AfterViewInit { // Added OnInit inter
           else{
 
           }
-   
-  
+
       },
     });
   }

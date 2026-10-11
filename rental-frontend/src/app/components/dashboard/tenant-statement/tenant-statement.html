@@ -1,0 +1,127 @@
+<div class="ui-page">
+  <div class="ui-header">
+    <div>
+      <button class="back-link" (click)="back()"><i class="fas fa-arrow-left"></i> Back</button>
+      <h2>Statement{{ statement?.tenant ? ' for ' + statement.tenant.name : '' }}</h2>
+      <p>
+        @if (statement?.tenant) {
+          {{ statement.tenant.phone }}
+          @if (statement.unit) { · Unit {{ statement.unit }}, {{ statement.property?.name }} }
+        } @else {
+          Every invoice and payment in date order, with the balance after each.
+        }
+      </p>
+    </div>
+    @if (statement) {
+      <div class="statement-actions">
+        <button mat-stroked-button (click)="share()"><i class="fab fa-whatsapp"></i>&nbsp; WhatsApp</button>
+        <button mat-stroked-button (click)="download()"><mat-icon>download</mat-icon> Download PDF</button>
+        <button mat-flat-button color="primary" (click)="print()"><mat-icon>print</mat-icon> Print</button>
+      </div>
+    }
+  </div>
+
+  @if (statement) {
+    <div class="ui-summary">
+      <div class="ui-summary-card tone-navy">
+        <div class="ui-summary-icon"><i class="fas fa-file-invoice"></i></div>
+        <div><span>Charged</span><strong>{{ statement.total_charged | currency:'KES ' }}</strong></div>
+      </div>
+      <div class="ui-summary-card tone-green">
+        <div class="ui-summary-icon"><i class="fas fa-arrow-down"></i></div>
+        <div><span>Paid</span><strong>{{ statement.total_paid | currency:'KES ' }}</strong></div>
+      </div>
+      <div class="ui-summary-card" [class.tone-pink]="closing > 0" [class.tone-green]="closing <= 0">
+        <div class="ui-summary-icon"><i class="fas fa-scale-balanced"></i></div>
+        <div>
+          <span>{{ closing < 0 ? 'In credit' : 'Balance due' }}</span>
+          <strong>{{ (closing < 0 ? -closing : closing) | currency:'KES ' }}</strong>
+        </div>
+      </div>
+    </div>
+  }
+
+  <div class="ui-card">
+    <div class="ui-toolbar">
+      <div class="ui-toolbar-filters">
+        @if (statement?.contracts?.length > 1) {
+          <mat-form-field appearance="outline" subscriptSizing="dynamic">
+            <mat-label>Contract</mat-label>
+            <mat-select [(ngModel)]="contractId" (ngModelChange)="load()">
+              <mat-option value="">All contracts</mat-option>
+              @for (contract of statement.contracts; track contract.id) {
+                <mat-option [value]="contract.id">Unit {{ contract.unit }}{{ contract.is_active ? '' : ' (ended)' }}</mat-option>
+              }
+            </mat-select>
+          </mat-form-field>
+        }
+        <mat-form-field appearance="outline" subscriptSizing="dynamic">
+          <mat-label>From</mat-label>
+          <input matInput type="date" [(ngModel)]="startDate" (change)="load()">
+        </mat-form-field>
+        <mat-form-field appearance="outline" subscriptSizing="dynamic">
+          <mat-label>To</mat-label>
+          <input matInput type="date" [(ngModel)]="endDate" (change)="load()">
+        </mat-form-field>
+        @if (startDate || endDate) {
+          <button mat-button (click)="clearDates()">Show everything</button>
+        }
+      </div>
+    </div>
+
+    @if (isLoading && !statement) {
+      <div class="statement-state">
+        <mat-spinner diameter="32"></mat-spinner>
+        <p>Loading statement…</p>
+      </div>
+    } @else if (loadError) {
+      <div class="statement-state">
+        <p>The statement could not be loaded.</p>
+        <button mat-stroked-button (click)="load()">Try again</button>
+      </div>
+    } @else if (statement) {
+      <div class="ui-table-scroll">
+        <table class="statement-table">
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Reference</th>
+              <th>Description</th>
+              <th class="num">Charges</th>
+              <th class="num">Payments</th>
+              <th class="num">Balance</th>
+            </tr>
+          </thead>
+          <tbody>
+            @if (+statement.opening_balance) {
+              <tr class="brought-forward">
+                <td colspan="5">Balance brought forward</td>
+                <td class="num">{{ statement.opening_balance | number:'1.2-2' }}</td>
+              </tr>
+            }
+            @for (entry of statement.entries; track entry.type + entry.id) {
+              <tr>
+                <td>{{ entry.date | date:'d MMM y' }}</td>
+                <td><span class="ui-mono">{{ reference(entry) }}</span></td>
+                <td>{{ entry.description }}</td>
+                <td class="num">{{ +entry.charge ? (entry.charge | number:'1.2-2') : '' }}</td>
+                <td class="num paid">{{ +entry.payment ? (entry.payment | number:'1.2-2') : '' }}</td>
+                <td class="num balance">{{ entry.balance | number:'1.2-2' }}</td>
+              </tr>
+            } @empty {
+              <tr><td colspan="6" class="none">No invoices or payments in this period.</td></tr>
+            }
+          </tbody>
+          <tfoot>
+            <tr>
+              <td colspan="3">Totals</td>
+              <td class="num">{{ statement.total_charged | number:'1.2-2' }}</td>
+              <td class="num paid">{{ statement.total_paid | number:'1.2-2' }}</td>
+              <td class="num balance">{{ statement.closing_balance | number:'1.2-2' }}</td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+    }
+  </div>
+</div>

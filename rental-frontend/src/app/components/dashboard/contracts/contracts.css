@@ -2,7 +2,7 @@
    ORIGINAL SCREEN INTERFACE STYLES (RETAINED)
    ========================================================================== */
 .contract-preview-container {
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  font-family: var(--font-sans);
   color: #2c3e50;
   line-height: 1.6;
   font-size: 11pt;
@@ -15,7 +15,7 @@
   padding: 40px 20px;
   border-bottom: 4px double #3f51b5;
   margin-bottom: 30px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: #465fff;
   color: white;
   border-radius: 8px;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
@@ -81,7 +81,7 @@
 }
 
 .section-title {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: #465fff;
   color: white;
   padding: 12px 20px;
   font-size: 14pt;
@@ -94,7 +94,7 @@
 }
 
 .subsection-title {
-  color: #667eea;
+  color: #465fff;
   margin: 25px 0 15px 0;
   font-size: 12pt;
   font-weight: 600;
@@ -110,7 +110,7 @@
 .info-item {
   background: #f8f9fa;
   padding: 15px;
-  border-left: 4px solid #667eea;
+  border-left: 4px solid #465fff;
   border-radius: 6px;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
 }
@@ -136,7 +136,7 @@
 
 .highlight-amount {
   font-size: 14pt !important;
-  color: #667eea !important;
+  color: #465fff !important;
   font-weight: 700 !important;
 }
 
@@ -150,7 +150,7 @@
 }
 
 .payment-table th {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: #465fff;
   color: white;
   padding: 12px;
   text-align: left;
@@ -179,7 +179,7 @@
 }
 
 .highlight-total {
-  color: #667eea;
+  color: #465fff;
   font-size: 12pt;
 }
 
@@ -192,7 +192,7 @@
   padding: 10px 15px;
   margin-bottom: 8px;
   background: #f8f9fa;
-  border-left: 3px solid #667eea;
+  border-left: 3px solid #465fff;
   border-radius: 4px;
   position: relative;
   padding-left: 35px;
@@ -202,7 +202,7 @@
   content: "✓";
   position: absolute;
   left: 12px;
-  color: #667eea;
+  color: #465fff;
   font-weight: bold;
   font-size: 14pt;
 }
@@ -247,7 +247,7 @@
 
 .signature-title {
   font-weight: 700;
-  color: #667eea;
+  color: #465fff;
   margin-bottom: 10px;
   font-size: 11pt;
 }
@@ -530,4 +530,189 @@ ol.legal-covenants li {
   .execution-block {
     page-break-inside: avoid !important;
   }
+}
+
+/* ==========================================================================
+   CONTRACTS LIST PAGE
+   ========================================================================== */
+.contracts-container {
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.page-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.page-header h2 {
+  margin: 0 0 4px;
+}
+
+.page-sub {
+  margin: 0;
+  font-size: 14px;
+  color: var(--gray-500);
+}
+
+.table-card {
+  background: #fff;
+  border: 1px solid var(--gray-200);
+  border-radius: 16px;
+  overflow: hidden;
+}
+
+.toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--gray-200);
+}
+
+.toolbar-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.search-field {
+  width: 380px;
+}
+
+.property-field {
+  width: 200px;
+}
+
+/* Active / Ended switch */
+.segmented {
+  display: inline-flex;
+  padding: 4px;
+  border-radius: 10px;
+  background: var(--gray-100);
+}
+
+.segmented button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--gray-500);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.segmented button.active {
+  background: #fff;
+  color: var(--gray-900);
+  box-shadow: var(--shadow-xs);
+}
+
+.segmented .count {
+  min-width: 22px;
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: var(--gray-200);
+  color: var(--gray-700);
+  font-size: 12px;
+}
+
+.segmented button.active .count {
+  background: var(--brand-50);
+  color: var(--brand-500);
+}
+
+.contract-no {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 13px;
+  color: var(--gray-700);
+}
+
+.tenant-cell {
+  display: flex;
+  flex-direction: column;
+}
+
+.tenant-cell strong {
+  font-weight: 500;
+  color: var(--gray-800);
+}
+
+.tenant-cell small {
+  color: var(--gray-500);
+}
+
+.chip {
+  display: inline-block;
+  padding: 2px 10px;
+  border-radius: 999px;
+  background: var(--brand-50);
+  color: var(--brand-600);
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.state-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 64px 20px;
+  background: #fff;
+  border: 1px solid var(--gray-200);
+  border-radius: 16px;
+  color: var(--gray-500);
+  text-align: center;
+}
+
+.state-card p {
+  margin: 0;
+  font-size: 14px;
+}
+
+.state-card--error i {
+  font-size: 28px;
+  color: var(--error-500);
+}
+
+@media (max-width: 768px) {
+  .page-header {
+    flex-direction: column;
+  }
+
+  .toolbar-filters,
+  .search-field,
+  .property-field {
+    width: 100%;
+  }
+}
+
+
+/* Clause numbers are drawn as text so they come out the same on screen and in the PDF */
+ol.legal-covenants {
+  list-style: none !important;
+  padding-left: 0 !important;
+  counter-reset: clause;
+}
+
+ol.legal-covenants li {
+  position: relative;
+  padding-left: 2.2em !important;
+  counter-increment: clause;
+}
+
+ol.legal-covenants li::before {
+  content: counter(clause) ".";
+  position: absolute;
+  left: 0.4em;
+  font-weight: bold;
 }

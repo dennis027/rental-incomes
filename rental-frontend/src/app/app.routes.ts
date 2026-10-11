@@ -13,6 +13,8 @@ import { Units } from './components/dashboard/units/units';
 import { Expensemaintanace } from './components/dashboard/expensemaintanace/expensemaintanace';
 import { Payments } from './components/dashboard/payments/payments';
 import { Reports } from './components/dashboard/reports/reports';
+import { Arrears } from './components/dashboard/arrears/arrears';
+import { TenantStatement } from './components/dashboard/tenant-statement/tenant-statement';
 import { RequestDemoComponent } from './components/home/request-demo-component/request-demo-component';
 
 export const routes: Routes = [
@@ -33,6 +35,8 @@ export const routes: Routes = [
       { path: 'receipts', component: Receipts, canActivate: [AuthGuard] },
       { path: 'properties', component: Properties, canActivate: [AuthGuard] },
       { path: 'payments', component: Payments, canActivate: [AuthGuard] },
+      { path: 'arrears', component: Arrears, canActivate: [AuthGuard] },
+      { path: 'statement', component: TenantStatement, canActivate: [AuthGuard] },
       { path: 'contracts', component: Contracts, canActivate: [AuthGuard] },
       { path: 'settings', component: Settings, canActivate: [AuthGuard] },
       { path: 'units', component: Units, canActivate: [AuthGuard] },
@@ -44,6 +48,5 @@ export const routes: Routes = [
   // ❗ Wildcard fallback
   { path: '**', redirectTo: 'login' },
 
- 
   
 ];

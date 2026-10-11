@@ -1,0 +1,31 @@
+.ending-card {
+  margin-bottom: 24px;
+  padding: 20px 22px;
+  background: #fff;
+  border: 1px solid var(--gray-200);
+  border-radius: 18px;
+}
+.ending-card h5 { margin: 0; font-size: 16px; font-weight: 600; color: var(--gray-900); }
+.ending-card header p { margin: 2px 0 0; font-size: 13px; color: var(--gray-500); }
+
+.ending-card ul { list-style: none; margin: 12px 0 0; padding: 0; }
+.ending-card li {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 0;
+  border-top: 1px solid var(--gray-200);
+}
+.who { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.who strong { font-weight: 500; color: var(--gray-800); }
+.who small { color: var(--gray-500); }
+.ending-actions { display: flex; align-items: center; gap: 4px; }
+.whatsapp-btn { color: #1fa855; font-size: 20px; }
+
+.renew-for { margin: 0 0 16px; font-size: 14px; color: var(--gray-500); }
+.renew-error { margin: 0; font-size: 13px; color: var(--error-600); }
+
+@media (max-width: 560px) {
+  .ending-card li { flex-wrap: wrap; }
+  .who { flex-basis: 100%; }
+}

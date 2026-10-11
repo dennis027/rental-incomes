@@ -1,4 +1,5 @@
 import { Component, inject, AfterViewInit, ViewChild, OnInit, TemplateRef, ChangeDetectorRef, PLATFORM_ID } from '@angular/core';
+import { SecureImagePipe } from '../../../shared/secure-image.pipe';
 import { isPlatformBrowser } from '@angular/common';
 import { MatPaginator } from '@angular/material/paginator';
 import { MatTableDataSource } from '@angular/material/table';
@@ -25,7 +26,7 @@ export interface CustomerObject {
 @Component({
   selector: 'app-rental-customers',
   standalone: true,
-  imports: [SharedImports, A11yModule],
+  imports: [SharedImports, A11yModule, SecureImagePipe],
   templateUrl: './rental-customers.html',
   styleUrl: './rental-customers.css',
 })
@@ -41,7 +42,6 @@ export class RentalCustomers implements OnInit, AfterViewInit {
   @ViewChild('deleteDialog') deleteDialog!: TemplateRef<any>;
   @ViewChild('viewDialog') viewDialog!: TemplateRef<any>;
 
-  
   loadAdding = false;
   loadUpdating = false;
   loadDeleting = false;
@@ -64,14 +64,7 @@ export class RentalCustomers implements OnInit, AfterViewInit {
   updateBackImagePreview: string | null = null;
 
   customers: CustomerObject[] = [];
-  displayedColumns: string[] = [
-    'first_name',
-    'last_name',
-    'phone_number',
-    'email',
-    'id_number',
-    'actions',
-  ];
+  displayedColumns: string[] = ['first_name', 'last_name', 'phone_number', 'email', 'id_number', 'unit_number', 'actions'];
   dataSource = new MatTableDataSource<CustomerObject>([]);
   
   @ViewChild(MatPaginator) paginator!: MatPaginator;
@@ -80,7 +73,6 @@ export class RentalCustomers implements OnInit, AfterViewInit {
   private dialog = inject(MatDialog);
   private router = inject(Router);
   private cdr = inject(ChangeDetectorRef);
-  
 
   isLoading = true;
   error: string | null = null;
@@ -104,11 +96,9 @@ export class RentalCustomers implements OnInit, AfterViewInit {
 
     // ✅ CRITICAL: Only load data in browser
     if (isPlatformBrowser(this.platformId)) {
-      console.log('🔍 Customers component running in browser');
 
       // Verify token exists
       const token = localStorage.getItem('access_token');
-      console.log('🔑 Token status:', token ? 'Token exists' : '❌ NO TOKEN!');
 
       if (!token) {
         console.error('❌ No access token found, redirecting to login');
@@ -118,7 +108,6 @@ export class RentalCustomers implements OnInit, AfterViewInit {
 
       this.loadCustomers();
     } else {
-      console.log('⚠️ Customers component running on server, skipping API calls');
     }
   }
 
@@ -164,12 +153,10 @@ export class RentalCustomers implements OnInit, AfterViewInit {
   }
 
   loadCustomers(): void {
-    console.log('📡 Loading customers...');
     this.isLoading = true;
     
     this.customersService.getCustomers().subscribe({
       next: (res) => {
-        console.log('✅ Customers loaded:', res);
         this.customers = res;
         this.dataSource.data = this.customers;
         this.isLoading = false;
@@ -188,10 +175,9 @@ export class RentalCustomers implements OnInit, AfterViewInit {
         console.error('❌ Error loading customers:', err);
         this.error = 'Failed to load customers';
         this.isLoading = false;
-        this.showError('Failed to load customers.');
+        this.showError('Failed to load tenants.');
 
         if (err.status === 401) {
-          console.log('🔒 Unauthorized, redirecting to login...');
           this.router.navigate(['/login']);
         }
       },
@@ -372,7 +358,6 @@ export class RentalCustomers implements OnInit, AfterViewInit {
     }
 
     this.loadAdding = true;
-    console.log('📤 Adding customer...');
 
     const formData = new FormData();
     const formValues = this.customerForm.value;
@@ -390,7 +375,6 @@ export class RentalCustomers implements OnInit, AfterViewInit {
 
     this.customersService.addCustomer(formData).subscribe({
       next: (res) => {
-        console.log('✅ Customer added successfully:', res);
         this.loadAdding = false;
 
         // Reload customers AFTER Angular stabilizes
@@ -403,7 +387,7 @@ export class RentalCustomers implements OnInit, AfterViewInit {
           this.backImagePreview = null;
 
           this.dialog.closeAll();
-          this.showSuccess('Customer added successfully!');
+          this.showSuccess('Tenant added successfully!');
           this.cdr.detectChanges();
         }, 0);
       },
@@ -412,7 +396,6 @@ export class RentalCustomers implements OnInit, AfterViewInit {
         this.loadAdding = false;
 
         if (err.status === 401) {
-          console.log('🔒 Unauthorized, redirecting to login...');
           this.router.navigate(['/login']);
           this.dialog.closeAll();
         } else if (err.error && typeof err.error === 'object') {
@@ -425,7 +408,7 @@ export class RentalCustomers implements OnInit, AfterViewInit {
           this.showError(firstMessage);
           console.error('Validation error:', firstKey, firstMessage);
         } else {
-          this.showError('Failed to add customer. Please try again.');
+          this.showError('Failed to add tenant. Please try again.');
         }
 
         setTimeout(() => this.cdr.detectChanges(), 0);
@@ -434,6 +417,10 @@ export class RentalCustomers implements OnInit, AfterViewInit {
   }
 
   /** Opens dialog to view customer details */
+  openStatement(customer: CustomerObject) {
+    this.router.navigate(['/dashboard/statement'], { queryParams: { tenant: customer.id } });
+  }
+
   openViewDialog(customer: CustomerObject) {
     this.selectedCustomer = customer;
     this.dialog.open(this.viewDialog, { maxWidth: '700px' });
@@ -464,7 +451,6 @@ export class RentalCustomers implements OnInit, AfterViewInit {
     if (!this.selectedCustomerId || this.updateCustomerForm.invalid) return;
     
     this.loadUpdating = true;
-    console.log('📤 Updating customer:', this.selectedCustomerId);
 
     const formData = new FormData();
     const formValues = this.updateCustomerForm.value;
@@ -482,7 +468,6 @@ export class RentalCustomers implements OnInit, AfterViewInit {
 
     this.customersService.updateCustomer(this.selectedCustomerId, formData).subscribe({
       next: (response) => {
-        console.log('✅ Customer updated successfully:', response);
         this.loadUpdating = false;
 
         // ✅ Only update paginator in browser
@@ -496,7 +481,7 @@ export class RentalCustomers implements OnInit, AfterViewInit {
             this.updateBackImagePreview = null;
 
             this.dialog.closeAll();
-            this.showSuccess('Customer updated successfully!');
+            this.showSuccess('Tenant updated successfully!');
             this.cdr.detectChanges();
           }, 0);
         }
@@ -504,10 +489,9 @@ export class RentalCustomers implements OnInit, AfterViewInit {
       error: (err) => {
         console.error('❌ Error updating customer:', err);
         this.loadUpdating = false;
-        this.showError('Failed to update customer. Please try again.');
+        this.showError('Failed to update tenant. Please try again.');
 
         if (err.status === 401) {
-          console.log('🔒 Unauthorized, redirecting to login...');
           this.router.navigate(['/login']);
           this.dialog.closeAll();
         }
@@ -526,24 +510,21 @@ export class RentalCustomers implements OnInit, AfterViewInit {
     if (!this.selectedCustomerId) return;
 
     this.loadDeleting = true;
-    console.log('🗑️ Deleting customer:', this.selectedCustomerId);
 
     this.customersService.deleteCustomer(this.selectedCustomerId).subscribe({
       next: (response) => {
-        console.log('✅ Customer deleted successfully:', response);
         this.loadDeleting = false;
         this.dialog.closeAll();
-        this.showSuccess('Customer deleted successfully!');
+        this.showSuccess('Tenant deleted successfully!');
         this.loadCustomers();
         this.cdr.detectChanges();
       },
       error: (err) => {
         console.error('❌ Error deleting customer:', err);
         this.loadDeleting = false;
-        this.showError('Failed to delete customer. Please try again.');
+        this.showError('Failed to delete tenant. Please try again.');
 
         if (err.status === 401) {
-          console.log('🔒 Unauthorized, redirecting to login...');
           this.router.navigate(['/login']);
           this.dialog.closeAll();
         }

@@ -1,201 +1,307 @@
-<div class="container">
-      
-
-    
-    <div class="header">
-      <h2>Maintanance and Expenses</h2>
+<div class="em-page">
+  <div class="page-header">
+    <div>
+      <h2>Expenses & Maintenance</h2>
+      <p class="page-sub">What you spend on a property, and the repair requests for its units.</p>
     </div>
+    @if (tab === 'expenses') {
+      <button mat-flat-button color="primary" (click)="openAAddExpenseDialog()">
+        <mat-icon>add</mat-icon>
+        Add expense
+      </button>
+    } @else {
+      <button mat-flat-button color="primary" (click)="openAddMaintanaceDialog()">
+        <mat-icon>add</mat-icon>
+        Add maintenance request
+      </button>
+    }
+  </div>
 
-    <!-- Filters Section -->
-    <div class="filters-section container-fluid">
-      <div class="row">
-        @if (properties.length >1 ){
-        <div class="col-md-3">
-          <mat-form-field appearance="outline" class="full-width">
-            <mat-label>Filter by Property</mat-label>
-            <mat-select [(value)]="selectedPropertyId" (selectionChange)="onPropertyFilterChange($event.value)">
-              <mat-option *ngFor="let prop of properties" [value]="prop.id">
-                {{ prop.name || 'Property #' + prop.id }}
-              </mat-option>
+  <!-- Totals for the selected property and dates -->
+  <div class="summary-grid">
+    <div class="summary-card tone-blue">
+      <div class="summary-icon"><i class="fas fa-wallet"></i></div>
+      <div>
+        <span>Total expenses</span>
+        <strong>{{ totalExpenses | currency:'KES ' }}</strong>
+      </div>
+    </div>
+    <div class="summary-card tone-pink">
+      <div class="summary-icon"><i class="fas fa-hourglass-half"></i></div>
+      <div>
+        <span>Still to pay</span>
+        <strong>{{ unpaidExpenses | currency:'KES ' }}</strong>
+      </div>
+    </div>
+    <div class="summary-card tone-purple">
+      <div class="summary-icon"><i class="fas fa-wrench"></i></div>
+      <div>
+        <span>Open requests</span>
+        <strong>{{ openRequests }}</strong>
+      </div>
+    </div>
+    <div class="summary-card tone-navy">
+      <div class="summary-icon"><i class="fas fa-screwdriver-wrench"></i></div>
+      <div>
+        <span>Maintenance cost</span>
+        <strong>{{ maintenanceCost | currency:'KES ' }}</strong>
+      </div>
+    </div>
+  </div>
+
+  <div class="table-card">
+    <div class="toolbar">
+      <div class="segmented" role="tablist">
+        <button role="tab" [class.active]="tab === 'expenses'" (click)="setTab('expenses')">
+          Expenses <span class="count">{{ dataExpenseSource.data.length }}</span>
+        </button>
+        <button role="tab" [class.active]="tab === 'maintenance'" (click)="setTab('maintenance')">
+          Maintenance <span class="count">{{ dataMaintanceSource.data.length }}</span>
+        </button>
+      </div>
+
+      <div class="toolbar-filters">
+        @if (tab === 'expenses') {
+          <mat-form-field appearance="outline" subscriptSizing="dynamic" class="type-field">
+            <mat-label>Type</mat-label>
+            <mat-select [(ngModel)]="expenseCategory" (ngModelChange)="filterDataByProperty()">
+              <mat-option value="">All types</mat-option>
+              @for (type of expenseCategories; track type.value) {
+                <mat-option [value]="type.value">{{ type.label }}</mat-option>
+              }
             </mat-select>
           </mat-form-field>
-        </div>
+        } @else {
+          <mat-form-field appearance="outline" subscriptSizing="dynamic" class="type-field">
+            <mat-label>Type</mat-label>
+            <mat-select [(ngModel)]="maintenanceCategory" (ngModelChange)="filterDataByProperty()">
+              <mat-option value="">All types</mat-option>
+              @for (type of maintenanceCategories; track type.value) {
+                <mat-option [value]="type.value">{{ type.label }}</mat-option>
+              }
+            </mat-select>
+          </mat-form-field>
         }
 
-   
+        <mat-form-field appearance="outline" subscriptSizing="dynamic" class="date-field">
+          <mat-label>From</mat-label>
+          <input matInput [matDatepicker]="startPicker" [(ngModel)]="startDate" (dateChange)="onDateFilterChange()">
+          <mat-datepicker-toggle matSuffix [for]="startPicker"></mat-datepicker-toggle>
+          <mat-datepicker #startPicker></mat-datepicker>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" subscriptSizing="dynamic" class="date-field">
+          <mat-label>To</mat-label>
+          <input matInput [matDatepicker]="endPicker" [(ngModel)]="endDate" (dateChange)="onDateFilterChange()">
+          <mat-datepicker-toggle matSuffix [for]="endPicker"></mat-datepicker-toggle>
+          <mat-datepicker #endPicker></mat-datepicker>
+        </mat-form-field>
+
+        @if (startDate || endDate) {
+          <button mat-button (click)="clearDateFilters()">Clear dates</button>
+        }
       </div>
     </div>
 
-    <div class="container-fluid">
-      <div class="row">
-          <div class="col-md-4">
-            <mat-form-field appearance="outline" class="full-width">
-              <mat-label>Start Date</mat-label>
-              <input matInput [matDatepicker]="startPicker" [(ngModel)]="startDate" (dateChange)="onDateFilterChange()">
-              <mat-datepicker-toggle matSuffix [for]="startPicker"></mat-datepicker-toggle>
-              <mat-datepicker #startPicker></mat-datepicker>
-            </mat-form-field>
-          </div>
+    @if (isLoading) {
+      <div class="state-row">
+        <mat-spinner diameter="32"></mat-spinner>
+        <p>Loading…</p>
+      </div>
+    }
 
-          <div class="col-md-4">
-            <mat-form-field appearance="outline" class="full-width">
-              <mat-label>End Date</mat-label>
-              <input matInput [matDatepicker]="endPicker" [(ngModel)]="endDate" (dateChange)="onDateFilterChange()">
-              <mat-datepicker-toggle matSuffix [for]="endPicker"></mat-datepicker-toggle>
-              <mat-datepicker #endPicker></mat-datepicker>
-            </mat-form-field>
-          </div>
-
-          <div class="col-md-4">
-            <button mat-raised-button color="warn" (click)="clearDateFilters()" style="margin-top: 8px;">
-              Clear Dates
+    <!-- Expenses -->
+    <div [hidden]="tab !== 'expenses' || isLoading">
+      @if (expenseBreakdown.length > 1 || expenseCategory) {
+        <!-- Where the money went; click a type to list only its expenses -->
+        <div class="breakdown">
+          @for (row of expenseBreakdown; track row.option.value) {
+            <button type="button" class="breakdown-chip" [class.active]="expenseCategory === row.option.value"
+                    (click)="setExpenseCategory(row.option.value)">
+              <i [class]="row.option.icon"></i>
+              <span>{{ row.option.label }}</span>
+              <strong>{{ row.total | number:'1.0-0' }}</strong>
             </button>
-          </div>
-      </div>
+          }
+        </div>
+      }
+      <table mat-table appMatTableResponsive [dataSource]="dataExpenseSource">
+        <ng-container matColumnDef="category">
+          <th mat-header-cell *matHeaderCellDef>Type</th>
+          <td mat-cell *matCellDef="let element" [attr.data-label]="'Type'">
+            <span class="type-chip"><i [class]="expenseType(element.category).icon"></i> {{ expenseType(element.category).label }}</span>
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="description">
+          <th mat-header-cell *matHeaderCellDef>Description</th>
+          <td mat-cell *matCellDef="let element" [attr.data-label]="'Description'">{{ element.description }}</td>
+        </ng-container>
+
+        <ng-container matColumnDef="expense_date">
+          <th mat-header-cell *matHeaderCellDef>Date</th>
+          <td mat-cell *matCellDef="let element" [attr.data-label]="'Date'">{{ element.expense_date | date: 'd MMM y' }}</td>
+        </ng-container>
+
+        <ng-container matColumnDef="amount">
+          <th mat-header-cell *matHeaderCellDef class="num">Amount</th>
+          <td mat-cell *matCellDef="let element" class="num" [attr.data-label]="'Amount'">{{ element.amount | number: '1.2-2' }}</td>
+        </ng-container>
+
+        <ng-container matColumnDef="amount_paid">
+          <th mat-header-cell *matHeaderCellDef class="num">Paid</th>
+          <td mat-cell *matCellDef="let element" class="num" [attr.data-label]="'Paid'">{{ element.amount_paid | number: '1.2-2' }}</td>
+        </ng-container>
+
+        <ng-container matColumnDef="balance">
+          <th mat-header-cell *matHeaderCellDef class="num">Balance</th>
+          <td mat-cell *matCellDef="let element" class="num" [attr.data-label]="'Balance'">
+            <span [class.owing]="+element.balance > 0">{{ element.balance | number: '1.2-2' }}</span>
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="payment_status">
+          <th mat-header-cell *matHeaderCellDef>Payment</th>
+          <td mat-cell *matCellDef="let element" [attr.data-label]="'Payment'">
+            <span [class]="'chip chip--' + paymentTone(element.payment_status)">{{ paymentLabel(element.payment_status) }}</span>
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="actions">
+          <th mat-header-cell *matHeaderCellDef></th>
+          <td mat-cell *matCellDef="let element" class="actions-cell" [attr.data-label]="'Actions'">
+            <div class="row-actions">
+              @if (element.payment_status !== 'paid') {
+                <button mat-stroked-button class="pay-btn" (click)="openMakeExpensesPaymentDialog(element)">
+                  <mat-icon>payments</mat-icon>
+                  Pay
+                </button>
+              }
+              <button mat-icon-button (click)="openUpdateDial();openExpensesDialog(element)" matTooltip="Edit expense">
+                <mat-icon>edit</mat-icon>
+              </button>
+              <button mat-icon-button color="warn" (click)="openDeleteDialog(element)" matTooltip="Delete expense">
+                <mat-icon>delete</mat-icon>
+              </button>
+            </div>
+          </td>
+        </ng-container>
+
+        <tr mat-header-row *matHeaderRowDef="displayedExpensesColumns"></tr>
+        <tr mat-row *matRowDef="let element; columns: displayedExpensesColumns;"></tr>
+        <tr class="mat-row" *matNoDataRow>
+          <td class="mat-cell empty-state" [attr.colspan]="displayedExpensesColumns.length">
+            <i class="fas fa-wallet"></i>
+            @if (startDate || endDate) {
+              <p>No expenses in the selected dates.</p>
+            } @else {
+              <p>No expenses recorded yet. Use "Add expense" to record what you spend on this property.</p>
+            }
+          </td>
+        </tr>
+      </table>
+      <mat-paginator #expensesPaginator aria-label="Expenses pages"></mat-paginator>
     </div>
 
+    <!-- Maintenance -->
+    <div [hidden]="tab !== 'maintenance' || isLoading">
+      <table mat-table appMatTableResponsive [dataSource]="dataMaintanceSource">
+        <ng-container matColumnDef="unit_number">
+          <th mat-header-cell *matHeaderCellDef>Unit</th>
+          <td mat-cell *matCellDef="let element" [attr.data-label]="'Unit'">
+            <div class="unit-cell">
+              <strong>{{ element.unit_number }}</strong>
+              @if (element.customer_name) {
+                <small>{{ element.customer_name }}</small>
+              }
+            </div>
+          </td>
+        </ng-container>
 
+        <ng-container matColumnDef="category">
+          <th mat-header-cell *matHeaderCellDef>Type</th>
+          <td mat-cell *matCellDef="let element" [attr.data-label]="'Type'">
+            <span class="type-chip"><i [class]="maintenanceType(element.category).icon"></i> {{ maintenanceType(element.category).label }}</span>
+          </td>
+        </ng-container>
 
-  <h4>Expenses</h4>
-  <div class="mat-elevation-z8">
-    <button matButton (click)="openAAddExpenseDialog()" >Add Expense</button>
-  <table mat-table [dataSource]="dataExpenseSource">
+        <ng-container matColumnDef="description">
+          <th mat-header-cell *matHeaderCellDef>Problem</th>
+          <td mat-cell *matCellDef="let element" [attr.data-label]="'Problem'">{{ element.description }}</td>
+        </ng-container>
 
+        <ng-container matColumnDef="status">
+          <th mat-header-cell *matHeaderCellDef>Status</th>
+          <td mat-cell *matCellDef="let element" [attr.data-label]="'Status'">
+            <span class="chip"
+                  [ngClass]="{
+                    'chip--success': element.status === 'resolved',
+                    'chip--warning': element.status === 'in_progress',
+                    'chip--error': element.status === 'pending'
+                  }">
+              {{ element.status_display || (element.status | titlecase) }}
+            </span>
+          </td>
+        </ng-container>
 
-    <ng-container matColumnDef="description">
-      <th mat-header-cell *matHeaderCellDef> Description. </th>
-      <td mat-cell *matCellDef="let element" [attr.data-label]="'Description'"> {{element.description}} </td>
-    </ng-container>
+        <ng-container matColumnDef="reported_date">
+          <th mat-header-cell *matHeaderCellDef>Reported</th>
+          <td mat-cell *matCellDef="let element" [attr.data-label]="'Reported'">{{ element.reported_date | date: 'd MMM y' }}</td>
+        </ng-container>
 
+        <ng-container matColumnDef="amount">
+          <th mat-header-cell *matHeaderCellDef class="num">Cost</th>
+          <td mat-cell *matCellDef="let element" class="num" [attr.data-label]="'Cost'">
+            {{ +element.amount > 0 ? (element.amount | number: '1.2-2') : '—' }}
+          </td>
+        </ng-container>
 
-    <ng-container matColumnDef="amount">
-      <th mat-header-cell *matHeaderCellDef> Amount </th>
-      <td mat-cell *matCellDef="let element" [attr.data-label]="'Amount'"> {{element.amount}} </td>
-    </ng-container>
+        <ng-container matColumnDef="payment_status">
+          <th mat-header-cell *matHeaderCellDef>Payment</th>
+          <td mat-cell *matCellDef="let element" [attr.data-label]="'Payment'">
+            <span [class]="'chip chip--' + paymentTone(element.payment_status)">{{ paymentLabel(element.payment_status) }}</span>
+          </td>
+        </ng-container>
 
+        <ng-container matColumnDef="actions">
+          <th mat-header-cell *matHeaderCellDef></th>
+          <td mat-cell *matCellDef="let element" class="actions-cell" [attr.data-label]="'Actions'">
+            <div class="row-actions">
+              @if (element.status !== 'resolved') {
+                <button mat-stroked-button (click)="openChangeStatusDialog(element);changeMaintanaceStatus()">
+                  <mat-icon>autorenew</mat-icon>
+                  Update status
+                </button>
+              }
+              <button mat-icon-button (click)="openMakeMaintancePaymentDialog(element)" matTooltip="Record a payment for this repair">
+                <mat-icon>payments</mat-icon>
+              </button>
+              <button mat-icon-button (click)="openUpdateMaintanaceDialog(element)" matTooltip="Edit request">
+                <mat-icon>edit</mat-icon>
+              </button>
+              <button mat-icon-button color="warn" (click)="openDeleteMainanceDialog(element)" matTooltip="Delete request">
+                <mat-icon>delete</mat-icon>
+              </button>
+            </div>
+          </td>
+        </ng-container>
 
-    <ng-container matColumnDef="expense_date">
-      <th mat-header-cell *matHeaderCellDef> Expenses Date </th>
-      <td mat-cell *matCellDef="let element"[attr.data-label]="'Expense Date'"> {{element.expense_date}} </td>
-    </ng-container>
-
-    <ng-container matColumnDef="actions">
-        <th mat-header-cell *matHeaderCellDef>Actions</th>
-        <td mat-cell *matCellDef="let element">
-
-          <button mat-icon-button color="primary" (click)="openUpdateDial();openExpensesDialog(element)" matTooltip="Edit">
-            <mat-icon>edit</mat-icon>
-          </button>
-
-          <button mat-icon-button color="accent" (click)="openMakeExpensesPaymentDialog(element)" matTooltip="Make Payment">
-            <mat-icon>payment</mat-icon>
-          </button>
-  
-          <button mat-icon-button color="warn" (click)="openDeleteDialog(element)" matTooltip="Delete">
-            <mat-icon>delete</mat-icon>
-          </button>
-        </td>
-    </ng-container>
-
-
-    <tr 
-        mat-row
-        *matRowDef="let element; columns: displayedExpensesColumns;"
-        [ngClass]="{
-          'row-paid': element.payment_status === 'paid',
-          'row-unpaid': element.payment_status === 'unpaid',
-          'row-partial': element.payment_status === 'partial'
-        }">
-      </tr>
-  </table>
-
-  <mat-paginator #expensesPaginator [pageSizeOptions]="[5, 10, 20]"
-                 showFirstLastButtons
-                 aria-label="Select page of periodic elements">
-  </mat-paginator>
-</div>
-
-
-
-
-<br><br>
-
-
-<h4>Maintanance</h4>
-<div class="mat-elevation-z8">
-    <button matButton (click)="openAddMaintanaceDialog()" >Add Maintanance</button>
-  <table mat-table [dataSource]="dataMaintanceSource">
-
- 
-    <ng-container matColumnDef="unit_number">
-      <th mat-header-cell *matHeaderCellDef> Unit. </th>
-      <td mat-cell *matCellDef="let element" [attr.data-label]="'Unit'"> {{element.unit_number}} </td>
-    </ng-container>
-
-
-    <ng-container matColumnDef="description">
-      <th mat-header-cell *matHeaderCellDef> Description </th>
-      <td mat-cell *matCellDef="let element" [attr.data-label]="'Description'"> {{element.description}} </td>
-    </ng-container>
-
-
-    <ng-container matColumnDef="status">
-      <th mat-header-cell *matHeaderCellDef>Status</th>
-
-      <td mat-cell *matCellDef="let element">
-        <span 
-          [ngClass]="{
-            'status-resolved': element.status === 'resolved',
-            'status-inprogress': element.status === 'in_progress',
-            'status-pending': element.status === 'pending'
-          }"
-          class="status-badge"
-        >
-          {{ element.status | titlecase }}
-        </span>
-      </td>
-    </ng-container>
-
-
-
-    <ng-container matColumnDef="reported_date">
-      <th mat-header-cell *matHeaderCellDef> Reporting Date </th>
-      <td mat-cell *matCellDef="let element"> {{element.reported_date | date:'yyyy-MM-dd'}} </td>
-    </ng-container>
-
-    <ng-container matColumnDef="actions">
-        <th mat-header-cell *matHeaderCellDef>Actions</th>
-        <td mat-cell *matCellDef="let element">
-
-          <button mat-icon-button color="primary" (click)="openUpdateMaintanaceDialog(element)" matTooltip="Edit">
-            <mat-icon>edit</mat-icon>
-          </button>
-              <!-- Change status -->
-          <button mat-icon-button color="accent" (click)="openChangeStatusDialog(element);changeMaintanaceStatus()" matTooltip="Change Status">
-            <mat-icon>autorenew</mat-icon>
-          </button>
-
-          <!-- Make payment -->
-          <button mat-icon-button color="success" (click)="openMakeMaintancePaymentDialog(element)" matTooltip="Make Payment">
-            <mat-icon>payment</mat-icon>
-          </button>
-  
-          <button mat-icon-button color="warn" (click)="openDeleteMainanceDialog(element)" matTooltip="Delete">
-            <mat-icon>delete</mat-icon>
-          </button>
-        </td>
-    </ng-container>
-
-    <tr mat-header-row *matHeaderRowDef="displayedMaintanceColumns"></tr>
-    <tr mat-row *matRowDef="let row; columns: displayedMaintanceColumns;"></tr>
-  </table>
-
-  <mat-paginator #maintancePaginator [pageSizeOptions]="[5, 10, 20]"
-                 showFirstLastButtons
-                 aria-label="Select page of periodic elements">
-  </mat-paginator>
-</div>
-
+        <tr mat-header-row *matHeaderRowDef="displayedMaintanceColumns"></tr>
+        <tr mat-row *matRowDef="let row; columns: displayedMaintanceColumns;"></tr>
+        <tr class="mat-row" *matNoDataRow>
+          <td class="mat-cell empty-state" [attr.colspan]="displayedMaintanceColumns.length">
+            <i class="fas fa-wrench"></i>
+            @if (startDate || endDate) {
+              <p>No maintenance requests in the selected dates.</p>
+            } @else {
+              <p>No maintenance requests yet. Use "Add maintenance request" when a unit needs a repair.</p>
+            }
+          </td>
+        </tr>
+      </table>
+      <mat-paginator #maintancePaginator aria-label="Maintenance pages"></mat-paginator>
+    </div>
+  </div>
 </div>
 
 
@@ -217,6 +323,20 @@
         <div class="row">
           
 
+
+            <div class="col-md-4">
+              <mat-form-field appearance="outline" class="full-width">
+                <mat-label>Type</mat-label>
+                <mat-select formControlName="category">
+                  @for (type of expenseCategories; track type.value) {
+                    <mat-option [value]="type.value">{{ type.label }}</mat-option>
+                  }
+                </mat-select>
+                @if (expenseForm.get('category')?.hasError('required')) {
+                  <mat-error>Choose a type</mat-error>
+                }
+              </mat-form-field>
+            </div>
 
             <div class="col-md-4">
                 <mat-form-field appearance="outline" class="full-width">
@@ -304,6 +424,20 @@
           <div class="row">
 
 
+
+            <div class="col-md-4">
+              <mat-form-field appearance="outline" class="full-width">
+                <mat-label>Type</mat-label>
+                <mat-select formControlName="category">
+                  @for (type of expenseCategories; track type.value) {
+                    <mat-option [value]="type.value">{{ type.label }}</mat-option>
+                  }
+                </mat-select>
+                @if (updateExpenseForm.get('category')?.hasError('required')) {
+                  <mat-error>Choose a type</mat-error>
+                }
+              </mat-form-field>
+            </div>
 
             <div class="col-md-4">
               <mat-form-field appearance="outline" class="full-width">
@@ -411,7 +545,7 @@
 
 <ng-template #addMaintanceDial>
      <div class="container-fluid dialog-header">
-      <h2 style="display: inline;" mat-dialog-title>Add Maintanance</h2>
+      <h2 style="display: inline;" mat-dialog-title>Add Maintenance Request</h2>
       <button style="display: inline;float: right;" mat-icon-button mat-dialog-close aria-label="Close dialog">
         <mat-icon>close</mat-icon>
       </button> <br> <br>
@@ -472,6 +606,20 @@
                   </div>
               </div>
                     <div class="row">
+                <div class="col-md-4">
+              <mat-form-field appearance="outline" class="full-width">
+                <mat-label>Type</mat-label>
+                <mat-select formControlName="category">
+                  @for (type of maintenanceCategories; track type.value) {
+                    <mat-option [value]="type.value">{{ type.label }}</mat-option>
+                  }
+                </mat-select>
+                @if (maintanaceForm.get('category')?.hasError('required')) {
+                  <mat-error>Choose a type</mat-error>
+                }
+              </mat-form-field>
+            </div>
+
                 <div class="col-md-8">
                             <!-- Description -->
                     <mat-form-field appearance="outline" class="full-width" style="width: 100%;">
@@ -516,7 +664,7 @@
 <!-- Add Maintenance Dialog -->
 <ng-template #updateMaintanceDial>
   <div class="container-fluid dialog-header">
-    <h2 style="display: inline;" mat-dialog-title>Update Maintance Request</h2>
+    <h2 style="display: inline;" mat-dialog-title>Update Maintenance Request</h2>
     <button style="display: inline;float: right;" mat-icon-button mat-dialog-close aria-label="Close dialog">
       <mat-icon>close</mat-icon>
     </button>
@@ -570,6 +718,20 @@
               </mat-form-field>
             </div>
 
+            <div class="col-4">
+              <mat-form-field appearance="outline" class="full-width">
+                <mat-label>Type</mat-label>
+                <mat-select formControlName="category">
+                  @for (type of maintenanceCategories; track type.value) {
+                    <mat-option [value]="type.value">{{ type.label }}</mat-option>
+                  }
+                </mat-select>
+                @if (updateMaintanaceForm.get('category')?.hasError('required')) {
+                  <mat-error>Choose a type</mat-error>
+                }
+              </mat-form-field>
+            </div>
+
       <!-- Description -->
       <div class="col-8">
         <mat-form-field style="width: 100%;"  appearance="outline" class="full-width">
@@ -599,7 +761,7 @@
 
 <ng-template #deleteMaintanceDial> <br>
     <div class="container-fluid dialog-header">
-      <h2 style="display: inline;" mat-dialog-title>Delete Maintanance</h2>
+      <h2 style="display: inline;" mat-dialog-title>Delete Maintenance Request</h2>
       <button style="display: inline;float: right;" mat-icon-button mat-dialog-close aria-label="Close dialog">
         <mat-icon>close</mat-icon>
       </button> <br> <br>
@@ -616,7 +778,7 @@
 
 <ng-template #maintananceChangeState>
     <div class="container-fluid dialog-header">
-      <h2 style="display: inline;" mat-dialog-title>Update Maintanance Status</h2>
+      <h2 style="display: inline;" mat-dialog-title>Update Maintenance Status</h2>
       <button style="display: inline;float: right;" mat-icon-button mat-dialog-close aria-label="Close dialog">
         <mat-icon>close</mat-icon>
       </button> 
@@ -740,7 +902,7 @@
 <!-- maintance Payment Dialog -->
 <ng-template #maintancePaymentsDial> <br>
   <div class="container-fluid dialog-header">
-      <h2 style="display: inline;" mat-dialog-title> Pay Maintance </h2>
+      <h2 style="display: inline;" mat-dialog-title> Pay for Maintenance </h2>
       <button style="display: inline;float: right;" mat-icon-button mat-dialog-close aria-label="Close dialog">
         <mat-icon>close</mat-icon>
       </button> <br> 

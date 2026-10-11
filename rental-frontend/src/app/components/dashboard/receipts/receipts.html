@@ -1,146 +1,190 @@
-<div class="receipts-container">
-  <h2>Receipts</h2>
+<div class="ui-page">
+  <div class="ui-header">
+    <div>
+      <h2>Invoices</h2>
+      <p>The rent bills sent to tenants. Each new invoice brings forward what is still unpaid, so a tenant always pays their latest invoice.</p>
+    </div>
+    <button mat-flat-button color="primary" (click)="openGenerateMonthlyDialog()">
+      <mat-icon>calendar_month</mat-icon>
+      Generate monthly invoices
+    </button>
+  </div>
 
-  <div class="filter-section">
-    <mat-form-field appearance="outline" class="month-filter">
-      <mat-label>Filter by Month</mat-label>
-      <mat-select [formControl]="selectedMonth">
-        <mat-option value="">All Months</mat-option>
-        @for (month of availableMonths; track month.value) {
-          <mat-option [value]="month.value">
-            {{ month.display }}
-          </mat-option>
-        }
-      </mat-select>
-    </mat-form-field>
-     @if (properties.length >1 ){
-    <mat-form-field appearance="outline" class="property-filter">
-      <mat-label>Filter by Property</mat-label>
-      <mat-select [formControl]="selectedProperty">
-        @for (property of properties; track property.id) {
-          <mat-option [value]="property.id.toString()">
-            {{ property.name }}
-          </mat-option>
-        }
-      </mat-select>
-    </mat-form-field>
-     }
-
-    <div class="action-buttons">
-      <button mat-raised-button color="accent" (click)="openGenerateMonthlyDialog()">
-        <mat-icon>calendar_month</mat-icon>
-        Generate Monthly Receipts
-      </button>
+  <div class="ui-summary">
+    <div class="ui-summary-card">
+      <div class="ui-summary-icon"><i class="fas fa-file-invoice"></i></div>
+      <div><span>Billed</span><strong>{{ totalBilled | currency:'KES ' }}</strong></div>
+    </div>
+    <div class="ui-summary-card tone-green">
+      <div class="ui-summary-icon"><i class="fas fa-circle-check"></i></div>
+      <div><span>Collected</span><strong>{{ totalCollected | currency:'KES ' }}</strong></div>
+    </div>
+    <div class="ui-summary-card tone-pink">
+      <div class="ui-summary-icon"><i class="fas fa-hourglass-half"></i></div>
+      <div><span>Outstanding</span><strong>{{ totalOutstanding | currency:'KES ' }}</strong></div>
+    </div>
+    <div class="ui-summary-card tone-purple">
+      <div class="ui-summary-icon"><i class="fas fa-receipt"></i></div>
+      <div><span>Not fully paid</span><strong>{{ unpaidCount }} of {{ dataSource.data.length }}</strong></div>
     </div>
   </div>
 
-  <div class="receipt-summary">
-    <span class="summary-text">
-      Showing {{ dataSource.data.length }} receipt(s)
-      @if (selectedMonth.value) {
-        <span> for {{ getSelectedMonthDisplay() }}</span>
-      }
-      @if (selectedProperty.value) {
-        <span> in {{ getPropertyName(selectedProperty.value) }}</span>
-      }
-    </span>
+  <div class="ui-card">
+    <div class="ui-toolbar">
+      <div class="ui-toolbar-filters">
+        <mat-form-field appearance="outline" subscriptSizing="dynamic">
+          <mat-label>Month</mat-label>
+          <mat-select [formControl]="selectedMonth">
+            <mat-option value="">All months</mat-option>
+            @for (month of availableMonths; track month.value) {
+              <mat-option [value]="month.value">
+                {{ month.display }}
+              </mat-option>
+            }
+          </mat-select>
+        </mat-form-field>
+
+
+      </div>
+
+      <span class="ui-toolbar-note">
+        {{ dataSource.data.length }} invoice(s)
+        @if (selectedMonth.value) {
+          <span> for {{ getSelectedMonthDisplay() }}</span>
+        }
+        @if (selectedProperty.value) {
+          <span> in {{ getPropertyName(selectedProperty.value) }}</span>
+        }
+      </span>
+    </div>
+
+    <div class="ui-table-scroll">
+    <table mat-table appMatTableResponsive [dataSource]="dataSource">
+      <ng-container matColumnDef="receipt_number">
+        <th mat-header-cell *matHeaderCellDef>Invoice</th>
+        <td mat-cell *matCellDef="let r" [attr.data-label]="'Invoice'"><span class="ui-mono">{{ inv(r.receipt_number) }}</span></td>
+      </ng-container>
+
+      <ng-container matColumnDef="unit">
+        <th mat-header-cell *matHeaderCellDef>Unit</th>
+        <td mat-cell *matCellDef="let r" [attr.data-label]="'Unit'">
+          <div class="ui-stack">
+            <strong>{{ r.unit }}</strong>
+            <small>{{ r.customer }}</small>
+          </div>
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="issue_date">
+        <th mat-header-cell *matHeaderCellDef>Issued</th>
+        <td mat-cell *matCellDef="let r" [attr.data-label]="'Issued'">{{ r.issue_date | date: 'd MMM y' }}</td>
+      </ng-container>
+
+      <ng-container matColumnDef="monthly_rent">
+        <th mat-header-cell *matHeaderCellDef class="ui-num">Rent</th>
+        <td mat-cell *matCellDef="let r" class="ui-num" [attr.data-label]="'Rent'">{{ r.monthly_rent | number:'1.2-2' }}</td>
+      </ng-container>
+
+      <ng-container matColumnDef="electricity_bill">
+        <th mat-header-cell *matHeaderCellDef class="ui-num">Electricity</th>
+        <td mat-cell *matCellDef="let r" class="ui-num" [attr.data-label]="'Electricity'">{{ r.electricity_bill | number:'1.2-2' }}</td>
+      </ng-container>
+
+      <ng-container matColumnDef="water_bill">
+        <th mat-header-cell *matHeaderCellDef class="ui-num">Water</th>
+        <td mat-cell *matCellDef="let r" class="ui-num" [attr.data-label]="'Water'">{{ r.water_bill | number:'1.2-2' }}</td>
+      </ng-container>
+
+      <ng-container matColumnDef="service_charge">
+        <th mat-header-cell *matHeaderCellDef class="ui-num">Service</th>
+        <td mat-cell *matCellDef="let r" class="ui-num" [attr.data-label]="'Service'">{{ r.service_charge | number:'1.2-2' }}</td>
+      </ng-container>
+
+      <ng-container matColumnDef="total_amount">
+        <th mat-header-cell *matHeaderCellDef class="ui-num">Total</th>
+        <td mat-cell *matCellDef="let r" class="ui-num" [attr.data-label]="'Total'"><strong>{{ r.total_amount | number:'1.2-2' }}</strong></td>
+      </ng-container>
+
+      <ng-container matColumnDef="balance">
+        <th mat-header-cell *matHeaderCellDef class="ui-num">Balance</th>
+        <td mat-cell *matCellDef="let r" class="ui-num" [attr.data-label]="'Balance'">
+          @if (r.is_latest) {
+            @if (+r.balance_due < 0) {
+              <span class="ui-chip ui-chip--brand" matTooltip="Paid more than was owed; taken off the next invoice">{{ -r.balance_due | number:'1.2-2' }} credit</span>
+            } @else {
+              <span [class.ui-owing]="+r.balance_due > 0">{{ r.balance_due | number:'1.2-2' }}</span>
+            }
+          } @else {
+            <span class="ui-toolbar-note">—</span>
+          }
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="status">
+        <th mat-header-cell *matHeaderCellDef>Status</th>
+        <td mat-cell *matCellDef="let r" [attr.data-label]="'Status'">
+          @if (r.is_latest) {
+            <span class="ui-chip"
+                  [ngClass]="{
+                    'ui-chip--success': +r.balance_due <= 0,
+                    'ui-chip--warning': +r.balance_due > 0 && +r.amount_paid > 0,
+                    'ui-chip--error': +r.balance_due > 0 && +r.amount_paid <= 0
+                  }">
+              {{ +r.balance_due <= 0 ? 'Paid' : +r.amount_paid > 0 ? 'Partly paid' : 'Unpaid' }}
+            </span>
+          } @else if (r.status === 'paid') {
+            <span class="ui-chip ui-chip--success">Paid</span>
+          } @else {
+            <span class="ui-chip" [matTooltip]="'Its unpaid balance is included in ' + inv(r.carried_to)">Carried over</span>
+          }
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="actions">
+        <th mat-header-cell *matHeaderCellDef></th>
+        <td mat-cell *matCellDef="let r" class="actions-cell" [attr.data-label]="'Actions'">
+          <div class="ui-row-actions">
+            @if (r.is_latest && +r.balance_due > 0) {
+              <button mat-stroked-button class="ui-pay-btn" (click)="openPaymentDial(r)">
+                <mat-icon>payments</mat-icon>
+                Pay
+              </button>
+            }
+            <button mat-icon-button (click)="generateReceipt(r); openReceiptReview()" matTooltip="View and print invoice">
+              <mat-icon>print</mat-icon>
+            </button>
+            <button mat-icon-button (click)="openUpdateDialog(r)" matTooltip="Edit invoice">
+              <mat-icon>edit</mat-icon>
+            </button>
+            <button mat-icon-button color="warn" (click)="deleteReceipt(r.id)" matTooltip="Delete invoice">
+              <mat-icon>delete</mat-icon>
+            </button>
+          </div>
+        </td>
+      </ng-container>
+
+      <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+      <tr mat-row *matRowDef="let row; columns: displayedColumns"></tr>
+      <tr class="mat-row" *matNoDataRow>
+        <td class="mat-cell empty-state" [attr.colspan]="displayedColumns.length">
+          <i class="fas fa-receipt"></i>
+          @if (selectedMonth.value) {
+            <p>No invoices for {{ getSelectedMonthDisplay() }}. Use "Generate monthly invoices" to bill your active contracts.</p>
+          } @else {
+            <p>No invoices yet. They are created when you rent out a unit and when you generate monthly invoices.</p>
+          }
+        </td>
+      </tr>
+    </table>
+    </div>
+
+    <mat-paginator aria-label="Invoice pages"></mat-paginator>
   </div>
-
-  <table mat-table [dataSource]="dataSource" class="mat-elevation-z8">
-    <ng-container matColumnDef="receipt_number">
-      <th mat-header-cell *matHeaderCellDef>Receipt No.</th>
-      <td mat-cell *matCellDef="let r" [attr.data-label]="'Receipt No'">{{ r.receipt_number }}</td>
-    </ng-container>
-
-    <ng-container matColumnDef="contract_number">
-      <th mat-header-cell *matHeaderCellDef>Contract No.</th>
-      <td mat-cell *matCellDef="let r"[attr.data-label]="'No'">{{ r.contract_number }}</td>
-    </ng-container>
-
-    <ng-container matColumnDef="property">
-      <th mat-header-cell *matHeaderCellDef>Property</th>
-      <td mat-cell *matCellDef="let r"[attr.data-label]="'Property'">{{ r.property }}</td>
-    </ng-container>
-
-    <ng-container matColumnDef="unit">
-      <th mat-header-cell *matHeaderCellDef>Unit</th>
-      <td mat-cell *matCellDef="let r"[attr.data-label]="'Unit'">{{ r.unit }}</td>
-    </ng-container>
-
-    <ng-container matColumnDef="customer">
-      <th mat-header-cell *matHeaderCellDef>Customer</th>
-      <td mat-cell *matCellDef="let r"[attr.data-label]="'Customer'">{{ r.customer }}</td>
-    </ng-container>
-
-    <ng-container matColumnDef="balance">
-      <th mat-header-cell *matHeaderCellDef>Balance</th>
-      <td mat-cell *matCellDef="let r"[attr.data-label]="'Balance'">{{r.balance}}</td>
-    </ng-container>
-
-    <ng-container matColumnDef="monthly_rent">
-      <th mat-header-cell *matHeaderCellDef>Rent</th>
-      <td mat-cell *matCellDef="let r"[attr.data-label]="'Rent'">{{ r.monthly_rent | number:'1.2-2' }}</td>
-    </ng-container>
-
-    <ng-container matColumnDef="electricity_bill">
-      <th mat-header-cell *matHeaderCellDef>Electricity</th>
-      <td mat-cell *matCellDef="let r"[attr.data-label]="'Electricity'">{{ r.electricity_bill | number:'1.2-2' }}</td>
-    </ng-container>
-
-    <ng-container matColumnDef="water_bill">
-      <th mat-header-cell *matHeaderCellDef>Water</th>
-      <td mat-cell *matCellDef="let r"[attr.data-label]="'Water'">{{ r.water_bill | number:'1.2-2' }}</td>
-    </ng-container>
-
-    <ng-container matColumnDef="service_charge">
-      <th mat-header-cell *matHeaderCellDef>Service</th>
-      <td mat-cell *matCellDef="let r"[attr.data-label]="'Service '">{{ r.service_charge | number:'1.2-2' }}</td>
-    </ng-container>
-
-    <ng-container matColumnDef="total_amount">
-      <th mat-header-cell *matHeaderCellDef>Total</th>
-      <td mat-cell *matCellDef="let r"[attr.data-label]="'Total'">{{ r.total_amount | number:'1.2-2' }}</td>
-    </ng-container>
-
-    <ng-container matColumnDef="actions">
-      <th mat-header-cell *matHeaderCellDef>Actions</th>
-      <td mat-cell *matCellDef="let r">
-    
-        <button mat-icon-button color="primary" (click)="generateReceipt(r); openReceiptReview()" matTooltip="Print Receipt">
-          <mat-icon>print</mat-icon>
-        </button>
-        <button mat-icon-button color="primary" (click)="generateReceipt(r); openPaymentDial()" matTooltip="Pay Receipt">
-          <mat-icon>payment</mat-icon>
-        </button>
-        <button mat-icon-button color="primary" (click)="openUpdateDialog(r)" matTooltip="Edit Receipt">
-          <mat-icon>edit</mat-icon>
-        </button>
-        <button mat-icon-button color="warn" (click)="deleteReceipt(r.id)" matTooltip="Delete Receipt">
-          <mat-icon>delete</mat-icon>
-        </button>
-      </td>
-    </ng-container>
-
-    <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
-    <tr mat-row 
-        *matRowDef="let row; columns: displayedColumns"
-        [ngClass]="{
-          'balance-paid': row.status === 'paid',
-          'balance-unpaid': row.status === 'unpaid',
-          'balance-partial': row.status === 'partial'
-        }">
-    </tr>
-  </table>
-
-  <mat-paginator [pageSizeOptions]="[5, 10, 20]"
-                 showFirstLastButtons
-                 aria-label="Select page of receipts">
-  </mat-paginator>
 </div>
 
 <!-- Generate Monthly Receipts Dialog -->
 <ng-template #generateMonthlyDialog>
-  <h2 mat-dialog-title>Generate Monthly Receipts</h2>
+  <h2 mat-dialog-title>Generate Monthly Invoices</h2>
   <mat-dialog-content>
     <p class="dialog-description">This will generate receipts for all active contracts for the selected month.</p>
     
@@ -205,7 +249,7 @@
   </h2>
   <mat-dialog-content style="max-height: 70vh; overflow-y: auto;">
     <div class="dialog-info" style="background: #e3f2fd; padding: 12px; border-radius: 4px; margin-bottom: 16px;">
-      <mat-icon style="vertical-align: middle; color: #1976d2;">info</mat-icon>
+      <mat-icon style="vertical-align: middle; color: #465fff;">info</mat-icon>
       <span style="margin-left: 8px;">Please enter current meter readings for all units. Previous readings are shown for reference.</span>
     </div>
 
@@ -235,7 +279,7 @@
               <div class="readings-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
                 @if (systemParametersObject?.has_water_bill) {
                   <div class="reading-section">
-                    <h4 style="margin: 0 0 8px 0; color: #1976d2; font-size: 14px;">
+                    <h4 style="margin: 0 0 8px 0; color: #465fff; font-size: 14px;">
                       <mat-icon style="vertical-align: middle; font-size: 18px;">water_drop</mat-icon>
                       Water Reading
                     </h4>
@@ -353,12 +397,12 @@
       @if (loadGenerating) {
         <span>
           <mat-icon class="spin">hourglass_empty</mat-icon>
-          Generating Receipts...
+          Generating invoices...
         </span>
       } @else {
         <span>
           <mat-icon>receipt</mat-icon>
-          Generate Receipts
+          Generate invoices
         </span>
       }
     </button>
@@ -368,11 +412,11 @@
 <!-- Delete Receipt Dialog -->
 <ng-template #deleteReceiptDial> <br>
   <div class="container-fluid dialog-header">
-      <h2 style="display: inline;" mat-dialog-title>Delete Receipt</h2>
+      <h2 style="display: inline;" mat-dialog-title>Delete Invoice</h2>
       <button style="display: inline;float: right;" mat-icon-button mat-dialog-close aria-label="Close dialog">
         <mat-icon>close</mat-icon>
       </button> <br> 
-    <p>Are you sure you want to delete this receipt</p>
+    <p>Are you sure you want to delete this invoice?</p>
     <mat-dialog-actions align="end">
         <button mat-button matDialogClose="no">No</button>
         <button mat-button matDialogClose="yes">Yes</button>
@@ -380,156 +424,34 @@
   </div>
 </ng-template>
 
-<!-- Receipt Preview Dialog -->
-<ng-template #receiptPreviewDialog> <br>
-  <div class="container-fluid dialog-header">
-      <h2 style="display: inline;" mat-dialog-title> Receipt Preview</h2>
-      <button style="display: inline;float: right;" mat-icon-button mat-dialog-close aria-label="Close dialog">
+<!-- Invoice preview; also shows the receipt right after a payment is recorded -->
+<ng-template #receiptPreviewDialog>
+  <div class="doc-dialog">
+    <header class="doc-dialog-header">
+      <h2 mat-dialog-title>{{ documentData?.kind === 'receipt' ? 'Receipt' : 'Invoice' }} {{ documentData?.number }}</h2>
+      <button mat-icon-button mat-dialog-close aria-label="Close dialog">
         <mat-icon>close</mat-icon>
-      </button> <br> 
-  
-  <mat-dialog-content>
-    <div #receiptPreview class="receipt-container">
-      <h2 style="text-align: center;">{{receipt?.property}} Apartments</h2>
-      <h2 style="text-align: center;">INVOICE/RECEIPT</h2>
-      
-      <div class="container-fluid" style="width: 100%;">
-        <div class="row">
-          <div class="col-6">
-            <p><strong>Receipt No:</strong> {{ receipt?.receipt_number }}</p>
-            <p><strong>Date:</strong> {{ formattedDate }}</p>
-            <p><strong>Received From:</strong> {{ receiptClientName }}</p>
-            <p><strong>Apartment No:</strong> {{ houseNameNo }}</p>
-          </div>
-          <div class="col-6">
-          @if (toNumber(receipt?.water_bill) !== 0) {
-            <div>
-                <p><strong>Current Water Reading:</strong> {{ receipt?.current_water_reading }}</p>
-                <p><strong>Previous Water Reading:</strong> {{ receipt?.previous_water_reading }}</p>
-            </div>
-            }
-  
-            @if (toNumber(receipt?.electricity_bill) !== 0) {
-            <div>
-                <p><strong>Current Electricity Reading:</strong> {{ receipt?.current_electricity_reading }}</p>
-                <p><strong>Previous Electricity Reading:</strong> {{ receipt?.previous_electricity_reading }}</p>
-            </div>
-            }
- 
-        
-          </div>
-        </div>
-      </div>
-   
-      <div style="width: 100%; overflow-x: hidden;">
-          <table class="table-receipt" border="1" width="100%">
-            <thead>
-              <tr>
-                <th>Description</th>
-                <th>Kshs</th>
-                <th>Cts</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr *ngFor="let item of receiptItems">
-                <td class="td-area">{{ item.label }}</td>
-                <td class="th-area">{{ item.amount | number:'1.2-2' }}</td>
-                <td>00</td>
-              </tr>
-              <tr>
-                <td class="td-area"><strong>Total</strong></td>
-                <td class="th-area"><strong>{{ receipt?.total_amount | number:'1.2-2' }}</strong></td>
-                <td>00</td>
-              </tr>
-            </tbody>
-          </table>
-      </div>
-    </div>
-  </mat-dialog-content>
-  
-  <mat-dialog-actions align="end">
-    <button mat-button mat-dialog-close>Close</button>
-    <button mat-raised-button color="primary" (click)="generatePDF()">
-      <mat-icon>download</mat-icon>
-      Download PDF
-    </button>
-  </mat-dialog-actions>
-  </div>
-</ng-template>
+      </button>
+    </header>
 
-<!-- Payment Dialog -->
-<ng-template #paymentsDial> <br>
-  <div class="container-fluid dialog-header">
-      <h2 style="display: inline;" mat-dialog-title> Pay Receipt </h2>
-      <button style="display: inline;float: right;" mat-icon-button mat-dialog-close aria-label="Close dialog">
-        <mat-icon>close</mat-icon>
-      </button> <br> 
+    <mat-dialog-content>
+      <app-rent-document #invoiceDoc [doc]="documentData"></app-rent-document>
+    </mat-dialog-content>
 
-          <form [formGroup]="paymentForm">
-
-            <div class="container-fluid">
-              <div class="row">
-                <div class="col-md-4">
-                  <mat-form-field appearance="outline" class="full-width">
-                    <mat-label>Amount</mat-label>
-                    <input matInput formControlName="amount" type="number" step="0.01" required />
-                    @if (paymentForm.get('amount')?.hasError('required')) {
-                      <mat-error>Amount is required</mat-error>
-                    }
-                    @if (paymentForm.get('amount')?.hasError('min')) {
-                      <mat-error>Amount must be greater than 0</mat-error>
-                    }
-                  </mat-form-field>
-                </div>
-                <div class="col-md-4">
-                  <mat-form-field appearance="outline" class="full-width">
-                    <mat-label>Payment Method</mat-label>
-                    <mat-select formControlName="method" required>
-                      <mat-option value="cash">Cash</mat-option>
-                      <mat-option value="mpesa">M-Pesa</mat-option>
-                      <mat-option value="bank">Bank Transfer</mat-option>
-                    </mat-select>
-                    @if (paymentForm.get('method')?.hasError('required')) {
-                      <mat-error>Payment method is required</mat-error>
-                    }
-                  </mat-form-field>
-                </div>
-                <div class="col-md-4">
-                    <mat-form-field appearance="outline" class="full-width">
-                      <mat-label>Reference (M-Pesa Code / Bank Ref)</mat-label>
-                      <input matInput formControlName="reference" type="text" />
-                      @if (paymentForm.get('reference')?.hasError('required')) {
-                        <mat-error>Reference Code is required </mat-error>
-                      }
-                    </mat-form-field>
-                  </div>
-                </div>
-                <div class="row">
-                  <div class="col-md-8">
-                      <mat-form-field style="width: 100%;" appearance="outline" class="full-width">
-                        <mat-label>Notes</mat-label>
-                        <textarea matInput formControlName="notes" rows="3"></textarea>
-                      </mat-form-field>
-                  </div>
-                  <div class="col-md-4">
-                  </div>
-                </div>
-              </div>
-
-        
-
-          </form>
-
-        <mat-dialog-actions align="end">
-          <button mat-button mat-dialog-close>Cancel</button>
-          <button mat-flat-button color="primary" (click)="addPayment()" [disabled]="loadMakingPayments || paymentForm.invalid">
-            @if (loadMakingPayments) {
-              <span>Saving...</span>
-            } @else {
-              <span>Make Payments</span>
-            }
-          </button>
-        </mat-dialog-actions>
-
+    <mat-dialog-actions align="end">
+      <button mat-button mat-dialog-close>Close</button>
+      <button mat-stroked-button (click)="invoiceDoc.share()">
+        <i class="fab fa-whatsapp" style="color: #1fa855; font-size: 18px"></i>&nbsp;
+        WhatsApp
+      </button>
+      <button mat-stroked-button (click)="invoiceDoc.download()">
+        <mat-icon>download</mat-icon>
+        Download PDF
+      </button>
+      <button mat-flat-button color="primary" (click)="invoiceDoc.print()">
+        <mat-icon>print</mat-icon>
+        Print
+      </button>
+    </mat-dialog-actions>
   </div>
 </ng-template>

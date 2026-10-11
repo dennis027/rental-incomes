@@ -1,0 +1,11 @@
+.arrears-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 56px 20px;
+  color: var(--gray-500);
+}
+.arrears-state p { margin: 0; font-size: 14px; }
+
+.whatsapp-btn { color: #1fa855; font-size: 20px; }

@@ -1,4 +1,6 @@
-import { Component, inject, ViewChild, AfterViewInit, OnInit, ChangeDetectorRef, TemplateRef, PLATFORM_ID } from '@angular/core';
+import { PropertyContext } from '../../../services/property-context';
+import { MoveOutDialog } from '../move-out/move-out-dialog';
+import { Component, inject, ViewChild, AfterViewInit, OnInit, ChangeDetectorRef, TemplateRef, PLATFORM_ID, effect, untracked } from '@angular/core';
 import { isPlatformBrowser } from '@angular/common';
 import { UnitsService } from '../../../services/units';
 import { PropertiesService } from '../../../services/properties';
@@ -24,6 +26,9 @@ export interface UnitsTable {
   balance: string;
   status: string;
   active_contract_deposit: string;
+  tenant_name?: string | null;
+  contract_id?: number | null;
+  contract_number?: string | null;
 }
 
 @Component({
@@ -34,6 +39,23 @@ export interface UnitsTable {
   styleUrl: './units.css'
 })
 export class Units implements OnInit, AfterViewInit {
+
+  // The property chosen in the top bar; this page follows it
+  private propertyContext = inject(PropertyContext);
+  private propertySync = effect(() => {
+    const propertyId = this.propertyContext.selectedId();
+    untracked(() => this.followProperty(propertyId));
+  });
+
+  private followProperty(propertyId: number | null): void {
+    if (propertyId === null || this.properties.length === 0 || this.selectedPropertyId === propertyId) {
+      return;
+    }
+    this.selectedPropertyId = propertyId as any;
+    this.filterUnitsByProperty();
+    this.cdr.detectChanges();
+  }
+
   private snackBar = inject(MatSnackBar);
   private cdr = inject(ChangeDetectorRef);
   private contractsService = inject(ContractsService)
@@ -47,7 +69,6 @@ export class Units implements OnInit, AfterViewInit {
   @ViewChild('deleteDialog') deleteDialog!: TemplateRef<any>;
 
     @ViewChild('newContractDialog') newContractDialog!: TemplateRef<any>;
-    @ViewChild('cancelContractDialog') cancelContractDialog!: TemplateRef<any>;
 
   loadAdding = false;
   loadUpdating = false;
@@ -61,8 +82,11 @@ export class Units implements OnInit, AfterViewInit {
   contractForm!: FormGroup;
   selectedUnitId: string | null = null;
   selectedContractId: string | null = null;
-  loadCancelling: boolean = false;
-
+  // Unit the contract dialog (create or end) is open for
+  contractUnit: any = null;
+  contractError: string | null = null;
+  // True once the user types their own deposit, so it is no longer recalculated
+  private depositEdited = false;
 
   formatToYMD(dateString: string): string {
     const date = new Date(dateString);
@@ -72,8 +96,7 @@ export class Units implements OnInit, AfterViewInit {
     return `${year}-${month}-${day}`;
   }
 
-
-  displayedColumns: string[] = ['unit_number', 'unit_type', 'rent_amount', 'active_contract_deposit', 'balance', 'status', 'actions'];
+  displayedColumns: string[] = ['unit_number', 'unit_type', 'tenant_name', 'rent_amount', 'active_contract_deposit', 'balance', 'status', 'actions'];
   unitsObject: UnitsTable[] = [];
 
   systemParameters: any;
@@ -129,11 +152,9 @@ export class Units implements OnInit, AfterViewInit {
   ngOnInit() {
     // ✅ CRITICAL: Only load data in browser
     if (isPlatformBrowser(this.platformId)) {
-      console.log('🔍 Units component running in browser');
 
       // Verify token exists
       const token = localStorage.getItem('access_token');
-      console.log('🔑 Token status:', token ? 'Token exists' : '❌ NO TOKEN!');
 
       if (!token) {
         console.error('❌ No access token found, redirecting to login');
@@ -145,37 +166,28 @@ export class Units implements OnInit, AfterViewInit {
       this.loadCustomers();
       setTimeout(() => { this.initializeForm(); this.intContractForm}, 1000);
     } else {
-      console.log('⚠️ Units component running on server, skipping API calls');
     }
   }
 
-
-
   loadCustomers() {
-    console.log('📡 Loading customers...');
     this.customersService.getCustomers().subscribe({
       next: (res) => {
         this.customers = res;
-        console.log('✅ Customers loaded:', this.customers);
         this.cdr.detectChanges();
       },
       error: (err) => {
         console.error('❌ Error loading customers:', err);
         if (err.status === 401) {
-          console.log('🔒 Unauthorized, redirecting to login...');
           this.router.navigate(['/login']);
         }
       },
     });
   }
 
-
   getSystemParameters(propertyId: number) {
-    console.log('📡 Loading system parameters for property:', propertyId);
 
     this.systemsParamsService.getSystemParams(propertyId).subscribe({
       next: (res) => {
-        console.log('✅ System parameters loaded:', res);
         this.systemParameters = res;
         this.showElectricityMeter = this.systemParameters.has_electricity_bill;
         this.showWaterMeter = this.systemParameters.has_water_bill;
@@ -184,7 +196,6 @@ export class Units implements OnInit, AfterViewInit {
       error: (err) => {
         console.error('❌ Error loading system parameters:', err);
         if (err.status === 401) {
-          console.log('🔒 Unauthorized, redirecting to login...');
           this.router.navigate(['/login']);
           this.dialog.closeAll();
         }
@@ -203,7 +214,6 @@ export class Units implements OnInit, AfterViewInit {
       electricity_meter_reading: [0, [Validators.required, Validators.min(0)]],
     });
 
-
   }
 
   intContractForm() {
@@ -217,11 +227,9 @@ export class Units implements OnInit, AfterViewInit {
   }
 
   getUnits() {
-    console.log('📡 Loading units...');
 
     this.UnitsService.getUnits().subscribe({
       next: (res: UnitsTable[] | any) => {
-        console.log('✅ Units loaded:', res);
         this.unitsObject = res;
         this.dataSource.data = this.unitsObject;
         this.isLoading = false;
@@ -246,7 +254,6 @@ export class Units implements OnInit, AfterViewInit {
         this.isLoading = false;
 
         if (err.status === 401) {
-          console.log('🔒 Unauthorized, redirecting to login...');
           this.router.navigate(['/login']);
           this.dialog.closeAll();
         } else {
@@ -257,17 +264,15 @@ export class Units implements OnInit, AfterViewInit {
   }
 
   getProperties() {
-    console.log('📡 Loading properties...');
 
     this.PropertiesService.getProperties().subscribe({
       next: (res) => {
-        console.log('✅ Properties loaded:', res);
         this.properties = res;
 
         if (this.properties.length > 0) {
           // Auto-select the first property
-          this.selectedPropertyId = this.properties[0].id;
-          this.selectedPropertyName = this.properties[0].name;
+          this.selectedPropertyId = this.propertyContext.resolve(this.properties) as any;
+          this.selectedPropertyName = this.properties.find((prop: any) => prop.id === this.selectedPropertyId)?.name || '';
         }
         // 🔥 Tell Angular to re-run change detection safely
         this.cdr.detectChanges();
@@ -279,7 +284,6 @@ export class Units implements OnInit, AfterViewInit {
         console.error('❌ Error loading properties:', err);
 
         if (err.status === 401) {
-          console.log('🔒 Unauthorized, redirecting to login...');
           this.router.navigate(['/login']);
           this.dialog.closeAll();
         } else {
@@ -337,16 +341,13 @@ export class Units implements OnInit, AfterViewInit {
     dialogRef.afterClosed().subscribe(result => {
       if (result !== undefined) {
         if (result === 'yes') {
-          console.log('User clicked yes.');
         } else if (result === 'no') {
-          console.log('User clicked no.');
         }
       }
     });
   }
 
   testForm() {
-    console.log(this.unitForm.value);
   }
 
   addUnit() {
@@ -356,7 +357,6 @@ export class Units implements OnInit, AfterViewInit {
     }
 
     this.loadAdding = true;
-    console.log('📤 Adding unit...');
     this.cdr.detectChanges();
 
     const newUnit = {
@@ -370,7 +370,6 @@ export class Units implements OnInit, AfterViewInit {
 
     this.UnitsService.addUnit(newUnit).subscribe({
       next: (res) => {
-        console.log('✅ Unit added successfully:', res);
         this.loadAdding = false;
         this.getUnits();
         const resetValue = {
@@ -396,7 +395,6 @@ export class Units implements OnInit, AfterViewInit {
         }
 
         if (err.status === 401) {
-          console.log('🔒 Unauthorized, redirecting to login...');
           this.router.navigate(['/login']);
           this.dialog.closeAll();
         }
@@ -426,14 +424,12 @@ export class Units implements OnInit, AfterViewInit {
     if (!this.selectedUnitId || this.updateUnitForm.invalid) return;
 
     this.loadUpdating = true;
-    console.log('📤 Updating unit:', this.selectedUnitId);
     this.cdr.detectChanges();
 
     const updatedData = this.updateUnitForm.value;
 
     this.UnitsService.updateUnit(this.selectedUnitId, updatedData).subscribe({
       next: (response) => {
-        console.log('✅ Unit updated successfully:', response);
         this.loadUpdating = false;
         this.getUnits();
         this.updateUnitForm.reset();
@@ -447,7 +443,6 @@ export class Units implements OnInit, AfterViewInit {
         this.showError('Failed to update unit. Please try again.');
 
         if (error.status === 401) {
-          console.log('🔒 Unauthorized, redirecting to login...');
           this.router.navigate(['/login']);
           this.dialog.closeAll();
         }
@@ -467,11 +462,9 @@ export class Units implements OnInit, AfterViewInit {
     if (!this.selectedUnitId) return;
 
     this.loadDeleting = true;
-    console.log('🗑️ Deleting unit:', this.selectedUnitId);
 
     this.UnitsService.deleteUnit(this.selectedUnitId).subscribe({
       next: (response) => {
-        console.log('✅ Unit deleted successfully:', response);
         this.loadDeleting = false;
         this.getUnits();
         this.dialog.closeAll();
@@ -483,7 +476,6 @@ export class Units implements OnInit, AfterViewInit {
         this.showError('Failed to delete unit. Please try again.');
 
         if (error.status === 401) {
-          console.log('🔒 Unauthorized, redirecting to login...');
           this.router.navigate(['/login']);
           this.dialog.closeAll();
         }
@@ -491,50 +483,88 @@ export class Units implements OnInit, AfterViewInit {
     });
   }
 
-  openCreateContractDialog(id: any) {
-    this.selectedUnitId= id.id
-    console.log(id);
-    this.contractForm.patchValue({  
-      rent_amount: id.rent_amount,
-      deposit_amount: id.rent_amount*this.systemParameters.rent_deposit_months ,
-      payment_frequency:'monthly',
-
-    })
+  /** Tenants who can take a unit: active and not already living in one */
+  get availableTenants(): any[] {
+    return (this.customers ?? []).filter((customer: any) => customer.is_active !== false && !customer.unit);
   }
 
-  openCancelContractDialog(id: any) {
-    console.log(id);
+  /** Months of rent taken as deposit, from the property's settings */
+  get depositMonths(): number {
+    return Number(this.systemParameters?.rent_deposit_months ?? 1);
   }
 
-
-  // add contract here
-
-
-   openNewContractDial() {
-
-      this.intContractForm();
-        let dialogRef = this.dialog.open(this.newContractDialog,{
-          maxWidth: '700px',
-        });
-        dialogRef.afterClosed().subscribe(result => {
-            // Note: If the user clicks outside the dialog or presses the escape key, there'll be no result
-            if (result !== undefined) {
-                if (result === 'yes') {
-                } else if (result === 'no') {
-                }
-            }
-        })
-
-
+  /** What the tenant owes at move-in; mirrors the first invoice the server creates */
+  get moveInLines(): { label: string; amount: number }[] {
+    const form = this.contractForm?.value ?? {};
+    const params = this.systemParameters ?? {};
+    const lines = [
+      { label: 'First rent', amount: Number(form.rent_amount) || 0 },
+      { label: 'Rent deposit', amount: Number(form.deposit_amount) || 0 },
+    ];
+    if (params.require_water_deposit) {
+      lines.push({ label: 'Water deposit', amount: Number(params.water_deposit_amount) || 0 });
     }
+    if (params.require_electricity_deposit) {
+      lines.push({ label: 'Electricity deposit', amount: Number(params.electricity_deposit_amount) || 0 });
+    }
+    if (params.has_service_charge && Number(params.default_service_charge) > 0) {
+      lines.push({ label: 'Service charge', amount: Number(params.default_service_charge) });
+    }
+    return lines;
+  }
 
-    addContract() {
+  get moveInTotal(): number {
+    return this.moveInLines.reduce((sum, line) => sum + line.amount, 0);
+  }
+
+  openContractDialog(unit: any) {
+    this.contractUnit = unit;
+    this.selectedUnitId = unit.id;
+    this.contractError = null;
+    this.depositEdited = false;
+    this.loadAdding = false;
+
+    this.intContractForm();
+    const rent = Number(unit.rent_amount) || 0;
+    this.contractForm.patchValue({
+      start_date: new Date(),
+      rent_amount: rent,
+      deposit_amount: rent * this.depositMonths,
+      payment_frequency: 'monthly',
+    });
+
+    // The deposit follows the rent until the user sets their own figure
+    this.contractForm.get('rent_amount')?.valueChanges.subscribe(value => {
+      if (!this.depositEdited) {
+        this.contractForm.get('deposit_amount')?.setValue((Number(value) || 0) * this.depositMonths, { emitEvent: false });
+      }
+      this.cdr.detectChanges();
+    });
+    this.contractForm.get('deposit_amount')?.valueChanges.subscribe(() => this.cdr.detectChanges());
+
+    // Pick up tenants registered since the page loaded
+    this.loadCustomers();
+
+    this.dialog.open(this.newContractDialog, { width: '640px', maxWidth: '95vw' });
+  }
+
+  onDepositInput() {
+    this.depositEdited = true;
+  }
+
+  goToTenants() {
+    this.dialog.closeAll();
+    this.router.navigate(['/dashboard/rental-customers']);
+  }
+
+  addContract() {
     if (this.contractForm.invalid) {
       this.contractForm.markAllAsTouched();
       return;
     }
 
     this.loadAdding = true;
+    this.contractError = null;
     const formValues = this.contractForm.value;
 
     const payload = {
@@ -546,75 +576,50 @@ export class Units implements OnInit, AfterViewInit {
       payment_frequency: formValues.payment_frequency,
     };
 
-    console.log('📤 Adding contract:', payload);
-
     this.contractsService.addContract(payload).subscribe({
       next: () => {
-        console.log('✅ Contract added successfully');
         this.loadAdding = false;
-        this.showSuccess('Contract added successfully!');
+        this.showSuccess(`Unit ${this.contractUnit?.unit_number} is now rented out. The first invoice has been created.`);
         this.dialog.closeAll();
         this.contractForm.reset();
         this.getUnits();
+        this.loadCustomers();
         this.cdr.detectChanges();
       },
       error: (err) => {
-        console.error('❌ Error adding contract:', err);
         this.loadAdding = false;
-        this.showError('Failed to add contract.');
-        this.cdr.detectChanges();
         if (err.status === 401) {
           this.router.navigate(['/login']);
           this.dialog.closeAll();
+          return;
         }
+        // Show the server's reason, e.g. the unit or tenant already has a contract
+        const details = err.error;
+        const firstFieldError = details && typeof details === 'object'
+          ? Object.values(details).flat().find(value => typeof value === 'string')
+          : null;
+        this.contractError = details?.error || (firstFieldError as string) || 'The contract could not be created. Please try again.';
+        this.cdr.detectChanges();
       },
     });
   }
 
-  //cancel contract here
+  // End a contract: readings, deductions and the deposit are settled in the move-out dialog
 
-    openCancelDialog(contract: any) {
-      this.selectedContractId = contract.contract_id;
-      this.dialog.open(this.cancelContractDialog, {
-        width: '500px',
-        disableClose: true
-      });
-    }
-  
-    confirmCancel() {
-      if (!this.selectedContractId) return;
-      this.loadCancelling = true;
-  
-      const payload = {
-        is_active: false,
-        cancellation_date: new Date().toISOString().split('T')[0]
-      };
-  
-      console.log('📤 Cancelling contract:', this.selectedContractId);
-  
-      this.contractsService.cancelContract(this.selectedContractId, payload).subscribe({
-        next: () => {
-          console.log('✅ Contract cancelled successfully');
-          this.showSuccess('Contract cancelled successfully!');
-          this.dialog.closeAll();
-          setTimeout(() => {
-            this.getUnits();
-          });
-          this.cdr.detectChanges();
-        },
-        error: (err) => {
-          console.error('❌ Error cancelling contract:', err);
-          this.loadCancelling = false;
-          this.showError('Failed to cancel contract.');
-          if (err.status === 401) {
-            console.log('🔒 Unauthorized, redirecting to login...');
-            this.router.navigate(['/login']);
-          }
-          this.cdr.detectChanges();
-        },
-      });
-    }
-  
-
-  
+  openCancelDialog(unit: any) {
+    if (!unit.contract_id) return;
+    this.dialog.open(MoveOutDialog, {
+      width: '640px',
+      maxWidth: '95vw',
+      disableClose: true,
+      data: { contractId: unit.contract_id },
+    }).afterClosed().subscribe(ended => {
+      if (ended) {
+        this.showSuccess(`Contract ended. Unit ${unit.unit_number} is vacant again.`);
+        this.getUnits();
+        this.loadCustomers();
+        this.cdr.detectChanges();
+      }
+    });
+  }
 }

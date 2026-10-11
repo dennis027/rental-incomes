@@ -1,18 +1,12 @@
-import {
-  Component,
-  AfterViewInit,
-  ViewChild,
-  inject,
-  TemplateRef,
-  ChangeDetectorRef,
-  PLATFORM_ID,
-  OnInit
-} from '@angular/core';
+import { PropertyContext } from '../../../services/property-context';
+import { CategoryOption, EXPENSE_CATEGORIES, MAINTENANCE_CATEGORIES } from './expense-categories';
+import { Component, AfterViewInit, ViewChild, inject, TemplateRef, ChangeDetectorRef, PLATFORM_ID, OnInit, effect, untracked } from '@angular/core';
 import { isPlatformBrowser } from '@angular/common';
 import { SharedImports } from '../../../shared-imports/imports';
 import { MatDialog } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { Router } from '@angular/router';
+import { forkJoin } from 'rxjs';
 import { ExpensesService } from '../../../services/expense-service';
 import { MaintenanceService } from '../../../services/maintanance-service';
 import { MatPaginator } from '@angular/material/paginator';
@@ -43,6 +37,20 @@ export interface maintanceObject {
   styleUrl: './expensemaintanace.css'
 })
 export class Expensemaintanace implements OnInit, AfterViewInit {
+
+  // The property chosen in the top bar; this page follows it
+  private propertyContext = inject(PropertyContext);
+  private propertySync = effect(() => {
+    const propertyId = this.propertyContext.selectedId();
+    untracked(() => this.followProperty(propertyId));
+  });
+
+  private followProperty(propertyId: number | null): void {
+    if (propertyId === null || this.properties.length === 0 || this.selectedPropertyId === propertyId) {
+      return;
+    }
+    this.onPropertyFilterChange(propertyId);
+  }
 
   private snackBar = inject(MatSnackBar);
   private dialog = inject(MatDialog);
@@ -107,11 +115,11 @@ export class Expensemaintanace implements OnInit, AfterViewInit {
   isUpdateSubmitting = false;
 
   expenseObject: expensesObject[] = [];
-  displayedExpensesColumns: string[] = ['description', 'amount', 'expense_date', 'actions'];
+  displayedExpensesColumns: string[] = ['category', 'description', 'expense_date', 'amount', 'amount_paid', 'balance', 'payment_status', 'actions'];
   dataExpenseSource = new MatTableDataSource<expensesObject>(this.expenseObject);
 
   maintainanceObject: maintanceObject[] = [];
-  displayedMaintanceColumns: string[] = ['unit_number', 'description', 'status', 'reported_date', 'actions'];
+  displayedMaintanceColumns: string[] = ['unit_number', 'category', 'description', 'status', 'reported_date', 'amount', 'payment_status', 'actions'];
   dataMaintanceSource = new MatTableDataSource<maintanceObject>(this.maintainanceObject);
 
   @ViewChild('expensesPaginator') expensePaginator!: MatPaginator;
@@ -131,13 +139,10 @@ export class Expensemaintanace implements OnInit, AfterViewInit {
     this.openMaintanaceForm();
     this.openUpdateMaintanaceForm();
     this.expensePaymentsFormsInit();
-  
 
     if (isPlatformBrowser(this.platformId)) {
-      console.log('🔍 Expense & Maintenance component running in browser');
       
       const token = localStorage.getItem('access_token');
-      console.log('🔑 Token status:', token ? 'Token exists' : '❌ NO TOKEN!');
       
       if (!token) {
         console.error('❌ No access token found, redirecting to login');
@@ -148,58 +153,133 @@ export class Expensemaintanace implements OnInit, AfterViewInit {
       // ✅ Load units and properties first, then load data
       this.loadInitialData();
     } else {
-      console.log('⚠️ Expense & Maintenance component running on server, skipping API calls');
     }
   }
 
   // ✅ NEW: Load data in correct order
-  loadInitialData() {
-    // Load units first
-    this.unitsService.getUnits().subscribe({
-      next: (unitData) => {
-        console.log('✅ Units loaded:', unitData);
-        this.units = unitData;
-        
-        // Then load properties
-        this.propertyService.getProperties().subscribe({
-          next: (propData) => {
-            console.log('✅ Properties loaded:', propData);
-            this.properties = propData;
-            
-            // Set default property
-            if (this.properties.length) {
-              this.selectedPropertyId = this.properties[0].id;
-              this.onPropertyChange(this.selectedPropertyId);
-            }
-            
-            // Now load expenses and maintenance
-            this.getExpenses();
-            this.getMaintanance();
-            this.getCustomers();
-          },
-          error: (error) => {
-            this.showError('Failed to load properties.');
-            console.error('Error fetching properties:', error);
-            if (error.status === 401) {
-              this.router.navigate(['/login']);
-            }
-          }
-        });
+loadInitialData() {
+    this.isLoading = true;
+
+    // Everything the page needs, requested together instead of one after another
+    forkJoin({
+      units: this.unitsService.getUnits(),
+      properties: this.propertyService.getProperties(),
+      expenses: this.expenseService.getExpenses(),
+      maintenance: this.maintanaceService.getMaintenanceRequests(),
+      customers: this.customerService.getCustomers(),
+    }).subscribe({
+      next: ({ units, properties, expenses, maintenance, customers }) => {
+        this.units = units;
+        this.properties = properties;
+        this.allExpenses = expenses;
+        this.allMaintenance = maintenance;
+        this.customers = customers;
+
+        if (this.properties.length) {
+          this.selectedPropertyId = this.propertyContext.resolve(this.properties);
+          this.onPropertyChange(this.selectedPropertyId);
+        }
+
+        this.isLoading = false;
+        this.cdr.detectChanges();
       },
       error: (error) => {
-        this.showError('Failed to load units.');
-        console.error('Error fetching units:', error);
+        this.isLoading = false;
         if (error.status === 401) {
           this.router.navigate(['/login']);
+          return;
         }
+        this.showError('The page could not be loaded. Check your connection and try again.');
+        this.cdr.detectChanges();
       }
     });
+  }
+
+  // ---------- What is on screen ----------
+
+  tab: 'expenses' | 'maintenance' = 'expenses';
+
+  setTab(tab: 'expenses' | 'maintenance') {
+    this.tab = tab;
+  }
+
+  private sum(rows: any[], field: string): number {
+    return rows.reduce((total, row) => total + (Number(row[field]) || 0), 0);
+  }
+
+  /** Totals for the property and dates currently selected */
+  get totalExpenses(): number {
+    return this.sum(this.expenseObject, 'amount');
+  }
+
+  get unpaidExpenses(): number {
+    return this.sum(this.expenseObject, 'balance');
+  }
+
+  get openRequests(): number {
+    return this.maintainanceObject.filter((request: any) => request.status !== 'resolved').length;
+  }
+
+  get maintenanceCost(): number {
+    return this.sum(this.maintainanceObject, 'amount');
+  }
+
+  // ---------- Types ----------
+
+  expenseCategories = EXPENSE_CATEGORIES;
+  maintenanceCategories = MAINTENANCE_CATEGORIES;
+  // '' shows every type; each tab keeps its own choice
+  expenseCategory = '';
+  maintenanceCategory = '';
+
+  private option(options: CategoryOption[], value: string): CategoryOption {
+    return options.find(option => option.value === value) ?? options[options.length - 1];
+  }
+
+  expenseType(value: string): CategoryOption {
+    return this.option(EXPENSE_CATEGORIES, value);
+  }
+
+  maintenanceType(value: string): CategoryOption {
+    return this.option(MAINTENANCE_CATEGORIES, value);
+  }
+
+  setExpenseCategory(value: string): void {
+    this.expenseCategory = this.expenseCategory === value ? '' : value;
+    this.filterDataByProperty();
+  }
+
+  /** What was spent on each type in the selected property and dates, largest first */
+  expenseBreakdown: { option: CategoryOption; total: number }[] = [];
+
+  private buildBreakdown(expenses: any[]): void {
+    const totals = new Map<string, number>();
+    for (const expense of expenses) {
+      const key = expense.category || 'other';
+      totals.set(key, (totals.get(key) ?? 0) + (Number(expense.amount) || 0));
+    }
+    this.expenseBreakdown = [...totals.entries()]
+      .map(([value, total]) => ({ option: this.expenseType(value), total }))
+      .sort((a, b) => b.total - a.total);
+  }
+
+  /** Colour of a payment chip, for both expenses and maintenance wording */
+  paymentTone(status: string): string {
+    const value = (status || '').toLowerCase();
+    if (value.includes('partial')) return 'warning';
+    if (value === 'paid' || value.includes('fully')) return 'success';
+    if (value.includes('unpaid') || value.includes('not paid')) return 'error';
+    return 'neutral';
+  }
+
+  paymentLabel(status: string): string {
+    const labels: Record<string, string> = { paid: 'Paid', unpaid: 'Unpaid', partial: 'Partly paid' };
+    return labels[status] ?? status ?? '—';
   }
 
   getCustomers() {
     this.customerService.getCustomers().subscribe({
       next: (data) => {
-        console.log('✅ Customers loaded:', data);
         this.customers = data;
       },
       error: (error) => {
@@ -216,6 +296,7 @@ export class Expensemaintanace implements OnInit, AfterViewInit {
     this.maintanaceForm = this.fb.group({
       unit: ['', Validators.required],
       customer: ['', Validators.required],
+      category: ['', Validators.required],
       description: ['', Validators.required],
     });
   }
@@ -224,12 +305,14 @@ export class Expensemaintanace implements OnInit, AfterViewInit {
     this.updateMaintanaceForm = this.fb.group({
       unit: ['', Validators.required],
       customer: ['', Validators.required],
+      category: ['', Validators.required],
       description: ['', Validators.required],
     });
   }
 
   expenseSForm(): void {
     this.expenseForm = this.fb.group({
+      category: ['', Validators.required],
       description: ['', [Validators.required, Validators.minLength(3)]],
       amount: ['', [Validators.required, Validators.pattern(/^\d+(\.\d{1,2})?$/)]],
     });
@@ -237,38 +320,34 @@ export class Expensemaintanace implements OnInit, AfterViewInit {
 
   updateExpensesForm(): void {
     this.updateExpenseForm = this.fb.group({
+      category: ['', Validators.required],
       description: ['', [Validators.required, Validators.minLength(3)]],
       amount: ['', [Validators.required, Validators.pattern(/^\d+(\.\d{1,2})?$/)]],
     });
   }
 
-
   expensePaymentsFormsInit() : void {  
     this.expensePaymentForm = this.fb.group({
-      amount: ['', Validators.required],
-      method: ['', Validators.min(0)],
-      reference: ['', Validators.required],
-      notes: ['', [Validators.required]]
+      amount: ['', [Validators.required, Validators.min(1)]],
+      method: ['mpesa', Validators.required],
+      reference: [''],
+      notes: ['']
     });
-
 
   }
 
   maintanancePaymentsFormsInit() : void {  
 
     this.maintanancePaymentForm = this.fb.group({
-      amount: ['', Validators.required],
-      method: ['', Validators.min(0)],
-      reference: ['', Validators.required],
-      notes: ['', [Validators.required]]
+      amount: ['', [Validators.required, Validators.min(1)]],
+      method: ['mpesa', Validators.required],
+      reference: [''],
+      notes: ['']
     });
   }
 
   onPropertyChange(propertyId: number) {
     if (!propertyId) return;
-    
-    console.log('🔄 Property changed to:', propertyId);
-    console.log('📊 Available units:', this.units.length);
 
     this.selectedPropertyId = propertyId;
 
@@ -281,8 +360,6 @@ export class Expensemaintanace implements OnInit, AfterViewInit {
       u => u.property_id === propertyId || u.property === propertyId
     );
 
-    console.log('✅ Filtered units:', this.filteredUnits.length);
-    
     // ✅ CRITICAL: Filter data after property change
     this.filterDataByProperty();
     
@@ -292,7 +369,6 @@ export class Expensemaintanace implements OnInit, AfterViewInit {
   getExpenses() {
     this.expenseService.getExpenses().subscribe({
       next: (data) => {
-        console.log('✅ Expenses loaded:', data.length);
         this.allExpenses = data;
         this.filterDataByProperty(); // ✅ Filter after loading
         this.cdr.detectChanges();
@@ -310,7 +386,6 @@ export class Expensemaintanace implements OnInit, AfterViewInit {
   getMaintanance() {
     this.maintanaceService.getMaintenanceRequests().subscribe({
       next: (data) => {
-        console.log('✅ Maintenance loaded:', data.length);
         this.allMaintenance = data;
         this.filterDataByProperty(); // ✅ Filter after loading
         this.cdr.detectChanges();
@@ -333,6 +408,7 @@ export class Expensemaintanace implements OnInit, AfterViewInit {
 
     const data = {
       property: this.selectedPropertyId,
+      category: this.expenseForm.value.category,
       description: this.expenseForm.value.description,
       amount: this.expenseForm.value.amount,
     };
@@ -369,10 +445,10 @@ export class Expensemaintanace implements OnInit, AfterViewInit {
   }
 
   openExpensesDialog(element: any) {
-    console.log('Open expenses dialog for:', element);
     this.expenseId = element.id;
     this.updateExpenseForm.patchValue({
       property: element.property,
+      category: element.category || 'other',
       description: element.description,
       amount: element.amount
     });
@@ -386,6 +462,7 @@ export class Expensemaintanace implements OnInit, AfterViewInit {
 
     const data = {
       property: this.selectedPropertyId,
+      category: this.updateExpenseForm.value.category,
       description: this.updateExpenseForm.value.description,
       amount: this.updateExpenseForm.value.amount,
     };
@@ -462,7 +539,6 @@ export class Expensemaintanace implements OnInit, AfterViewInit {
 
     this.isSubmitting = true;
     const payload = this.maintanaceForm.value;
-    console.log('Submitting maintenance request:', payload);
 
     this.maintanaceService.addMaintenanceRequest(payload).subscribe({
       next: (res) => {
@@ -487,6 +563,7 @@ export class Expensemaintanace implements OnInit, AfterViewInit {
     this.updateMaintanaceForm.patchValue({
       unit: element.unit,
       customer: element.customer,
+      category: element.category || 'other',
       description: element.description
     });
     this.isUpdateSubmitting = false;
@@ -543,20 +620,13 @@ export class Expensemaintanace implements OnInit, AfterViewInit {
   filterDataByProperty() {
     // ✅ CRITICAL: Check if we have data AND a selected property
     if (!this.selectedPropertyId) {
-      console.log('⚠️ No property selected, skipping filter');
       return;
     }
-
-    console.log('🔍 Filtering data for property:', this.selectedPropertyId);
-    console.log('📊 All Expenses:', this.allExpenses.length);
-    console.log('📊 All Maintenance:', this.allMaintenance.length);
 
     // Filter expenses
     let filteredExpenses = this.allExpenses.filter(
       expense => expense.property === this.selectedPropertyId
     );
-
-    console.log('✅ Filtered Expenses:', filteredExpenses.length);
 
     // Date filter for expenses
     if (this.startDate || this.endDate) {
@@ -574,14 +644,18 @@ export class Expensemaintanace implements OnInit, AfterViewInit {
       });
     }
 
+    // The breakdown covers every type, so it stays put while one type is picked
+    this.buildBreakdown(filteredExpenses);
+    if (this.expenseCategory) {
+      filteredExpenses = filteredExpenses.filter(expense => (expense.category || 'other') === this.expenseCategory);
+    }
+
     this.expenseObject = filteredExpenses;
 
     // Filter maintenance
     let filteredMaintenance = this.allMaintenance.filter(
       maintenance => parseInt(maintenance.property_id) === this.selectedPropertyId
     );
-
-    console.log('✅ Filtered Maintenance:', filteredMaintenance.length);
 
     // Date filter for maintenance
     if (this.startDate || this.endDate) {
@@ -599,19 +673,23 @@ export class Expensemaintanace implements OnInit, AfterViewInit {
       });
     }
 
+    if (this.maintenanceCategory) {
+      filteredMaintenance = filteredMaintenance.filter(request => (request.category || 'other') === this.maintenanceCategory);
+    }
+
     this.maintainanceObject = filteredMaintenance;
 
     // Update table data sources
     if (isPlatformBrowser(this.platformId)) {
-      setTimeout(() => {
-        this.dataExpenseSource.data = this.expenseObject;
+      this.dataExpenseSource.data = this.expenseObject;
+      this.dataMaintanceSource.data = this.maintainanceObject;
+      if (this.expensePaginator) {
         this.dataExpenseSource.paginator = this.expensePaginator;
-
-        this.dataMaintanceSource.data = this.maintainanceObject;
+      }
+      if (this.maintancePaginator) {
         this.dataMaintanceSource.paginator = this.maintancePaginator;
-        
-        console.log('✅ Tables updated with filtered data');
-      });
+      }
+      this.cdr.detectChanges();
     }
   }
 
@@ -633,13 +711,9 @@ export class Expensemaintanace implements OnInit, AfterViewInit {
     });
   }
 
-
-
   openChangeStatusDialog(element: any) {
-    console.log("Change status for:", element);
     this.maintananceId= element.id;
   }
-
 
   // change status dialog
 
@@ -672,11 +746,9 @@ changeMaintanaceStatus() {
   });
 }
 
-
 // payments dialogs functions
 
   openMakeExpensesPaymentDialog(element: any) {
-    console.log("Make payment for:", element);
     this.expenseIDP = element.id;
 
      let dialogRef = this.dialog.open(this.expensesPaymentsDial,{
@@ -699,21 +771,19 @@ changeMaintanaceStatus() {
       expense: this.expenseIDP,
       amount: this.expensePaymentForm.value.amount,
       method: this.expensePaymentForm.value.method,
-      reference: this.expensePaymentForm.value.reference,
+      // References must be unique, so an empty one is sent as "none"
+      reference: (this.expensePaymentForm.value.reference || '').trim() || null,
       notes: this.expensePaymentForm.value.notes,
       type:"OUT"
     };
 
-    console.log('📤 Making payment:', data);
-
     this.paymentService.makePayment(data).subscribe({
       next: (res) => {
-        console.log('✅ Payment made successfully:', res);
         this.loadMakingPayments = false;
         this.showSuccess("Payment Made successfully");
         this.getExpenses()
         this.dialog.closeAll();
-        this.expensePaymentForm.reset();
+        this.expensePaymentForm.reset({ amount: '', method: 'mpesa', reference: '', notes: '' });
         this.cdr.detectChanges();
       },
       error: (err) => {
@@ -729,9 +799,7 @@ changeMaintanaceStatus() {
     });
   }
 
-
   openMakeMaintancePaymentDialog(element: any) {
-    console.log("Make payment for:", element);
     this.maintanancePaymentsFormsInit();
     this.maintananceIDP = element.id;
 
@@ -749,28 +817,25 @@ changeMaintanaceStatus() {
     });
   }
 
-
    addMaintancePayment() {
     this.loadMakingPayments = true;
     const data = {
       maintenance_request: this.maintananceIDP ,
       amount: this.maintanancePaymentForm.value.amount,
       method: this.maintanancePaymentForm.value.method,
-      reference: this.maintanancePaymentForm.value.reference,
+      // References must be unique, so an empty one is sent as "none"
+      reference: (this.maintanancePaymentForm.value.reference || '').trim() || null,
       notes: this.maintanancePaymentForm.value.notes,
       type:"OUT"
     };
 
-    console.log('📤 Making payment:', data);
-
     this.paymentService.makePayment(data).subscribe({
       next: (res) => {
-        console.log('✅ Payment made successfully:', res);
         this.loadMakingPayments = false;
         this.showSuccess("Payment Made successfully");
         this.getMaintanance()
         this.dialog.closeAll();
-        this.maintanancePaymentForm.reset();
+        this.maintanancePaymentForm.reset({ amount: '', method: 'mpesa', reference: '', notes: '' });
         this.cdr.detectChanges();
       },
       error: (err) => {
@@ -785,6 +850,5 @@ changeMaintanaceStatus() {
       }
     });
   }
-
 
 }

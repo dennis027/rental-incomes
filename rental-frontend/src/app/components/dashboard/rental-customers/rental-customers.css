@@ -181,7 +181,7 @@ tr:hover {
   position: relative;
   width: 100%;
   max-width: 300px;
-  border: 2px solid #1976d2;
+  border: 2px solid #465fff;
   border-radius: 8px;
   overflow: hidden;
   background-color: white;
@@ -191,7 +191,7 @@ tr:hover {
 .preview-label {
   font-size: 12px;
   font-weight: 500;
-  color: #1976d2;
+  color: #465fff;
   margin: 0 0 8px 0;
 }
 
@@ -298,7 +298,7 @@ tr:hover {
 
 .id-photo-view:hover {
   transform: scale(1.05);
-  border-color: #1976d2;
+  border-color: #465fff;
 }
 
 /* Dialog Styles */

@@ -1,9 +1,8 @@
 import { Injectable, Inject, PLATFORM_ID } from '@angular/core';
-import { HttpClient, HttpHeaders } from '@angular/common/http';
+import { HttpClient, HttpHeaders, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { isPlatformBrowser } from '@angular/common';
 import { environment } from '../../environments/environment';
-
 
 @Injectable({
   providedIn: 'root',
@@ -16,9 +15,20 @@ export class ReportsService {
     @Inject(PLATFORM_ID) private platformId: Object
   ) {}
 
+  /**
+   * Run any report endpoint. Blank filters are left out so the API falls back to its defaults.
+   */
+  getReport(path: string, filters: Record<string, any> = {}): Observable<any> {
+    let params = new HttpParams();
+    Object.entries(filters).forEach(([key, value]) => {
+      if (value !== null && value !== undefined && value !== '') {
+        params = params.set(key, String(value));
+      }
+    });
+    return this.http.get<any>(`${this.reportsAPI}${path}`, { headers: this.getAuthHeaders(), params });
+  }
 
   // Financial Reports
-
 
   getTotalRevenue (start_date:any,end_date:any): Observable<any> {
     const headers = this.getAuthHeaders();
@@ -73,7 +83,6 @@ export class ReportsService {
 
   // occupancy and unit reports
 
-
   occupancyRate():Observable<any> {
     const headers = this.getAuthHeaders();
     return this.http.get<any>(`${this.reportsAPI}occupancy/rate/`, { headers });
@@ -108,7 +117,6 @@ export class ReportsService {
     const headers = this.getAuthHeaders();
     return this.http.get<any>(`${this.reportsAPI}units/utilization/?months=${months}&property_id=${propertyID}`, { headers });
   }
-
 
   unitsAvailable(propertyID:any,unit_type:any,max_rent:any):Observable<any> {
     const headers = this.getAuthHeaders();
@@ -176,14 +184,10 @@ export class ReportsService {
     return this.http.get<any>(`${this.reportsAPI}dashboard/executive/?property_id=${propertyID}&period=${period}`, { headers });
   }
 
-
   propertyComparison():Observable<any> {
     const headers = this.getAuthHeaders();
     return this.http.get<any>(`${this.reportsAPI}properties/comparison/`, { headers });
   }
-
-
-
 
   /** 🔹 Helper: Safely Retrieve Token from LocalStorage (Browser Only) */
   private getAccessToken(): string | null {

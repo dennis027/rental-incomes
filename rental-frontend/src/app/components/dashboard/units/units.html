@@ -2,27 +2,14 @@
   <!-- Header Section -->
   <div class="header">
     <h2>
-      {{
-        selectedPropertyName
-          ? selectedPropertyName + ' Management'
-          : (properties.length > 0 ? properties[0].name + ' Management' : 'Units Management')
-      }}
+      Units
+      @if (selectedPropertyName || properties.length > 0) {
+        <small class="header-context">in {{ selectedPropertyName || properties[0].name }}</small>
+      }
     </h2>
   </div>
 
-  <!-- Property Selector -->
-  @if (properties.length >1 ){
-  <mat-form-field appearance="outline" class="full-width mt-3">
-    <mat-label>Select Property</mat-label>
-    <mat-select [(ngModel)]="selectedPropertyId" (selectionChange)="filterUnitsByProperty()">
-      @for (property of properties; track property.id) {
-        <mat-option [value]="property.id">
-          {{ property.name }}
-        </mat-option>
-      }
-    </mat-select>
-  </mat-form-field>
-   }
+
   <!-- Search Bar -->
   <mat-form-field appearance="outline" class="full-width mt-2">
     <mat-label>Search Units</mat-label>
@@ -58,28 +45,39 @@
     <ng-container matColumnDef="unit_type">
       <th mat-header-cell *matHeaderCellDef>Type</th>
       <td mat-cell *matCellDef="let element" [attr.data-label]="'Type'">
-        {{ element.unit_type }}
+        {{ element.unit_type_display || element.unit_type }}
+      </td>
+    </ng-container>
+
+    <ng-container matColumnDef="tenant_name">
+      <th mat-header-cell *matHeaderCellDef>Tenant</th>
+      <td mat-cell *matCellDef="let element" [attr.data-label]="'Tenant'">
+        @if (element.tenant_name) {
+          <span class="tenant-name">{{ element.tenant_name }}</span>
+        } @else {
+          <span class="tenant-none">—</span>
+        }
       </td>
     </ng-container>
 
     <ng-container matColumnDef="rent_amount">
       <th mat-header-cell *matHeaderCellDef>Rent</th>
       <td mat-cell *matCellDef="let element" [attr.data-label]="'Rent'">
-        {{ element.rent_amount | currency:'KES' }}
+        {{ element.rent_amount | currency:'KES ' }}
       </td>
     </ng-container>
 
     <ng-container matColumnDef="active_contract_deposit">
       <th mat-header-cell *matHeaderCellDef>Deposit</th>
       <td mat-cell *matCellDef="let element" [attr.data-label]="'Deposit'">
-        {{ element.active_contract_deposit | currency:'KES' }}
+        {{ element.active_contract_deposit | currency:'KES ' }}
       </td>
     </ng-container>
 
     <ng-container matColumnDef="balance">
       <th mat-header-cell *matHeaderCellDef>Balance</th>
       <td mat-cell *matCellDef="let element" [attr.data-label]="'Balance'">
-        {{ element.balance | currency:'KES' }}
+        {{ element.balance | currency:'KES ' }}
       </td>
     </ng-container>
 
@@ -113,18 +111,20 @@
           }
 
           @if (element.status !== 'occupied') {
-            <button mat-icon-button color="accent"
-                    (click)="openNewContractDial();openCreateContractDialog(element)"
-                    matTooltip="Create Contract">
-              <mat-icon>note_add</mat-icon>
+            <button mat-stroked-button class="rent-out-btn"
+                    (click)="openContractDialog(element)"
+                    matTooltip="Give this unit to a tenant">
+              <mat-icon>person_add</mat-icon>
+              Rent out
             </button>
           }
 
           @if (element.status === 'occupied') {
-            <button mat-icon-button color="warn"
+            <button mat-stroked-button class="end-contract-btn"
                     (click)="openCancelDialog(element)"
-                    matTooltip="Cancel Contract">
-              <mat-icon>cancel</mat-icon>
+                    matTooltip="End the contract and settle the deposit">
+              <mat-icon>logout</mat-icon>
+              Move out
             </button>
           }
         </div>
@@ -138,14 +138,14 @@
       <td class="mat-cell no-data-cell" [attr.colspan]="displayedColumns.length">
         <div class="no-data-content">
           <mat-icon>inbox</mat-icon>
-          <p>No units found</p>
+          <p>No units here yet. Use "Add Unit" to create the first one, or clear the search.</p>
         </div>
       </td>
     </tr>
 
   </table>
 
-  <mat-paginator [pageSizeOptions]="[5, 10, 20]" showFirstLastButtons></mat-paginator>
+  <mat-paginator></mat-paginator>
 </div>
 
 
@@ -408,124 +408,138 @@
 </ng-template>
 
 
-<!-- add a new contract -->
+<!-- Rent out a unit: create its contract -->
 
 <ng-template #newContractDialog>
-  <div class="container-fluid dialog-header">
-    <h2 style="display: inline;" mat-dialog-title>Add Contract</h2>
-    <button style="display: inline;float: right;" mat-icon-button mat-dialog-close aria-label="Close dialog">
-      <mat-icon>close</mat-icon>
-    </button><br>
-  
-  <mat-dialog-content>
-    <form [formGroup]="contractForm">
-      <div class="row">
-        <div class="col-md-4">
-          <mat-form-field appearance="outline">
-            <mat-label>Customer</mat-label>
+  <div class="contract-dialog">
+    <header class="contract-dialog-header">
+      <div>
+        <h2 mat-dialog-title>Rent out Unit {{ contractUnit?.unit_number }}</h2>
+        <p>{{ selectedPropertyName }} · {{ contractUnit?.unit_type | titlecase }}</p>
+      </div>
+      <button mat-icon-button mat-dialog-close aria-label="Close dialog">
+        <mat-icon>close</mat-icon>
+      </button>
+    </header>
+
+    <mat-dialog-content>
+      @if (availableTenants.length === 0) {
+        <!-- Nobody to rent to yet -->
+        <div class="contract-empty">
+          <i class="fas fa-user-plus"></i>
+          <h4>No tenant available</h4>
+          <p>
+            @if (customers.length === 0) {
+              You have not registered any tenants yet. Register the tenant first, then come back to rent out this unit.
+            } @else {
+              Every registered tenant already has a unit. Register the new tenant first, then come back to rent out this unit.
+            }
+          </p>
+          <button mat-flat-button color="primary" (click)="goToTenants()">
+            <mat-icon>person_add</mat-icon>
+            Register a tenant
+          </button>
+        </div>
+      } @else {
+        <form [formGroup]="contractForm" class="contract-form">
+          <h5><span class="step">1</span> Who is moving in?</h5>
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Tenant</mat-label>
             <mat-select formControlName="customer">
-              @for (customer of customers; track customer.id) {
+              @for (customer of availableTenants; track customer.id) {
                 <mat-option [value]="customer.id">
-                  {{ customer.first_name }} {{ customer.last_name }}
+                  {{ customer.first_name }} {{ customer.last_name }} · {{ customer.phone_number }}
                 </mat-option>
               }
             </mat-select>
+            <mat-hint>Only tenants without a unit are listed.</mat-hint>
             @if (contractForm.get('customer')?.hasError('required')) {
-              <mat-error>Customer is required</mat-error>
+              <mat-error>Choose the tenant</mat-error>
             }
           </mat-form-field>
-        </div>
+          <button type="button" class="link-button" (click)="goToTenants()">Tenant not listed? Register them first</button>
 
-        <div class="col-md-4">
+          <h5><span class="step">2</span> When and how often do they pay?</h5>
+          <div class="contract-row">
+            <mat-form-field appearance="outline">
+              <mat-label>Move-in date</mat-label>
+              <input matInput formControlName="start_date" [matDatepicker]="pickerStart">
+              <mat-datepicker-toggle matIconSuffix [for]="pickerStart"></mat-datepicker-toggle>
+              <mat-datepicker #pickerStart></mat-datepicker>
+              @if (contractForm.get('start_date')?.hasError('required')) {
+                <mat-error>Move-in date is required</mat-error>
+              }
+            </mat-form-field>
 
-        </div>
+            <mat-form-field appearance="outline">
+              <mat-label>Rent is paid</mat-label>
+              <mat-select formControlName="payment_frequency">
+                <mat-option value="monthly">Monthly</mat-option>
+                <mat-option value="quarterly">Quarterly</mat-option>
+                <mat-option value="yearly">Yearly</mat-option>
+              </mat-select>
+            </mat-form-field>
+          </div>
 
-        <div class="col-md-4">
-          <mat-form-field appearance="outline" style="width: 100%;">
-            <mat-label>Start Date</mat-label>
-            <input matInput formControlName="start_date" [matDatepicker]="pickerStart">
-            <mat-hint>MM/DD/YYYY</mat-hint>
-            <mat-datepicker-toggle matIconSuffix [for]="pickerStart"></mat-datepicker-toggle>
-            <mat-datepicker #pickerStart></mat-datepicker>
-            @if (contractForm.get('start_date')?.hasError('required')) {
-              <mat-error>Start date is required</mat-error>
+          <h5><span class="step">3</span> Rent and deposit</h5>
+          <div class="contract-row">
+            <mat-form-field appearance="outline">
+              <mat-label>Rent (KES)</mat-label>
+              <input matInput type="number" min="0" formControlName="rent_amount" />
+              <mat-hint>Filled in from the unit</mat-hint>
+              @if (contractForm.get('rent_amount')?.invalid) {
+                <mat-error>Enter the rent</mat-error>
+              }
+            </mat-form-field>
+
+            <mat-form-field appearance="outline">
+              <mat-label>Deposit (KES)</mat-label>
+              <input matInput type="number" min="0" formControlName="deposit_amount" (input)="onDepositInput()" />
+              <mat-hint>{{ depositMonths }} month{{ depositMonths === 1 ? '' : 's' }} of rent, from Settings</mat-hint>
+              @if (contractForm.get('deposit_amount')?.invalid) {
+                <mat-error>Enter the deposit</mat-error>
+              }
+            </mat-form-field>
+          </div>
+
+          <div class="move-in-summary">
+            <p class="move-in-title">Due at move-in</p>
+            @for (line of moveInLines; track line.label) {
+              <div class="move-in-line">
+                <span>{{ line.label }}</span>
+                <span>{{ line.amount | currency:'KES ' }}</span>
+              </div>
             }
-          </mat-form-field>
-        </div>
-      </div>
+            <div class="move-in-line move-in-total">
+              <span>Total</span>
+              <span>{{ moveInTotal | currency:'KES ' }}</span>
+            </div>
+            <p class="move-in-note">
+              <i class="fas fa-circle-info"></i>
+              Saving marks the unit as occupied and creates the first invoice for this amount.
+            </p>
+          </div>
 
-      <div class="row">
-        <div class="col-md-4">
-          <mat-form-field appearance="outline">
-            <mat-label>Rent Amount</mat-label>
-            <input matInput type="number" formControlName="rent_amount" />
-            @if (contractForm.get('rent_amount')?.hasError('required')) {
-              <mat-error>Rent amount is required</mat-error>
-            }
-          </mat-form-field>
-        </div>
-
-        <div class="col-md-4">
-          <mat-form-field appearance="outline">
-            <mat-label>Deposit Amount</mat-label>
-            <input matInput type="number" formControlName="deposit_amount"/>
-            @if (contractForm.get('deposit_amount')?.hasError('required')) {
-              <mat-error>Deposit amount is required</mat-error>
-            }
-          </mat-form-field>
-        </div>
-
-        <div class="col-md-4">
-          <mat-form-field appearance="outline">
-            <mat-label>Payment Frequency</mat-label>
-            <mat-select formControlName="payment_frequency">
-              <mat-option value="monthly">Monthly</mat-option>
-              <mat-option value="quarterly">Quarterly</mat-option>
-              <mat-option value="yearly">Yearly</mat-option>
-            </mat-select>
-            @if (contractForm.get('payment_frequency')?.hasError('required')) {
-              <mat-error>Payment frequency is required</mat-error>
-            }
-          </mat-form-field>
-        </div> 
-      </div>
-    </form>
-  </mat-dialog-content>
-
-  <mat-dialog-actions align="end">
-    <button mat-stroked-button mat-dialog-close [disabled]="loadAdding">Cancel</button>
-    <button mat-flat-button color="primary" (click)="addContract()" [disabled]="loadAdding">
-      @if (loadAdding) {
-        <mat-spinner diameter="20" style="display: inline-block; margin-right: 8px;"></mat-spinner>
+          @if (contractError) {
+            <div class="contract-error" role="alert">
+              <i class="fas fa-circle-exclamation"></i>
+              <span>{{ contractError }}</span>
+            </div>
+          }
+        </form>
       }
-      {{ loadAdding ? 'Saving...' : 'Save' }}
-    </button>
-  </mat-dialog-actions>
-  </div>
-</ng-template>
+    </mat-dialog-content>
 
-
-<!-- Cancel Contract Dialog -->
-<ng-template #cancelContractDialog>
-  <h2 mat-dialog-title>Cancel Contract</h2>
-  <mat-dialog-content>
-    <p>Are you sure you want to cancel this contract? This action will mark the contract as inactive.</p>
-    
-    @if (loadCancelling) {
-      <div class="loader-container">
-        <mat-spinner diameter="40"></mat-spinner>
-        <p>Cancelling contract...</p>
-      </div>
+    @if (availableTenants.length > 0) {
+      <mat-dialog-actions align="end">
+        <button mat-stroked-button mat-dialog-close [disabled]="loadAdding">Cancel</button>
+        <button mat-flat-button color="primary" (click)="addContract()" [disabled]="loadAdding">
+          @if (loadAdding) {
+            <mat-spinner diameter="20" style="display: inline-block; margin-right: 8px;"></mat-spinner>
+          }
+          {{ loadAdding ? 'Creating…' : 'Create contract' }}
+        </button>
+      </mat-dialog-actions>
     }
-  </mat-dialog-content>
-  
-  <mat-dialog-actions align="end">
-    <button mat-stroked-button mat-dialog-close [disabled]="loadCancelling">No, Keep It</button>
-    <button mat-flat-button color="accent" (click)="confirmCancel()" [disabled]="loadCancelling">
-      @if (loadCancelling) {
-        <mat-spinner diameter="20" style="display: inline-block; margin-right: 8px;"></mat-spinner>
-      }
-      {{ loadCancelling ? 'Cancelling...' : 'Yes, Cancel Contract' }}
-    </button>
-  </mat-dialog-actions>
+  </div>
 </ng-template>

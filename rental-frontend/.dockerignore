@@ -1,0 +1,12 @@
+.git
+.gitignore
+.dockerignore
+Dockerfile
+
+node_modules/
+dist/
+.angular/
+.vscode/
+
+backup.sql
+README.md

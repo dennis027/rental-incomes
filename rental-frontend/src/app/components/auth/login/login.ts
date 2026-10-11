@@ -1,15 +1,15 @@
-import { Component, signal, inject, ChangeDetectorRef } from '@angular/core';
+import { Component, signal, inject, ChangeDetectorRef, PLATFORM_ID } from '@angular/core';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
-import { CommonModule } from '@angular/common';
+import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { AuthService } from '../../../services/auth'
 import { finalize } from 'rxjs';
-import { Router } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { MatSnackBar } from '@angular/material/snack-bar';
 
 @Component({
   selector: 'app-login',
   standalone: true,
-  imports: [ReactiveFormsModule, CommonModule],
+  imports: [ReactiveFormsModule, CommonModule, RouterLink],
   templateUrl: './login.html',
   styleUrl: './login.css'
 })
@@ -19,6 +19,22 @@ private fb = inject(FormBuilder);
   private route = inject(Router);
   private snackBar = inject(MatSnackBar);
   private cdr = inject(ChangeDetectorRef)
+  private platformId = inject(PLATFORM_ID);
+
+  showPassword = signal(false);
+  sessionExpired = signal(false);
+
+  ngOnInit() {
+    // Already signed in: skip the form
+    if (this.authService.getAccessToken()) {
+      this.route.navigate(['/dashboard']);
+      return;
+    }
+    if (isPlatformBrowser(this.platformId) && sessionStorage.getItem('session_expired')) {
+      sessionStorage.removeItem('session_expired');
+      this.sessionExpired.set(true);
+    }
+  }
 
   // SMACKBAR MESSAGES
 
@@ -49,10 +65,14 @@ private fb = inject(FormBuilder);
   errorMessage = signal<string | null>(null);
 
   onSubmit() {
-    if (this.loginForm.invalid) return;
+    if (this.loginForm.invalid) {
+      this.loginForm.markAllAsTouched();
+      return;
+    }
 
     this.loading.set(true);
     this.errorMessage.set(null);
+    this.sessionExpired.set(false);
 
     this.authService.login(this.loginForm.value)
       .pipe(finalize(() => this.loading.set(false)))
@@ -63,9 +83,10 @@ private fb = inject(FormBuilder);
           this.cdr.detectChanges();
         },
         error: err => {
-            this.showError('Check your details.');
           this.errorMessage.set(
-            err.error?.message || 'Login failed. Please try again.'
+            err.status === 0
+              ? 'Cannot reach the server. Check your connection and try again.'
+              : err.error?.details?.non_field_errors?.[0] || err.error?.message || 'Login failed. Please try again.'
           );
         }
       });

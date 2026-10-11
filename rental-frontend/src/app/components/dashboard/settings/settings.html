@@ -2,30 +2,10 @@
   <!-- Header Section -->
   <div class="mb-3">
     <h2 class="mb-1" style="font-weight: 600; color: #1a1a1a;">Settings</h2>
-    <p style="color: #666; margin: 0; font-size: 14px;">Configure your property management system parameters</p>
+    <p style="color: #666; margin: 0; font-size: 14px;">Billing rules for the property chosen in the top bar. Switch property there to edit another one.</p>
   </div>
 
-  <!-- Property Selection Card -->
-  @if (properties.length >1 ){
-  <mat-card class="mb-3" style="box-shadow: 0 2px 8px rgba(0,0,0,0.08); border-radius: 12px;">
-    <mat-card-content class="p-3">
-      <div class="row">
-        <div class="col-md-6">
-          <mat-form-field appearance="outline" class="full-width" style="width: 100%;">
-            <mat-label>Select Property</mat-label>
-            <mat-select [(ngModel)]="selectedPropertyId" (selectionChange)="getPropertyID($event)">
-              @for (property of properties; track property.id) {
-                <mat-option [value]="property.id">
-                  {{ property.name }}
-                </mat-option>
-              }
-            </mat-select>
-          </mat-form-field>
-        </div>
-      </div>
-    </mat-card-content>
-  </mat-card>
-   }
+
 
   <!-- System Parameters Form -->
   <form [formGroup]="updateSystemParams">

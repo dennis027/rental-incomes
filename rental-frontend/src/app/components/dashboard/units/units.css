@@ -189,9 +189,7 @@ mat-dialog-actions {
    =========================== */
 
 button[mat-raised-button] {
-  text-transform: uppercase;
   font-weight: 500;
-  letter-spacing: 0.5px;
 }
 
 button[mat-icon-button] {
@@ -324,4 +322,234 @@ button mat-spinner {
     padding: 2px 8px;
     font-size: 11px;
   }
+}
+.header-context {
+  margin-left: 8px;
+  font-size: 14px;
+  font-weight: 400;
+  color: var(--gray-500);
+}
+
+/* ===========================
+   CONTRACT FLOW
+   =========================== */
+.tenant-name {
+  font-weight: 500;
+  color: var(--gray-800);
+}
+
+.tenant-none {
+  color: var(--gray-400);
+}
+
+.rent-out-btn {
+  --mat-button-outlined-label-text-color: var(--brand-500);
+  --mat-button-outlined-outline-color: var(--brand-100);
+  background: var(--brand-25);
+}
+
+.end-contract-btn {
+  --mat-button-outlined-label-text-color: var(--error-600);
+  --mat-button-outlined-outline-color: #fecdca;
+}
+
+.contract-dialog-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 20px 24px 0;
+}
+
+.contract-dialog-header h2 {
+  margin: 0;
+  padding: 0;
+  font-size: 20px;
+}
+
+.contract-dialog-header h2::before {
+  display: none;
+}
+
+.contract-dialog-header p {
+  margin: 4px 0 0;
+  font-size: 14px;
+  color: var(--gray-500);
+}
+
+.contract-form h5 {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 20px 0 12px;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--gray-800);
+}
+
+.contract-form h5:first-child {
+  margin-top: 4px;
+}
+
+.step {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--brand-500);
+  color: #fff;
+  font-size: 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.contract-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.contract-row mat-form-field {
+  width: 100%;
+}
+
+.link-button {
+  margin: 4px 0 0;
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--brand-500);
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.link-button:hover {
+  text-decoration: underline;
+}
+
+.move-in-summary {
+  margin-top: 20px;
+  padding: 16px;
+  border: 1px solid var(--brand-100);
+  border-radius: 12px;
+  background: var(--brand-25);
+}
+
+.move-in-title {
+  margin: 0 0 10px;
+  font-size: 13px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--brand-600);
+}
+
+.move-in-line {
+  display: flex;
+  justify-content: space-between;
+  padding: 4px 0;
+  font-size: 14px;
+  color: var(--gray-700);
+}
+
+.move-in-total {
+  margin-top: 6px;
+  padding-top: 10px;
+  border-top: 1px solid var(--brand-100);
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--gray-900);
+}
+
+.move-in-note {
+  margin: 10px 0 0;
+  font-size: 13px;
+  color: var(--gray-500);
+}
+
+.contract-error {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-top: 16px;
+  padding: 12px 14px;
+  border: 1px solid #fecdca;
+  border-radius: 8px;
+  background: var(--error-50);
+  color: var(--error-600);
+  font-size: 14px;
+}
+
+.contract-error i {
+  margin-top: 3px;
+}
+
+.contract-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 24px 12px 12px;
+  text-align: center;
+}
+
+.contract-empty i {
+  font-size: 32px;
+  color: var(--brand-300);
+}
+
+.contract-empty h4 {
+  margin: 0;
+}
+
+.contract-empty p {
+  margin: 0 0 8px;
+  max-width: 380px;
+  font-size: 14px;
+  color: var(--gray-500);
+}
+
+.end-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin: 8px 0 0;
+  padding: 0;
+  list-style: none;
+  font-size: 14px;
+  color: var(--gray-700);
+}
+
+.end-list li {
+  display: flex;
+  gap: 12px;
+}
+
+.end-list i {
+  width: 18px;
+  margin-top: 3px;
+  color: var(--gray-400);
+  text-align: center;
+}
+
+@media (max-width: 600px) {
+  .contract-row {
+    grid-template-columns: 1fr;
+    gap: 0;
+  }
+}
+
+/* Keep a row's actions on one line */
+.action-buttons {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: nowrap;
+  gap: 4px;
+}
+
+.action-buttons .rent-out-btn,
+.action-buttons .end-contract-btn {
+  white-space: nowrap;
+  flex-shrink: 0;
 }

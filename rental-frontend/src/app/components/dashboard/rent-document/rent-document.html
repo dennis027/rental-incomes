@@ -1,0 +1,162 @@
+@if (doc; as d) {
+  <div class="sheet-scroll">
+    <div #sheet class="sheet" [class.sheet--receipt]="d.kind === 'receipt'">
+      <!-- Who it is from, and what kind of document this is -->
+      <header class="sheet-head">
+        <div class="from">
+          <span class="from-mark">{{ d.property.name.charAt(0) }}</span>
+          <div>
+            <strong>{{ d.property.name }}</strong>
+            @if (d.property.address) {
+              <span>{{ d.property.address }}</span>
+            }
+          </div>
+        </div>
+        <div class="title">
+          <h1>{{ d.kind === 'invoice' ? 'INVOICE' : 'PAYMENT RECEIPT' }}</h1>
+          <span class="number">{{ d.number }}</span>
+        </div>
+      </header>
+
+      <div class="accent-bar"></div>
+
+      <!-- Who it is for, and the dates -->
+      <section class="parties">
+        <div class="party">
+          <span class="label">{{ d.kind === 'invoice' ? 'Billed to' : 'Received from' }}</span>
+          <strong>{{ d.tenant.name }}</strong>
+          @if (d.tenant.phone) {
+            <span>{{ d.tenant.phone }}</span>
+          }
+          <span>Unit {{ d.unit }}</span>
+        </div>
+
+        <dl class="meta">
+          <div>
+            <dt>{{ d.kind === 'invoice' ? 'Invoice date' : 'Payment date' }}</dt>
+            <dd>{{ d.date | date: 'd MMMM y' }}</dd>
+          </div>
+          @if (d.kind === 'invoice' && d.dueDate) {
+            <div>
+              <dt>Due date</dt>
+              <dd>{{ d.dueDate | date: 'd MMMM y' }}</dd>
+            </div>
+          }
+          @if (d.contractNumber) {
+            <div>
+              <dt>Contract</dt>
+              <dd>{{ d.contractNumber }}</dd>
+            </div>
+          }
+          <div>
+            <dt>Status</dt>
+            <dd><span class="status" [class]="'status status--' + (d.kind === 'receipt' ? 'paid' : d.status)">{{ statusLabel }}</span></dd>
+          </div>
+        </dl>
+      </section>
+
+      @if (d.kind === 'invoice') {
+        <!-- Invoice: what is being charged -->
+        <table class="lines">
+          <thead>
+            <tr>
+              <th>Description</th>
+              <th class="amount">Amount (KES)</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (line of d.lines; track line.label) {
+              <tr>
+                <td>
+                  {{ line.label }}
+                  @if (line.detail) {
+                    <small>{{ line.detail }}</small>
+                  }
+                </td>
+                <td class="amount">{{ line.amount | number: '1.2-2' }}</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+
+        <div class="totals">
+          <div class="totals-row">
+            <span>Total</span>
+            <span>{{ d.total | number: '1.2-2' }}</span>
+          </div>
+          <div class="totals-row">
+            <span>Paid so far</span>
+            <span>{{ d.paid | number: '1.2-2' }}</span>
+          </div>
+          <div class="totals-row totals-due">
+            <span>Balance due</span>
+            <span>KES {{ d.balance | number: '1.2-2' }}</span>
+          </div>
+        </div>
+
+        <p class="note">
+          @if (d.balance > 0) {
+            Please pay the balance due{{ d.dueDate ? ' by ' + (d.dueDate | date: 'd MMMM y') : '' }} and quote invoice number
+            <strong>{{ d.number }}</strong> as your payment reference. A receipt is issued for every payment.
+          } @else {
+            This invoice has been paid in full. Thank you.
+          }
+        </p>
+      } @else if (d.payment) {
+        <!-- Receipt: what was received -->
+        <div class="received">
+          <span class="label">Amount received</span>
+          <strong>KES {{ d.payment.amount | number: '1.2-2' }}</strong>
+        </div>
+
+        <table class="lines lines--plain">
+          <tbody>
+            <tr>
+              <td>Paid by</td>
+              <td class="amount">{{ methodLabel(d.payment.method) }}</td>
+            </tr>
+            <tr>
+              <td>Payment reference</td>
+              <td class="amount">{{ d.payment.reference || '—' }}</td>
+            </tr>
+            <tr>
+              <td>For invoice</td>
+              <td class="amount">{{ d.payment.invoiceNumber }}</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div class="totals">
+          <div class="totals-row">
+            <span>Invoice total</span>
+            <span>{{ d.total | number: '1.2-2' }}</span>
+          </div>
+          <div class="totals-row">
+            <span>Paid to date</span>
+            <span>{{ d.paid | number: '1.2-2' }}</span>
+          </div>
+          <div class="totals-row totals-due">
+            <span>{{ d.balance < 0 ? 'Credit on account' : 'Balance remaining' }}</span>
+            <span>KES {{ (d.balance < 0 ? -d.balance : d.balance) | number: '1.2-2' }}</span>
+          </div>
+        </div>
+
+        <p class="note">
+          Received with thanks.
+          @if (d.balance > 0) {
+            A balance of KES {{ d.balance | number: '1.2-2' }} remains on invoice {{ d.payment.invoiceNumber }}.
+          } @else if (d.balance < 0) {
+            Invoice {{ d.payment.invoiceNumber }} is fully paid. The extra KES {{ -d.balance | number: '1.2-2' }} is held as credit and taken off the next invoice.
+          } @else {
+            Invoice {{ d.payment.invoiceNumber }} is now fully paid.
+          }
+        </p>
+      }
+
+      <footer class="sheet-foot">
+        <span>{{ d.property.name }}</span>
+        <span>{{ d.kind === 'invoice' ? 'This is a request for payment, not a receipt.' : 'This receipt confirms payment and is not a request for payment.' }}</span>
+      </footer>
+    </div>
+  </div>
+}

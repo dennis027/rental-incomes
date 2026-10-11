@@ -49,7 +49,7 @@ export interface RevenueExpense {
 export class DashboardSummaryService {
   private http = inject(HttpClient);
   private platformId = inject(PLATFORM_ID);
-  private apiUrl = `${environment.apiUrl}/api/dashboard`;
+  private apiUrl = `${environment.apiUrl}api/dashboard`;
 
   /** 🔹 GET Summary */
   getDashboardSummary(propertyId?: string): Observable<DashboardSummary> {

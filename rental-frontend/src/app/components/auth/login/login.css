@@ -2,13 +2,13 @@
 .login-page {
   display: flex;
   min-height: 100vh;
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  font-family: var(--font-sans);
 }
 
 /* Left Side - Branding */
 .login-brand {
   flex: 1;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: #465fff;
   color: white;
   display: flex;
   align-items: center;
@@ -167,8 +167,8 @@
 
 .form-input:focus {
   outline: none;
-  border-color: #667eea;
-  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+  border-color: #465fff;
+  box-shadow: 0 0 0 3px rgba(70, 95, 255, 0.1);
 }
 
 .form-input::placeholder {
@@ -201,11 +201,11 @@
   width: 16px;
   height: 16px;
   cursor: pointer;
-  accent-color: #667eea;
+  accent-color: #465fff;
 }
 
 .forgot-password {
-  color: #667eea;
+  color: #465fff;
   text-decoration: none;
   font-size: 0.9rem;
   font-weight: 600;
@@ -213,13 +213,13 @@
 }
 
 .forgot-password:hover {
-  color: #764ba2;
+  color: #3641f5;
 }
 
 .submit-btn {
   width: 100%;
   padding: 1rem;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: #465fff;
   color: white;
   border: none;
   border-radius: 8px;
@@ -236,7 +236,7 @@
 
 .submit-btn:hover:not(:disabled) {
   transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+  box-shadow: 0 6px 20px rgba(70, 95, 255, 0.4);
 }
 
 .submit-btn:disabled {
@@ -286,14 +286,14 @@
 }
 
 .signup-link {
-  color: #667eea;
+  color: #465fff;
   text-decoration: none;
   font-weight: 600;
   transition: color 0.3s;
 }
 
 .signup-link:hover {
-  color: #764ba2;
+  color: #3641f5;
 }
 
 /* Responsive Design */
@@ -325,3 +325,61 @@
 }
 .back-link:hover { color: var(--blue-mid); }
 .back-link svg { width: 14px; height: 14px; fill: currentColor; }
+/* ---------- Alerts and password toggle ---------- */
+.form-alert {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.75rem 1rem;
+  margin-bottom: 1.25rem;
+  border-radius: 8px;
+  font-size: 0.9rem;
+}
+
+.form-alert--error {
+  background: var(--error-50);
+  color: var(--error-600);
+  border: 1px solid #fecdca;
+}
+
+.form-alert--info {
+  background: var(--brand-50);
+  color: var(--brand-700);
+  border: 1px solid var(--brand-100);
+}
+
+.input-icon {
+  font-size: 0.95rem;
+  color: var(--gray-400);
+  pointer-events: none;
+}
+
+#password {
+  padding-right: 3rem;
+}
+
+.password-toggle {
+  position: absolute;
+  right: 0.5rem;
+  width: 2.25rem;
+  height: 2.25rem;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--gray-500);
+  cursor: pointer;
+}
+
+.password-toggle:hover {
+  background: var(--gray-100);
+  color: var(--gray-700);
+}
+
+.form-input {
+  border-width: 1px;
+  border-color: var(--gray-300);
+}
+
+.form-input.ng-touched.ng-invalid {
+  border-color: var(--error-500);
+}

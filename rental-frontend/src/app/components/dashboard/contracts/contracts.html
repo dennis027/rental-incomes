@@ -1,151 +1,139 @@
-@if (!isLoading && !error) {
-  <div class="contracts-container">
-    <div class="header no-print">
-      <h2>Contracts Management</h2>
-      <div class="row">
-        <div class="col-md-4">
-          <mat-form-field appearance="outline" class="search-field" style="width: 100%;">
-            <input matInput placeholder="Search contracts..." [(ngModel)]="searchText" (keyup)="applyFilter()" />
+<div class="contracts-container">
+  <div class="page-header no-print">
+    <div>
+      <h2>Contracts</h2>
+      <p class="page-sub">Every tenancy agreement, active and ended. Print any of them as a PDF.</p>
+    </div>
+    <button mat-flat-button color="primary" (click)="goToUnits()" matTooltip="Contracts are created by renting out a vacant unit">
+      <mat-icon>add</mat-icon>
+      New contract
+    </button>
+  </div>
+
+  @if (isLoading) {
+    <div class="state-card no-print">
+      <mat-spinner diameter="36"></mat-spinner>
+      <p>Loading contracts…</p>
+    </div>
+  } @else if (error) {
+    <div class="state-card state-card--error no-print">
+      <i class="fas fa-circle-exclamation"></i>
+      <p>{{ error }}</p>
+      <button mat-stroked-button (click)="loadPage()">Try again</button>
+    </div>
+  } @else {
+    <div class="table-card no-print">
+      <div class="toolbar">
+        <div class="segmented" role="tablist">
+          <button role="tab" [class.active]="tab === 'active'" (click)="setTab('active')">
+            Active <span class="count">{{ activeCount }}</span>
+          </button>
+          <button role="tab" [class.active]="tab === 'ended'" (click)="setTab('ended')">
+            Ended <span class="count">{{ endedCount }}</span>
+          </button>
+        </div>
+
+        <div class="toolbar-filters">
+
+
+          <mat-form-field appearance="outline" subscriptSizing="dynamic" class="search-field">
+            <mat-icon matPrefix>search</mat-icon>
+            <input matInput placeholder="Search tenant, unit or contract number" [(ngModel)]="searchText" (input)="applyView()" />
           </mat-form-field>
         </div>
-
-        <div class="col-md-4"> 
-          @if (properties.length > 1){
-            <mat-form-field appearance="outline" class="full-width" style="width: 100%;">
-              <mat-label>Select Property</mat-label>
-              <mat-select [(ngModel)]="selectedPropertyId" (selectionChange)="filterContractsByProperty()">
-                @for (property of properties; track property.id) {
-                  <mat-option [value]="property.id">{{ property.name }}</mat-option>
-                }
-              </mat-select>
-            </mat-form-field>
-          }
-        </div>
       </div>
-    </div>
 
-    <!-- Active Contracts Table -->
-    <div class="table-section no-print">
-      <h3 class="table-title">Active Contracts ({{ activeDataSource.data.length }})</h3>
-      <table mat-table [dataSource]="activeDataSource" class="mat-table-custom">
+      <table mat-table appMatTableResponsive [dataSource]="viewDataSource">
         <ng-container matColumnDef="contract_number">
           <th mat-header-cell *matHeaderCellDef>Contract #</th>
-          <td mat-cell *matCellDef="let element">{{ element.contract_number || '—' }}</td>
+          <td mat-cell *matCellDef="let element" [attr.data-label]="'Contract #'">
+            <span class="contract-no">{{ element.contract_number || '—' }}</span>
+          </td>
         </ng-container>
 
         <ng-container matColumnDef="customer_name">
-          <th mat-header-cell *matHeaderCellDef>Customer</th>
-          <td mat-cell *matCellDef="let element">{{ element.customer_name }}</td>
+          <th mat-header-cell *matHeaderCellDef>Tenant</th>
+          <td mat-cell *matCellDef="let element" [attr.data-label]="'Tenant'">
+            <div class="tenant-cell">
+              <strong>{{ element.customer_name }}</strong>
+              <small>{{ element.customer_phone }}</small>
+            </div>
+          </td>
         </ng-container>
 
         <ng-container matColumnDef="unit_info">
           <th mat-header-cell *matHeaderCellDef>Unit</th>
-          <td mat-cell *matCellDef="let element">{{ element.unit_info }}</td>
+          <td mat-cell *matCellDef="let element" [attr.data-label]="'Unit'">{{ element.unit_info || '—' }}</td>
         </ng-container>
 
         <ng-container matColumnDef="start_date">
-          <th mat-header-cell *matHeaderCellDef>Start Date</th>
-          <td mat-cell *matCellDef="let element">{{ element.start_date }}</td>
+          <th mat-header-cell *matHeaderCellDef>Start date</th>
+          <td mat-cell *matCellDef="let element" [attr.data-label]="'Start date'">{{ element.start_date | date: 'd MMM y' }}</td>
+        </ng-container>
+
+        <ng-container matColumnDef="end_date">
+          <th mat-header-cell *matHeaderCellDef>End date</th>
+          <td mat-cell *matCellDef="let element" [attr.data-label]="'End date'">
+            {{ element.end_date ? (element.end_date | date: 'd MMM y') : '—' }}
+          </td>
         </ng-container>
 
         <ng-container matColumnDef="rent_amount">
           <th mat-header-cell *matHeaderCellDef>Rent (KES)</th>
-          <td mat-cell *matCellDef="let element">{{ formatCurrency(element.rent_amount) }}</td>
+          <td mat-cell *matCellDef="let element" [attr.data-label]="'Rent (KES)'">{{ formatCurrency(element.rent_amount) }}</td>
         </ng-container>
 
         <ng-container matColumnDef="deposit_amount">
           <th mat-header-cell *matHeaderCellDef>Deposit (KES)</th>
-          <td mat-cell *matCellDef="let element">{{ formatCurrency(element.deposit_amount) }}</td>
+          <td mat-cell *matCellDef="let element" [attr.data-label]="'Deposit (KES)'">{{ formatCurrency(element.deposit_amount) }}</td>
         </ng-container>
 
         <ng-container matColumnDef="payment_frequency">
-          <th mat-header-cell *matHeaderCellDef>Frequency</th>
-          <td mat-cell *matCellDef="let element" style="text-transform: capitalize;">{{ element.payment_frequency }}</td>
-        </ng-container>
-
-        <ng-container matColumnDef="actions">
-          <th mat-header-cell *matHeaderCellDef>Actions</th>
-          <td mat-cell *matCellDef="let element">
-            <button mat-icon-button (click)="printContract(element)" matTooltip="Print Contract">
-              <mat-icon>print</mat-icon>
-            </button>
+          <th mat-header-cell *matHeaderCellDef>Paid</th>
+          <td mat-cell *matCellDef="let element" [attr.data-label]="'Paid'">
+            <span class="chip">{{ element.payment_frequency | titlecase }}</span>
           </td>
         </ng-container>
 
-        <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
-        <tr mat-row *matRowDef="let row; columns: displayedColumns;" class="active-row"></tr>
-      </table>
-      <mat-paginator #activePaginator [pageSizeOptions]="[5, 10, 25]" showFirstLastButtons></mat-paginator>
-    </div>
-
-    <!-- Inactive Contracts Table -->
-    <div class="table-section no-print">
-      <h3 class="table-title">Inactive Contracts ({{ inactiveDataSource.data.length }})</h3>
-      <table mat-table [dataSource]="inactiveDataSource" class="mat-table-custom">
-        <ng-container matColumnDef="contract_number">
-          <th mat-header-cell *matHeaderCellDef>Contract #</th>
-          <td mat-cell *matCellDef="let element">{{ element.contract_number || '—' }}</td>
-        </ng-container>
-
-        <ng-container matColumnDef="customer_name">
-          <th mat-header-cell *matHeaderCellDef>Customer</th>
-          <td mat-cell *matCellDef="let element">{{ element.customer_name }}</td>
-        </ng-container>
-
-        <ng-container matColumnDef="unit_info">
-          <th mat-header-cell *matHeaderCellDef>Unit</th>
-          <td mat-cell *matCellDef="let element">{{ element.unit_info }}</td>
-        </ng-container>
-
-        <ng-container matColumnDef="start_date">
-          <th mat-header-cell *matHeaderCellDef>Start Date</th>
-          <td mat-cell *matCellDef="let element">{{ element.start_date }}</td>
-        </ng-container>
-
-        <ng-container matColumnDef="rent_amount">
-          <th mat-header-cell *matHeaderCellDef>Rent (KES)</th>
-          <td mat-cell *matCellDef="let element">{{ formatCurrency(element.rent_amount) }}</td>
-        </ng-container>
-
-        <ng-container matColumnDef="deposit_amount">
-          <th mat-header-cell *matHeaderCellDef>Deposit (KES)</th>
-          <td mat-cell *matCellDef="let element">{{ formatCurrency(element.deposit_amount) }}</td>
-        </ng-container>
-
-        <ng-container matColumnDef="payment_frequency">
-          <th mat-header-cell *matHeaderCellDef>Frequency</th>
-          <td mat-cell *matCellDef="let element" style="text-transform: capitalize;">{{ element.payment_frequency }}</td>
-        </ng-container>
-
         <ng-container matColumnDef="actions">
-          <th mat-header-cell *matHeaderCellDef>Actions</th>
-          <td mat-cell *matCellDef="let element">
-            <button mat-icon-button (click)="printContract(element)" matTooltip="Print Contract">
-              <mat-icon>print</mat-icon>
-            </button>
+          <th mat-header-cell *matHeaderCellDef></th>
+          <td mat-cell *matCellDef="let element" class="actions-cell" [attr.data-label]="'Actions'">
+            <div class="ui-row-actions">
+              <button mat-stroked-button (click)="printContract(element)">
+                <mat-icon>print</mat-icon>
+                Print
+              </button>
+              <button mat-icon-button (click)="openStatement(element)" matTooltip="Tenant statement" aria-label="Tenant statement">
+                <mat-icon>description</mat-icon>
+              </button>
+              @if (!element.is_active) {
+                <button mat-icon-button (click)="openSettlement(element)" matTooltip="Move-out statement" aria-label="Move-out statement">
+                  <mat-icon>logout</mat-icon>
+                </button>
+              }
+            </div>
           </td>
         </ng-container>
 
-        <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
-        <tr mat-row *matRowDef="let row; columns: displayedColumns;" class="inactive-row"></tr>
+        <tr mat-header-row *matHeaderRowDef="viewColumns"></tr>
+        <tr mat-row *matRowDef="let row; columns: viewColumns;"></tr>
+        <tr class="mat-row" *matNoDataRow>
+          <td class="mat-cell empty-state" [attr.colspan]="viewColumns.length">
+            <i class="fas fa-file-signature"></i>
+            @if (searchText) {
+              <p>No {{ tab }} contract matches "{{ searchText }}".</p>
+            } @else if (tab === 'active') {
+              <p>No active contracts yet. Go to Units and use "Rent out" on a vacant unit to create one.</p>
+            } @else {
+              <p>No ended contracts. Contracts you end from Units will be listed here.</p>
+            }
+          </td>
+        </tr>
       </table>
-      <mat-paginator #inactivePaginator [pageSizeOptions]="[5, 10, 25]" showFirstLastButtons></mat-paginator>
-    </div>
-  </div>
-} @else {
-  @if (isLoading) {
-    <div class="loading-container no-print">
-      <mat-spinner diameter="40"></mat-spinner>
-      <p>Loading contracts...</p>
+      <mat-paginator #viewPaginator></mat-paginator>
     </div>
   }
-  @if (error) {
-    <div class="error-container no-print">
-      <mat-icon>error_outline</mat-icon>
-      <p>{{ error }}</p>
-    </div>
-  }
-}
+</div>
 
 <!-- Add Contract Dialog -->
 <ng-template #openAddDialog>
