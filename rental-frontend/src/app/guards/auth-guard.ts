@@ -1,4 +1,5 @@
 import { inject } from '@angular/core';
+import { rememberPath } from '../services/return-path';
 import { Router, CanActivateFn } from '@angular/router';
 import { AuthService } from '../services/auth';
 import { isPlatformBrowser } from '@angular/common';
@@ -21,6 +22,7 @@ export const AuthGuard: CanActivateFn = (route, state) => {
     return true;
   }
 
-  // Redirect to login if no token
+  // Redirect to login if no token, remembering the page that was asked for
+  rememberPath(state.url);
   return router.createUrlTree(['/login']);
 };

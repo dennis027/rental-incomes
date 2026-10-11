@@ -1,6 +1,7 @@
 
 // dashboard.component.ts
 import { CommonModule, isPlatformBrowser } from '@angular/common';
+import { rememberPath } from '../../services/return-path';
 import { Component, OnInit, HostListener, Inject, PLATFORM_ID, inject } from '@angular/core';
 import { Router, RouterModule } from '@angular/router';
 import { AuthService } from '../../services/auth';
@@ -181,6 +182,8 @@ links = [
 logOut() {
   // The tokens are cleared at once, so leave without waiting for the server
   this.authService.logout().subscribe({ error: () => {} });
+  // Signing in again opens the page the user left from
+  rememberPath(this.router.url);
   this.router.navigate(['/login']);
 }
 

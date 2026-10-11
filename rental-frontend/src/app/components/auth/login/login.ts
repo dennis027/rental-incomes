@@ -1,4 +1,5 @@
 import { Component, signal, inject, ChangeDetectorRef, PLATFORM_ID } from '@angular/core';
+import { takeReturnPath } from '../../../services/return-path';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { AuthService } from '../../../services/auth'
@@ -27,7 +28,7 @@ private fb = inject(FormBuilder);
   ngOnInit() {
     // Already signed in: skip the form
     if (this.authService.getAccessToken()) {
-      this.route.navigate(['/dashboard']);
+      this.route.navigateByUrl(takeReturnPath());
       return;
     }
     if (isPlatformBrowser(this.platformId) && sessionStorage.getItem('session_expired')) {
@@ -78,7 +79,8 @@ private fb = inject(FormBuilder);
       .pipe(finalize(() => this.loading.set(false)))
       .subscribe({
         next: res => {
-          this.route.navigate(['/dashboard']);
+          // Back to the page the user was on when they were signed out
+          this.route.navigateByUrl(takeReturnPath());
           this.showSuccess('Logged In successfully!');
           this.cdr.detectChanges();
         },

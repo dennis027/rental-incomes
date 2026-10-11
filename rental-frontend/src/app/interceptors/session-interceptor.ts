@@ -1,4 +1,5 @@
 import { inject, PLATFORM_ID } from '@angular/core';
+import { rememberPath } from '../services/return-path';
 import { isPlatformBrowser } from '@angular/common';
 import { HttpBackend, HttpClient, HttpErrorResponse, HttpInterceptorFn } from '@angular/common/http';
 import { Router } from '@angular/router';
@@ -37,6 +38,8 @@ export const sessionInterceptor: HttpInterceptorFn = (req, next) => {
     // The login page reads this to explain why the user is back there
     sessionStorage.setItem('session_expired', '1');
     if (!router.url.startsWith('/login')) {
+      // Signing in again brings the user back to this page
+      rememberPath(router.url);
       router.navigate(['/login']);
     }
   };
