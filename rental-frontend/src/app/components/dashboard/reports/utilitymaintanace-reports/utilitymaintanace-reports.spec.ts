@@ -1,6 +1,7 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
 import { UtilitymaintanaceReports } from './utilitymaintanace-reports';
+import { testProviders } from '../../../../testing/test-providers';
 
 describe('UtilitymaintanaceReports', () => {
   let component: UtilitymaintanaceReports;
@@ -8,7 +9,8 @@ describe('UtilitymaintanaceReports', () => {
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [UtilitymaintanaceReports]
+      imports: [UtilitymaintanaceReports],
+      providers: testProviders
     })
     .compileComponents();
 

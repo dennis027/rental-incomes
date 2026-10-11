@@ -1,13 +1,14 @@
 import { TestBed } from '@angular/core/testing';
 
-import { Receipts } from './receipts';
+import { ReceiptService } from './receipts';
+import { testProviders } from '../testing/test-providers';
 
-describe('Receipts', () => {
-  let service: Receipts;
+describe('ReceiptService', () => {
+  let service: ReceiptService;
 
   beforeEach(() => {
-    TestBed.configureTestingModule({});
-    service = TestBed.inject(Receipts);
+    TestBed.configureTestingModule({ providers: testProviders });
+    service = TestBed.inject(ReceiptService);
   });
 
   it('should be created', () => {

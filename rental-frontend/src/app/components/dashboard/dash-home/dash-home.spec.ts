@@ -1,6 +1,7 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
 import { DashHome } from './dash-home';
+import { testProviders } from '../../../testing/test-providers';
 
 describe('DashHome', () => {
   let component: DashHome;
@@ -8,7 +9,8 @@ describe('DashHome', () => {
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [DashHome]
+      imports: [DashHome],
+      providers: testProviders
     })
     .compileComponents();
 
