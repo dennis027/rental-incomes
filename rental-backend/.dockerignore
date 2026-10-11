@@ -1,0 +1,22 @@
+.git
+.gitignore
+.dockerignore
+Dockerfile
+
+# Secrets are passed at runtime, never baked into the image
+.env
+
+venv/
+.venv/
+__pycache__/
+*.py[cod]
+
+# Local/runtime data
+db.sqlite3
+logs/
+media/
+staticfiles/
+static/
+
+README.md
+build.sh

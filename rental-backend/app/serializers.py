@@ -143,24 +143,34 @@ class UnitSerializer(serializers.ModelSerializer):
         # DRF will automatically append the two new fields
 
     def get_tenant_name(self, obj):
-        if hasattr(obj, "tenant") and obj.tenant:
-            return f"{obj.tenant.first_name} {obj.tenant.last_name}"
+        # Reverse one-to-one: raises when the unit has no tenant
+        tenant = getattr(obj, "tenant", None)
+        if tenant:
+            return f"{tenant.first_name} {tenant.last_name}"
         return None
 
-    def get_active_contract_deposit(self, unit):
-        contract = unit.contracts.filter(is_active=True).first()
-        return contract.deposit_amount if contract else 0
+    def _active_contract(self, unit):
+        """Active contract of the unit, looked up once and reused by the fields below."""
+        if not hasattr(unit, "_active_contract"):
+            if hasattr(unit, "active_contracts"):
+                # Prefetched by the list view
+                unit._active_contract = unit.active_contracts[0] if unit.active_contracts else None
+            else:
+                unit._active_contract = unit.contracts.filter(is_active=True).first()
+        return unit._active_contract
 
-    # -------------- 🔥 NEW METHODS -------------------
+    def get_active_contract_deposit(self, unit):
+        contract = self._active_contract(unit)
+        return contract.deposit_amount if contract else 0
 
     def get_contract_id(self, unit):
         """Return active contract ID or None."""
-        contract = unit.contracts.filter(is_active=True).first()
+        contract = self._active_contract(unit)
         return contract.id if contract else None
 
     def get_contract_number(self, unit):
         """Return active contract number or None."""
-        contract = unit.contracts.filter(is_active=True).first()
+        contract = self._active_contract(unit)
         return contract.contract_number if contract else None
 
 
@@ -203,16 +213,48 @@ class RentalContractSerializer(serializers.ModelSerializer):
 class ReceiptSerializer(serializers.ModelSerializer):
     contract_number = serializers.CharField(source="contract.contract_number", read_only=True)
     customer = serializers.CharField(source="contract.customer.first_name", read_only=True)
+    customer_name = serializers.SerializerMethodField()
+    customer_phone = serializers.CharField(source="contract.customer.phone_number", read_only=True)
+    property_address = serializers.CharField(source="contract.unit.property.address", read_only=True)
     unit = serializers.CharField(source="contract.unit.unit_number", read_only=True)
     property = serializers.CharField(source="contract.unit.property.name", read_only=True)
     property_id = serializers.CharField(source="contract.unit.property.id", read_only=True)
     total_amount = serializers.DecimalField(max_digits=10, decimal_places=2, read_only=True)
     balance = serializers.DecimalField(max_digits=10, decimal_places=2, read_only=True)
+    # What this invoice itself charges, without the balance brought forward
+    charges = serializers.DecimalField(source="new_charges", max_digits=12, decimal_places=2, read_only=True)
+    # The latest invoice of a contract carries the whole account; earlier ones are carried forward into it
+    is_latest = serializers.SerializerMethodField()
+    carried_to = serializers.SerializerMethodField()
+    balance_due = serializers.SerializerMethodField()
 
     class Meta:
         model = Receipt
         fields = "__all__"
         read_only_fields = ["receipt_number", "issue_date", "total_amount", "issued_by"]
+
+    def get_customer_name(self, obj):
+        customer = obj.contract.customer
+        return f"{customer.first_name} {customer.last_name}"
+
+    def _account(self, obj):
+        # The list view works every contract out once; a single invoice is looked up here
+        cache = self.context.setdefault("accounts", {}) if isinstance(self.context, dict) else {}
+        if obj.contract_id not in cache:
+            from . import billing
+            cache.update(billing.accounts([obj]))
+        return cache.get(obj.contract_id) or {"latest_id": obj.id, "latest_number": obj.receipt_number, "outstanding": obj.balance}
+
+    def get_is_latest(self, obj):
+        return self._account(obj)["latest_id"] == obj.id
+
+    def get_carried_to(self, obj):
+        account = self._account(obj)
+        return None if account["latest_id"] == obj.id else account["latest_number"]
+
+    def get_balance_due(self, obj):
+        account = self._account(obj)
+        return str(account["outstanding"]) if account["latest_id"] == obj.id else "0.00"
 
     def create(self, validated_data):
         request = self.context.get("request")
@@ -229,6 +271,12 @@ class ReceiptSerializer(serializers.ModelSerializer):
             unit.electricity_meter_reading = receipt.current_electricity_reading
         unit.save()
 
+        return receipt
+
+    def update(self, instance, validated_data):
+        receipt = super().update(instance, validated_data)
+        # Changing the charges can turn a paid invoice into a part-paid one, and the reverse
+        receipt.update_status()
         return receipt
 
 
@@ -254,15 +302,14 @@ class PaymentSerializer(serializers.ModelSerializer):
         return None
 
     def get_property_id(self, obj):
-        if obj.receipt and obj.receipt.contract.unit:
-            return obj.receipt.contract.unit.property.id
-        elif obj.expense and obj.expense.property:
-            return obj.expense.property.id
-        elif obj.maintenance_request and obj.maintenance_request.unit:
-            return obj.maintenance_request.unit.property.id
+        # Foreign key ids are read straight off the row, without loading the property
+        if obj.receipt_id:
+            return obj.receipt.contract.unit.property_id
+        elif obj.expense_id:
+            return obj.expense.property_id
+        elif obj.maintenance_request_id:
+            return obj.maintenance_request.unit.property_id
         return None
-
-
 
     def get_unit_id(self, obj):
         if obj.receipt and obj.receipt.contract.unit:
@@ -281,6 +328,7 @@ class PaymentSerializer(serializers.ModelSerializer):
 class ExpenseSerializer(serializers.ModelSerializer):
     property_name = serializers.CharField(source="property.name", read_only=True)
     recorded_by_username = serializers.CharField(source="recorded_by.username", read_only=True)
+    category_display = serializers.CharField(source="get_category_display", read_only=True)
 
     class Meta:
         model = Expense
@@ -293,6 +341,7 @@ class MaintenanceRequestSerializer(serializers.ModelSerializer):
     property_id = serializers.IntegerField(source='unit.property.id', read_only=True)
     customer_name = serializers.SerializerMethodField()
     status_display = serializers.CharField(source='get_status_display', read_only=True)
+    category_display = serializers.CharField(source='get_category_display', read_only=True)
     payment_status = serializers.SerializerMethodField()
 
     class Meta:

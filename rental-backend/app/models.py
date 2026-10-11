@@ -1,6 +1,7 @@
 from django.contrib.auth.models import AbstractUser
 from django.db import models, IntegrityError, DatabaseError
 import uuid
+from decimal import Decimal
 from django.utils import timezone
 from django.conf import settings
 
@@ -79,7 +80,9 @@ class Unit(models.Model):
             self.save(update_fields=["total_billed", "total_paid", "balance"])
             return
 
-        # ✅ Calculate total billed by summing all financial components individually
+        # ✅ Calculate total billed by summing all financial components individually.
+        # previous_balance is left out: it repeats what earlier invoices already
+        # charged, so counting it again would double the debt every month.
         total_billed = (
             receipts.aggregate(
                 total=(
@@ -91,7 +94,7 @@ class Unit(models.Model):
                     + Sum("water_bill")
                     + Sum("service_charge")
                     + Sum("security_charge")
-                    + Sum("previous_balance")
+                    + Sum("late_penalty")
                     + Sum("other_charges")
                 )
             )["total"]
@@ -199,6 +202,8 @@ class Receipt(models.Model):
     security_charge = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
     previous_balance = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
     other_charges = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
+    # Charged when earlier invoices were still unpaid after the grace period
+    late_penalty = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
 
     # Meter readings
     previous_water_reading = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
@@ -232,7 +237,11 @@ class Receipt(models.Model):
                 ).count() + 1
             )
 
-            self.receipt_number = f"RCT-{self.contract.id}-{issue_year}{formatted_month}-{count}"
+            # Skip numbers already taken (an invoice was deleted or re-dated)
+            prefix = f"RCT-{self.contract.id}-{issue_year}{formatted_month}-"
+            while Receipt.objects.filter(receipt_number=f"{prefix}{count}").exists():
+                count += 1
+            self.receipt_number = f"{prefix}{count}"
 
         # Safety net for unique constraint
         try:
@@ -266,7 +275,8 @@ class Receipt(models.Model):
 
     @property
     def total_amount(self):
-        return sum([
+        # A freshly created invoice still holds its float defaults; Decimal and float do not add
+        return sum(Decimal(str(value or 0)) for value in [
             self.monthly_rent,
             self.rental_deposit,
             self.electricity_deposit,
@@ -277,7 +287,13 @@ class Receipt(models.Model):
             self.security_charge,
             self.previous_balance,
             self.other_charges,
+            self.late_penalty,
         ])
+
+    @property
+    def new_charges(self):
+        """What this invoice adds to the tenant's debt: the total without the balance brought forward."""
+        return self.total_amount - self.previous_balance
 
     def __str__(self):
         return f"Receipt {self.receipt_number} - Contract {self.contract.contract_number}"
@@ -286,7 +302,7 @@ class Receipt(models.Model):
     @property
     def balance(self):
         """Balance remaining for this single receipt."""
-        return self.total_amount - self.amount_paid
+        return self.total_amount - Decimal(str(self.amount_paid or 0))
 
 class Payment(models.Model):
     INCOME = "IN"
@@ -326,29 +342,68 @@ class Payment(models.Model):
                 return self.maintenance_request.unit.property.id
         return None
 
-    def save(self, *args, **kwargs):
-        super().save(*args, **kwargs)
-
+    def _apply(self, amount):
+        """Add `amount` (negative to take it back) to whatever this payment is for."""
+        if not amount:
+            return
         if self.type == self.INCOME:
             if self.receipt:
-                self.receipt.amount_paid += self.amount
+                self.receipt.amount_paid += amount
                 self.receipt.save(update_fields=["amount_paid"])
                 self.receipt.update_status()
-            if self.receipt:
                 self.receipt.contract.unit.recalculate_balance()
-
-        elif self.type == self.EXPENSE:  # ✅ Add this
+        elif self.type == self.EXPENSE:
             if self.expense:
-                self.expense.amount_paid += self.amount
+                self.expense.amount_paid += amount
                 self.expense.save(update_fields=["amount_paid", "balance", "payment_status"])
-            
             if self.maintenance_request:
-                self.maintenance_request.amount_paid += self.amount
+                self.maintenance_request.amount_paid += amount
                 self.maintenance_request.save(update_fields=["amount_paid", "balance", "payment_status"])
+
+    def save(self, *args, **kwargs):
+        # Editing a payment only moves the difference; it must not be counted a second time
+        previous = None if self._state.adding else Payment.objects.filter(pk=self.pk).first()
+        if previous is None and self.type == self.INCOME and self.receipt_id:
+            # Rent is paid on the tenant's latest invoice: it already includes
+            # whatever was unpaid on the earlier ones
+            latest = Receipt.objects.filter(contract_id=self.receipt.contract_id).order_by("issue_date", "id").last()
+            if latest is not None and latest.pk != self.receipt_id:
+                self.receipt = latest
+        super().save(*args, **kwargs)
+        if previous is None:
+            self._apply(self.amount)
+        else:
+            previous._apply(-previous.amount)
+            # The same invoice may have just been changed through `previous`
+            for name in ("receipt", "expense", "maintenance_request"):
+                target = getattr(self, name)
+                if target is not None:
+                    target.refresh_from_db()
+            self._apply(self.amount)
+
+    def delete(self, *args, **kwargs):
+        # Take the money back off the invoice or expense it was recorded against
+        self._apply(-self.amount)
+        return super().delete(*args, **kwargs)
 
 
 class Expense(models.Model):
+    class Category(models.TextChoices):
+        CLEANING = "cleaning", "Cleaning"
+        SALARIES = "salaries", "Salaries & wages"
+        REPAIRS = "repairs", "Repairs & maintenance"
+        UTILITIES = "utilities", "Water & electricity"
+        SECURITY = "security", "Security"
+        GARBAGE = "garbage", "Garbage collection"
+        RATES_TAXES = "rates_taxes", "Rates & taxes"
+        INSURANCE = "insurance", "Insurance"
+        MANAGEMENT = "management", "Management & agent fees"
+        SUPPLIES = "supplies", "Supplies"
+        DEPOSIT_REFUND = "deposit_refund", "Deposit refund"
+        OTHER = "other", "Other"
+
     property = models.ForeignKey(Property, on_delete=models.CASCADE, related_name="expenses")
+    category = models.CharField(max_length=20, choices=Category.choices, default=Category.OTHER)
     description = models.TextField()
     amount = models.DecimalField(max_digits=10, decimal_places=2)
     expense_date = models.DateField(auto_now_add=True)
@@ -384,7 +439,19 @@ class Expense(models.Model):
 
 
 class MaintenanceRequest(models.Model):
+    class Category(models.TextChoices):
+        PLUMBING = "plumbing", "Plumbing"
+        ELECTRICAL = "electrical", "Electrical"
+        CARPENTRY = "carpentry", "Doors, locks & carpentry"
+        PAINTING = "painting", "Painting"
+        APPLIANCE = "appliance", "Appliances"
+        STRUCTURAL = "structural", "Roof, walls & floors"
+        PEST_CONTROL = "pest_control", "Pest control"
+        CLEANING = "cleaning", "Cleaning"
+        OTHER = "other", "Other"
+
     unit = models.ForeignKey(Unit, on_delete=models.CASCADE, related_name="maintenance_requests")
+    category = models.CharField(max_length=20, choices=Category.choices, default=Category.OTHER)
     customer = models.ForeignKey(Customer, on_delete=models.SET_NULL, null=True, blank=True, related_name="requests")
     description = models.TextField()
     status = models.CharField(
@@ -461,3 +528,40 @@ class SystemParameter(models.Model):
 
     def __str__(self):
         return f"System Params for {self.property.name}"
+
+
+class MoveOut(models.Model):
+    """The settlement made when a tenant leaves: deposit held, what is taken off it, and what goes back."""
+    contract = models.OneToOneField(RentalContract, on_delete=models.CASCADE, related_name="move_out")
+    move_out_date = models.DateField()
+    deposit_held = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    unpaid_balance = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    deductions = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    deduction_notes = models.TextField(blank=True, default="")
+    # Positive: refunded to the tenant. Negative: the tenant still owes this much.
+    refund_amount = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    refund_payment = models.ForeignKey(Payment, on_delete=models.SET_NULL, null=True, blank=True, related_name="+")
+    recorded_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Move-out {self.contract.contract_number} ({self.move_out_date})"
+
+
+class MpesaTransaction(models.Model):
+    """A paybill/till payment reported by Safaricom. Matched ones are linked to the payment they created."""
+    trans_id = models.CharField(max_length=30, unique=True)
+    trans_time = models.DateTimeField(null=True, blank=True)
+    amount = models.DecimalField(max_digits=12, decimal_places=2)
+    bill_ref = models.CharField(max_length=100, blank=True, default="")
+    msisdn = models.CharField(max_length=100, blank=True, default="")
+    payer_name = models.CharField(max_length=150, blank=True, default="")
+    payment = models.OneToOneField(Payment, on_delete=models.SET_NULL, null=True, blank=True, related_name="mpesa_transaction")
+    raw = models.JSONField(default=dict, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"{self.trans_id} {self.amount} ({'matched' if self.payment_id else 'unmatched'})"

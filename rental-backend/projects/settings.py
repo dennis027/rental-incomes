@@ -139,29 +139,12 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": (
         "rest_framework_simplejwt.authentication.JWTAuthentication",
-        "rest_framework.authentication.SessionAuthentication",
     ),
+    # Public endpoints (login, register, password reset...) opt out with AllowAny
     "DEFAULT_PERMISSION_CLASSES": (
-        "rest_framework.permissions.IsAuthenticatedOrReadOnly",
+        "rest_framework.permissions.IsAuthenticated",
     ),
-    "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.PageNumberPagination",
-    "PAGE_SIZE": 20,
-    "DEFAULT_FILTER_BACKENDS": (
-        "django_filters.rest_framework.DjangoFilterBackend",
-        "rest_framework.filters.SearchFilter",
-        "rest_framework.filters.OrderingFilter",
-    ),
-    "DEFAULT_THROTTLE_CLASSES": (
-        "rest_framework.throttling.AnonRateThrottle",
-        "rest_framework.throttling.UserRateThrottle",
-    ),
-    "DEFAULT_THROTTLE_RATES": {
-        "anon": "60/minute",
-        "user": "120/minute",
-        "contact_form": "5/hour",
-    },
-    "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
-    "EXCEPTION_HANDLER": "utils.exceptions.custom_exception_handler",
+    # No default pagination: the frontend expects plain lists and pages them itself
     "DEFAULT_RENDERER_CLASSES": (
         "rest_framework.renderers.JSONRenderer",
     ) if not DEBUG else (
@@ -230,6 +213,19 @@ CONTACT_NOTIFY_EMAIL = os.getenv("CONTACT_NOTIFY_EMAIL", EMAIL_HOST_USER)
 RECAPTCHA_SECRET_KEY = os.getenv("RECAPTCHA_SECRET_KEY", "")
 GITHUB_USERNAME = os.getenv("GITHUB_USERNAME", "dennis027")
 GITHUB_TOKEN = os.getenv("GITHUB_TOKEN", "")
+
+# Accounts are created by the administrator (admin site or createsuperuser).
+# Set to True only if strangers signing up should see the data.
+ALLOW_PUBLIC_SIGNUP = env_bool("ALLOW_PUBLIC_SIGNUP", False)
+
+# M-Pesa paybill/till (Daraja C2B). Leave MPESA_CALLBACK_TOKEN empty to keep the callbacks switched off.
+MPESA_CALLBACK_TOKEN = os.getenv("MPESA_CALLBACK_TOKEN", "")
+MPESA_ENV = os.getenv("MPESA_ENV", "sandbox")  # sandbox | production
+MPESA_SHORTCODE = os.getenv("MPESA_SHORTCODE", "")
+MPESA_CONSUMER_KEY = os.getenv("MPESA_CONSUMER_KEY", "")
+MPESA_CONSUMER_SECRET = os.getenv("MPESA_CONSUMER_SECRET", "")
+# Public https address of this backend, e.g. https://api.example.com
+MPESA_CALLBACK_BASE_URL = os.getenv("MPESA_CALLBACK_BASE_URL", "")
 
 # ---------------------------------------------------------------------------
 # Logging

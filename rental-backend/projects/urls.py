@@ -20,6 +20,6 @@ from django.http import JsonResponse
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('api/', include('app.urls')),
+    path('', include('app.urls')),
     path("", lambda request: JsonResponse({"status": "ok"})),
 ]

@@ -10,6 +10,8 @@ from .models import (
     Expense,
     MaintenanceRequest,
     SystemParameter,
+    MoveOut,
+    MpesaTransaction,
 )
 
 admin.site.register(CustomUser)
@@ -22,3 +24,5 @@ admin.site.register(Payment)
 admin.site.register(Expense)
 admin.site.register(MaintenanceRequest)
 admin.site.register(SystemParameter)
+admin.site.register(MoveOut)
+admin.site.register(MpesaTransaction)

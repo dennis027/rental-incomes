@@ -1,16 +1,18 @@
 from django.urls import path
 from rest_framework.routers import DefaultRouter
+from rest_framework_simplejwt.views import TokenRefreshView
 from .views import ActivateAccountView, ContractSearchView, CustomerDetail, CustomerDetailView, CustomerListCreate, ExpenseDetailView, ExpenseListCreateView, GenerateMonthlyReceiptsView, GenerateMonthlyReceiptsWithReadingsView, GetActiveUnitsForPropertyView, MaintenanceRequestDetailView, MaintenanceRequestListCreateView, PaymentDetailView, PaymentListCreateView, PropertyDashboardView, PropertyDetailView, PropertySystemParameterView, PropertyUnitsAnalyticsView, PropertyDetail, PropertyListCreate, PropertyUnitsListView, ReceiptDetailView, ReceiptListCreateView, RegisterView, LoginView,PasswordResetRequestView,PasswordResetConfirmView,PasswordResetCodeCheckView,LogoutView, RentalContractCancel, RentalContractDetail, RentalContractListCreate,ResendActivationWithRateLimitView, UnitDetail, UnitDetailView, UnitListCreate 
 
 from django.conf import settings
 from django.conf.urls.static import static
 
-from app import views
+from app import views, billing_views
 
 urlpatterns = [
     path("api/register/", RegisterView.as_view(), name="register"),  
     path("api/login/", LoginView.as_view(), name="login"),
     path('api/logout/', LogoutView.as_view(), name='logout'),
+    path('api/token/refresh/', TokenRefreshView.as_view(), name='token-refresh'),
     path("api/activate/<uidb64>/<token>/", ActivateAccountView.as_view(), name="activate"),
     path('api/resend-activation-limited/', ResendActivationWithRateLimitView.as_view(), name='resend_activation_limited'),
     path("api/reset-password/", PasswordResetRequestView.as_view(), name="reset-password"),
@@ -126,8 +128,19 @@ urlpatterns = [
     path('api/properties/comparison/', views.PropertyComparisonReportView.as_view(), name='properties-comparison'),
 
 
-]+ static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 
+    # Statements, arrears, move-out and renewals
+    path('api/customers/<int:customer_id>/statement/', billing_views.CustomerStatementView.as_view(), name='customer-statement'),
+    path('api/arrears/', billing_views.ArrearsView.as_view(), name='arrears'),
+    path('api/contracts/ending-soon/', billing_views.ContractsEndingSoonView.as_view(), name='contracts-ending-soon'),
+    path('api/contracts/<int:pk>/move-out/', billing_views.ContractMoveOutView.as_view(), name='contract-move-out'),
 
-if settings.DEBUG: 
-    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+    # M-Pesa paybill. Safaricom rejects callback URLs containing "mpesa", hence "paybill".
+    path('api/paybill/<str:token>/validation/', billing_views.MpesaValidationView.as_view(), name='paybill-validation'),
+    path('api/paybill/<str:token>/confirmation/', billing_views.MpesaConfirmationView.as_view(), name='paybill-confirmation'),
+    path('api/paybill-transactions/', billing_views.MpesaTransactionListView.as_view(), name='paybill-transactions'),
+    path('api/paybill-transactions/<int:pk>/match/', billing_views.MpesaTransactionMatchView.as_view(), name='paybill-transaction-match'),
+
+    # Uploaded files need a login; see ProtectedMediaView
+    path('media/<path:path>', views.ProtectedMediaView.as_view(), name='protected-media'),
+]
