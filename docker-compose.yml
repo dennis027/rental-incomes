@@ -1,0 +1,31 @@
+services:
+  backend:
+    build: ./rental-backend
+    image: rental-backend
+    env_file: ./rental-backend/.env
+    environment:
+      # settings.py forces HTTPS redirects when DEBUG is off, so default to
+      # DEBUG=True for plain-http local use. Run with DEBUG=False to override.
+      DEBUG: ${DEBUG:-True}
+      RUN_MIGRATIONS: ${RUN_MIGRATIONS:-true}
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./rental-backend/media:/app/media
+      - ./rental-backend/logs:/app/logs
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./rental-frontend
+      args:
+        # Baked into the bundle and called from the browser, so it has to be
+        # the backend's address as seen from the host.
+        API_URL: ${API_URL:-http://localhost:8000/}
+    image: rental-frontend
+    ports:
+      # 4200 is already in the backend's default CORS_ALLOWED_ORIGINS
+      - "4200:4000"
+    depends_on:
+      - backend
+    restart: unless-stopped
