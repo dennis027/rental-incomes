@@ -1,0 +1,86 @@
+@if (isLoading && !transactions.length) {
+  <div class="paybill-state"><mat-spinner diameter="32"></mat-spinner></div>
+} @else if (loadError) {
+  <div class="paybill-state">
+    <p>The M-Pesa payments could not be loaded.</p>
+    <button mat-stroked-button (click)="load()">Try again</button>
+  </div>
+} @else if (!transactions.length) {
+  <div class="paybill-state">
+    <i class="fas fa-mobile-screen-button"></i>
+    @if (configured) {
+      <p>No paybill payments yet. When a tenant pays to your paybill with their invoice number, unit number or phone number as the account, the payment appears here and is recorded automatically.</p>
+    } @else {
+      <p>Automatic M-Pesa payments are not switched on. Your paybill or till has to be connected first; see "M-Pesa paybill" in the backend README.</p>
+    }
+  </div>
+} @else {
+  <div class="ui-table-scroll">
+    <table class="paybill-table">
+      <thead>
+        <tr>
+          <th>Received</th>
+          <th>M-Pesa code</th>
+          <th>From</th>
+          <th>Account typed</th>
+          <th class="num">Amount</th>
+          <th>Invoice</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (row of transactions; track row.id) {
+          <tr>
+            <td>{{ row.trans_time | date:'d MMM y, HH:mm' }}</td>
+            <td><span class="ui-mono">{{ row.trans_id }}</span></td>
+            <td>{{ row.payer_name || '—' }}</td>
+            <td>{{ row.bill_ref || '—' }}</td>
+            <td class="num"><strong>{{ row.amount | number:'1.2-2' }}</strong></td>
+            <td>
+              @if (row.matched) {
+                <span class="ui-mono">{{ inv(row.invoice_number) || 'Recorded' }}</span>
+              } @else {
+                <span class="ui-chip ui-chip--warning">Not matched</span>
+              }
+            </td>
+            <td class="num">
+              @if (!row.matched) {
+                <button mat-stroked-button (click)="openMatch(row)">Match to invoice</button>
+              }
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+}
+
+<ng-template #matchDialog>
+  <h2 mat-dialog-title>Match payment {{ matching?.trans_id }}</h2>
+  <mat-dialog-content>
+    <p class="match-for">
+      KES {{ matching?.amount | number:'1.2-2' }} from {{ matching?.payer_name || 'unknown payer' }},
+      account typed: "{{ matching?.bill_ref || 'none' }}". Choose the invoice this payment is for.
+    </p>
+    <mat-form-field appearance="outline" style="width: 100%">
+      <mat-label>Invoice</mat-label>
+      <mat-select [(ngModel)]="invoiceId">
+        @for (invoice of owingInvoices; track invoice.id) {
+          <mat-option [value]="invoice.id">
+            {{ invoice.customer_name }} · Unit {{ invoice.unit }} · {{ inv(invoice.receipt_number) }} · owes {{ invoice.balance | number:'1.2-2' }}
+          </mat-option>
+        }
+      </mat-select>
+      <mat-hint>Only invoices with a balance are listed</mat-hint>
+    </mat-form-field>
+    @if (saveError) {
+      <p class="match-error" role="alert">{{ saveError }}</p>
+    }
+  </mat-dialog-content>
+  <mat-dialog-actions align="end">
+    <button mat-button mat-dialog-close [disabled]="saving">Cancel</button>
+    <button mat-flat-button color="primary" (click)="confirmMatch()" [disabled]="saving || !invoiceId">
+      {{ saving ? 'Saving…' : 'Record payment' }}
+    </button>
+  </mat-dialog-actions>
+</ng-template>

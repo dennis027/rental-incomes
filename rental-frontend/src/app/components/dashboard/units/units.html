@@ -1,0 +1,545 @@
+<div class="property-units-container">
+  <!-- Header Section -->
+  <div class="header">
+    <h2>
+      Units
+      @if (selectedPropertyName || properties.length > 0) {
+        <small class="header-context">in {{ selectedPropertyName || properties[0].name }}</small>
+      }
+    </h2>
+  </div>
+
+
+  <!-- Search Bar -->
+  <mat-form-field appearance="outline" class="full-width mt-2">
+    <mat-label>Search Units</mat-label>
+    <input
+      matInput
+      [(ngModel)]="searchText"
+      (keyup)="applyFilter()"
+      placeholder="Search by number, type, or status"
+    />
+    <mat-icon matSuffix>search</mat-icon>
+  </mat-form-field>
+
+  <!-- Add Unit Button -->
+  <div class="mt-3 mb-3">
+    <button mat-raised-button color="primary" (click)="openAddUnitDialog()">
+      <mat-icon>add</mat-icon> Add Unit
+    </button>
+  </div>
+
+  <!-- Units Table -->
+
+<div class="table-container mat-elevation-z8">
+  
+  <table mat-table [dataSource]="dataSource" class="full-width-table">
+
+    <ng-container matColumnDef="unit_number">
+      <th mat-header-cell *matHeaderCellDef>Unit No</th>
+      <td mat-cell *matCellDef="let element" [attr.data-label]="'Unit No'">
+        {{ element.unit_number }}
+      </td>
+    </ng-container>
+
+    <ng-container matColumnDef="unit_type">
+      <th mat-header-cell *matHeaderCellDef>Type</th>
+      <td mat-cell *matCellDef="let element" [attr.data-label]="'Type'">
+        {{ element.unit_type_display || element.unit_type }}
+      </td>
+    </ng-container>
+
+    <ng-container matColumnDef="tenant_name">
+      <th mat-header-cell *matHeaderCellDef>Tenant</th>
+      <td mat-cell *matCellDef="let element" [attr.data-label]="'Tenant'">
+        @if (element.tenant_name) {
+          <span class="tenant-name">{{ element.tenant_name }}</span>
+        } @else {
+          <span class="tenant-none">—</span>
+        }
+      </td>
+    </ng-container>
+
+    <ng-container matColumnDef="rent_amount">
+      <th mat-header-cell *matHeaderCellDef>Rent</th>
+      <td mat-cell *matCellDef="let element" [attr.data-label]="'Rent'">
+        {{ element.rent_amount | currency:'KES ' }}
+      </td>
+    </ng-container>
+
+    <ng-container matColumnDef="active_contract_deposit">
+      <th mat-header-cell *matHeaderCellDef>Deposit</th>
+      <td mat-cell *matCellDef="let element" [attr.data-label]="'Deposit'">
+        {{ element.active_contract_deposit | currency:'KES ' }}
+      </td>
+    </ng-container>
+
+    <ng-container matColumnDef="balance">
+      <th mat-header-cell *matHeaderCellDef>Balance</th>
+      <td mat-cell *matCellDef="let element" [attr.data-label]="'Balance'">
+        {{ element.balance | currency:'KES ' }}
+      </td>
+    </ng-container>
+
+    <ng-container matColumnDef="status">
+      <th mat-header-cell *matHeaderCellDef>Status</th>
+      <td mat-cell *matCellDef="let element" [attr.data-label]="'Status'">
+        <span [ngClass]="element.status === 'occupied' ? 'occupied' : 'vacant'">
+          {{ element.status | titlecase }}
+        </span>
+      </td>
+    </ng-container>
+
+    <ng-container matColumnDef="actions">
+      <th mat-header-cell *matHeaderCellDef class="text-center">Actions</th>
+      
+      <td mat-cell *matCellDef="let element" class="actions-cell" [attr.data-label]="'Actions'">
+        
+        <div class="action-buttons">
+          <button mat-icon-button color="primary"
+                  (click)="openUpdateDialog(element)"
+                  matTooltip="Edit Unit">
+            <mat-icon>edit</mat-icon>
+          </button>
+
+          @if (element.status !== 'occupied') {
+            <button mat-icon-button color="warn"
+                    (click)="openDeleteDialog(element)"
+                    matTooltip="Delete Unit">
+              <mat-icon>delete</mat-icon>
+            </button>
+          }
+
+          @if (element.status !== 'occupied') {
+            <button mat-stroked-button class="rent-out-btn"
+                    (click)="openContractDialog(element)"
+                    matTooltip="Give this unit to a tenant">
+              <mat-icon>person_add</mat-icon>
+              Rent out
+            </button>
+          }
+
+          @if (element.status === 'occupied') {
+            <button mat-stroked-button class="end-contract-btn"
+                    (click)="openCancelDialog(element)"
+                    matTooltip="End the contract and settle the deposit">
+              <mat-icon>logout</mat-icon>
+              Move out
+            </button>
+          }
+        </div>
+      </td>
+    </ng-container>
+
+    <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+    <tr mat-row *matRowDef="let row; columns: displayedColumns"></tr>
+
+    <tr class="mat-row" *matNoDataRow>
+      <td class="mat-cell no-data-cell" [attr.colspan]="displayedColumns.length">
+        <div class="no-data-content">
+          <mat-icon>inbox</mat-icon>
+          <p>No units here yet. Use "Add Unit" to create the first one, or clear the search.</p>
+        </div>
+      </td>
+    </tr>
+
+  </table>
+
+  <mat-paginator></mat-paginator>
+</div>
+
+
+
+</div>
+
+<!-- Add Unit Dialog Template -->
+<ng-template #openAddDialog>
+   <div class="container-fluid dialog-header">
+      <h2 style="display: inline;" mat-dialog-title>Add Units</h2>
+      <button style="display: inline;float: right;" mat-icon-button mat-dialog-close aria-label="Close dialog">
+        <mat-icon>close</mat-icon>
+      </button> <br> 
+        <mat-dialog-content>
+          <form [formGroup]="unitForm" class="unit-form">
+            <div class="row">
+              <div class="col-md-4">
+                  <mat-form-field appearance="outline">
+                    <mat-label>Unit Number</mat-label>
+                    <input matInput formControlName="unit_number" placeholder="e.g., A101">
+                    @if (unitForm.get('unit_number')?.hasError('required')) {
+                      <mat-error>Unit number is required</mat-error>
+                    }
+                    @if (unitForm.get('unit_number')?.hasError('minlength')) {
+                      <mat-error>Unit number must be at least 1 character</mat-error>
+                    }
+                  </mat-form-field>
+              </div>
+
+              <div class="col-md-4">
+                    <mat-form-field appearance="outline">
+                      <mat-label>Unit Type</mat-label>
+                      <mat-select formControlName="unit_type">
+                        <mat-option value="bedsitter">Bedsitter</mat-option>
+                        <mat-option value="studio">Studio</mat-option>
+                        <mat-option value="one_bedroom">1 Bedroom</mat-option>
+                        <mat-option value="two_bedroom">2 Bedroom</mat-option>
+                        <mat-option value="three_bedroom">3 Bedroom</mat-option>
+                        <mat-option value="four_bedroom">4 Bedroom</mat-option>
+                        <mat-option value="five_bedroom">5 Bedroom</mat-option>
+                      </mat-select>
+                      @if (unitForm.get('unit_type')?.hasError('required')) {
+                        <mat-error>Unit type is required</mat-error>
+                      }
+                    </mat-form-field>
+              </div>
+
+              <div class="col-md-4">
+                <mat-form-field appearance="outline">
+                  <mat-label>Rent Amount</mat-label>
+                  <input matInput type="number" formControlName="rent_amount" placeholder="0.00">
+                  <span matPrefix>KES&nbsp;</span>
+                  @if (unitForm.get('rent_amount')?.hasError('required')) {
+                    <mat-error>Rent amount is required</mat-error>
+                  }
+                  @if (unitForm.get('rent_amount')?.hasError('min')) {
+                    <mat-error>Rent amount must be at least 0</mat-error>
+                  }
+                </mat-form-field>
+              </div>
+            </div>
+            <div class="row">
+              <div class="col-md-4">
+                    @if (showWaterMeter) {
+                    <mat-form-field appearance="outline">
+                      <mat-label>Water Meter Reading</mat-label>
+                      <input matInput type="number" (change)="testForm()"  formControlName="water_meter_reading" placeholder="0">
+                      @if (unitForm.get('water_meter_reading')?.hasError('required')) {
+                        <mat-error>Water meter reading is required</mat-error>
+                      }
+                      @if (unitForm.get('water_meter_reading')?.hasError('min')) {
+                        <mat-error>Reading must be at least 0</mat-error>
+                      }
+                    </mat-form-field>
+                    }
+              </div>
+              
+              <div class="col-md-4">
+                @if (showElectricityMeter) {
+                  <mat-form-field appearance="outline">
+                    <mat-label>Electricity Meter Reading</mat-label>
+                    <input matInput type="number" formControlName="electricity_meter_reading" placeholder="0">
+                    @if (unitForm.get('electricity_meter_reading')?.hasError('required')) {
+                      <mat-error>Electricity meter reading is required</mat-error>
+                    }
+                    @if (unitForm.get('electricity_meter_reading')?.hasError('min')) {
+                      <mat-error>Reading must be at least 0</mat-error>
+                    }
+                  </mat-form-field>
+                  }
+              </div>
+
+              <div class="col-md-4">
+                
+              </div>
+            </div>
+
+
+
+
+      
+  
+     
+            <!-- <mat-form-field appearance="outline">
+              <mat-label>Status</mat-label>
+              <mat-select formControlName="status">
+                <mat-option value="vacant">Vacant</mat-option>
+                <mat-option value="occupied">Occupied</mat-option>
+                <mat-option value="maintenance">Maintenance</mat-option>
+              </mat-select>
+              @if (unitForm.get('status')?.hasError('required')) {
+                <mat-error>Status is required</mat-error>
+              }
+            </mat-form-field> -->
+
+          </form>
+        </mat-dialog-content>
+        <mat-dialog-actions align="end">
+          <button mat-button mat-dialog-close>Cancel</button>
+          <button mat-raised-button color="primary" (click)="addUnit()" [disabled]="unitForm.invalid || loadAdding">
+            @if (loadAdding) {
+              <mat-spinner diameter="20"></mat-spinner>
+            }
+            @if (!loadAdding) {
+              <span>Add Unit</span>
+            }
+          </button>
+        </mat-dialog-actions>
+  </div>
+ 
+</ng-template>
+
+<!-- Update Unit Dialog Template -->
+<ng-template #updateDialog>
+     <div class="container-fluid dialog-header">
+      <h2 style="display: inline;" mat-dialog-title>Update Unit</h2>
+      <button style="display: inline;float: right;" mat-icon-button mat-dialog-close aria-label="Close dialog">
+        <mat-icon>close</mat-icon>
+      </button> <br> 
+        <mat-dialog-content>
+          <form [formGroup]="updateUnitForm" class="unit-form">
+
+            <div class="row">
+              <div class="col-md-4">
+                  <mat-form-field appearance="outline">
+                    <mat-label>Unit Number</mat-label>
+                    <input matInput formControlName="unit_number" placeholder="e.g., A101">
+                    @if (updateUnitForm.get('unit_number')?.hasError('required')) {
+                      <mat-error>Unit number is required</mat-error>
+                    }
+                    @if (updateUnitForm.get('unit_number')?.hasError('minlength')) {
+                      <mat-error>Unit number must be at least 1 character</mat-error>
+                    }
+                  </mat-form-field>
+              </div>
+              <div class="col-md-4">
+                  <mat-form-field appearance="outline">
+                    <mat-label>Unit Type</mat-label>
+                      <mat-select formControlName="unit_type">
+                    <mat-option value="bedsitter">Bedsitter</mat-option>
+                      <mat-option value="studio">Studio</mat-option>
+                      <mat-option value="one_bedroom">1 Bedroom</mat-option>
+                      <mat-option value="two_bedroom">2 Bedroom</mat-option>
+                      <mat-option value="three_bedroom">3 Bedroom</mat-option>
+                      <mat-option value="four_bedroom">4 Bedroom</mat-option>
+                      <mat-option value="five_bedroom">5 Bedroom</mat-option>
+                    </mat-select>
+                    @if (updateUnitForm.get('unit_type')?.hasError('required')) {
+                      <mat-error>Unit type is required</mat-error>
+                    }
+                  </mat-form-field>
+              </div>
+              <div class="col-md-4">
+                <mat-form-field appearance="outline">
+                  <mat-label>Rent Amount</mat-label>
+                  <input matInput type="number" formControlName="rent_amount" placeholder="0.00">
+                  <span matPrefix>KES&nbsp;</span>
+                  @if (updateUnitForm.get('rent_amount')?.hasError('required')) {
+                    <mat-error>Rent amount is required</mat-error>
+                  }
+                  @if (updateUnitForm.get('rent_amount')?.hasError('min')) {
+                    <mat-error>Rent amount must be at least 0</mat-error>
+                  }
+                </mat-form-field>
+              </div>
+            </div>
+
+            <div class="row">
+              <div class="col-md-4">
+                @if(showWaterMeter) {
+                <mat-form-field appearance="outline">
+                  <mat-label>Water Meter Reading</mat-label>
+                  <input matInput type="number" formControlName="water_meter_reading" placeholder="0">
+                  @if (updateUnitForm.get('water_meter_reading')?.hasError('required')) {
+                    <mat-error>Water meter reading is required</mat-error>
+                  }
+                  @if (updateUnitForm.get('water_meter_reading')?.hasError('min')) {
+                    <mat-error>Reading must be at least 0</mat-error>
+                  }
+                </mat-form-field>
+              }
+              </div>
+              <div class="col-md-4">
+                @if(showElectricityMeter) {
+                  <mat-form-field appearance="outline">
+                    <mat-label>Electricity Meter Reading</mat-label>
+                    <input matInput type="number" formControlName="electricity_meter_reading" placeholder="0">
+                    @if (updateUnitForm.get('electricity_meter_reading')?.hasError('required')) {
+                      <mat-error>Electricity meter reading is required</mat-error>
+                    }
+                    @if (updateUnitForm.get('electricity_meter_reading')?.hasError('min')) {
+                      <mat-error>Reading must be at least 0</mat-error>
+                    }
+                  </mat-form-field>
+
+                  }
+              </div>
+              <div class="col-md-4">
+                
+              </div>
+            </div>
+          </form>
+        </mat-dialog-content>
+        <mat-dialog-actions align="end">
+          <button mat-button mat-dialog-close>Cancel</button>
+          <button mat-raised-button color="primary" (click)="updateUnit()" [disabled]="updateUnitForm.invalid || loadUpdating">
+            @if (loadUpdating) {
+              <mat-spinner diameter="20"></mat-spinner>
+            }
+            @if (!loadUpdating) {
+              <span>Update Unit</span>
+            }
+          </button>
+        </mat-dialog-actions>
+  </div>
+</ng-template>
+
+<!-- Delete Confirmation Dialog Template -->
+<ng-template #deleteDialog>
+    <div class="container-fluid dialog-header">
+  <h2 style="display: inline;" mat-dialog-title>Delete Unit</h2>
+  <button style="display: inline;float: right;" mat-icon-button mat-dialog-close aria-label="Close dialog">
+    <mat-icon>close</mat-icon>
+  </button> <br> 
+    <mat-dialog-content>
+      <p>Are you sure you want to delete this unit? This action cannot be undone.</p>
+    </mat-dialog-content>
+    <mat-dialog-actions align="end">
+      <button mat-button mat-dialog-close>Cancel</button>
+      <button mat-raised-button color="warn" (click)="confirmDelete()" [disabled]="loadDeleting">
+        @if (loadDeleting) {
+          <mat-spinner diameter="20"></mat-spinner>
+        }
+        @if (!loadDeleting) {
+          <span>Delete</span>
+        }
+      </button>
+    </mat-dialog-actions>
+  </div>
+</ng-template>
+
+
+<!-- Rent out a unit: create its contract -->
+
+<ng-template #newContractDialog>
+  <div class="contract-dialog">
+    <header class="contract-dialog-header">
+      <div>
+        <h2 mat-dialog-title>Rent out Unit {{ contractUnit?.unit_number }}</h2>
+        <p>{{ selectedPropertyName }} · {{ contractUnit?.unit_type | titlecase }}</p>
+      </div>
+      <button mat-icon-button mat-dialog-close aria-label="Close dialog">
+        <mat-icon>close</mat-icon>
+      </button>
+    </header>
+
+    <mat-dialog-content>
+      @if (availableTenants.length === 0) {
+        <!-- Nobody to rent to yet -->
+        <div class="contract-empty">
+          <i class="fas fa-user-plus"></i>
+          <h4>No tenant available</h4>
+          <p>
+            @if (customers.length === 0) {
+              You have not registered any tenants yet. Register the tenant first, then come back to rent out this unit.
+            } @else {
+              Every registered tenant already has a unit. Register the new tenant first, then come back to rent out this unit.
+            }
+          </p>
+          <button mat-flat-button color="primary" (click)="goToTenants()">
+            <mat-icon>person_add</mat-icon>
+            Register a tenant
+          </button>
+        </div>
+      } @else {
+        <form [formGroup]="contractForm" class="contract-form">
+          <h5><span class="step">1</span> Who is moving in?</h5>
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Tenant</mat-label>
+            <mat-select formControlName="customer">
+              @for (customer of availableTenants; track customer.id) {
+                <mat-option [value]="customer.id">
+                  {{ customer.first_name }} {{ customer.last_name }} · {{ customer.phone_number }}
+                </mat-option>
+              }
+            </mat-select>
+            <mat-hint>Only tenants without a unit are listed.</mat-hint>
+            @if (contractForm.get('customer')?.hasError('required')) {
+              <mat-error>Choose the tenant</mat-error>
+            }
+          </mat-form-field>
+          <button type="button" class="link-button" (click)="goToTenants()">Tenant not listed? Register them first</button>
+
+          <h5><span class="step">2</span> When and how often do they pay?</h5>
+          <div class="contract-row">
+            <mat-form-field appearance="outline">
+              <mat-label>Move-in date</mat-label>
+              <input matInput formControlName="start_date" [matDatepicker]="pickerStart">
+              <mat-datepicker-toggle matIconSuffix [for]="pickerStart"></mat-datepicker-toggle>
+              <mat-datepicker #pickerStart></mat-datepicker>
+              @if (contractForm.get('start_date')?.hasError('required')) {
+                <mat-error>Move-in date is required</mat-error>
+              }
+            </mat-form-field>
+
+            <mat-form-field appearance="outline">
+              <mat-label>Rent is paid</mat-label>
+              <mat-select formControlName="payment_frequency">
+                <mat-option value="monthly">Monthly</mat-option>
+                <mat-option value="quarterly">Quarterly</mat-option>
+                <mat-option value="yearly">Yearly</mat-option>
+              </mat-select>
+            </mat-form-field>
+          </div>
+
+          <h5><span class="step">3</span> Rent and deposit</h5>
+          <div class="contract-row">
+            <mat-form-field appearance="outline">
+              <mat-label>Rent (KES)</mat-label>
+              <input matInput type="number" min="0" formControlName="rent_amount" />
+              <mat-hint>Filled in from the unit</mat-hint>
+              @if (contractForm.get('rent_amount')?.invalid) {
+                <mat-error>Enter the rent</mat-error>
+              }
+            </mat-form-field>
+
+            <mat-form-field appearance="outline">
+              <mat-label>Deposit (KES)</mat-label>
+              <input matInput type="number" min="0" formControlName="deposit_amount" (input)="onDepositInput()" />
+              <mat-hint>{{ depositMonths }} month{{ depositMonths === 1 ? '' : 's' }} of rent, from Settings</mat-hint>
+              @if (contractForm.get('deposit_amount')?.invalid) {
+                <mat-error>Enter the deposit</mat-error>
+              }
+            </mat-form-field>
+          </div>
+
+          <div class="move-in-summary">
+            <p class="move-in-title">Due at move-in</p>
+            @for (line of moveInLines; track line.label) {
+              <div class="move-in-line">
+                <span>{{ line.label }}</span>
+                <span>{{ line.amount | currency:'KES ' }}</span>
+              </div>
+            }
+            <div class="move-in-line move-in-total">
+              <span>Total</span>
+              <span>{{ moveInTotal | currency:'KES ' }}</span>
+            </div>
+            <p class="move-in-note">
+              <i class="fas fa-circle-info"></i>
+              Saving marks the unit as occupied and creates the first invoice for this amount.
+            </p>
+          </div>
+
+          @if (contractError) {
+            <div class="contract-error" role="alert">
+              <i class="fas fa-circle-exclamation"></i>
+              <span>{{ contractError }}</span>
+            </div>
+          }
+        </form>
+      }
+    </mat-dialog-content>
+
+    @if (availableTenants.length > 0) {
+      <mat-dialog-actions align="end">
+        <button mat-stroked-button mat-dialog-close [disabled]="loadAdding">Cancel</button>
+        <button mat-flat-button color="primary" (click)="addContract()" [disabled]="loadAdding">
+          @if (loadAdding) {
+            <mat-spinner diameter="20" style="display: inline-block; margin-right: 8px;"></mat-spinner>
+          }
+          {{ loadAdding ? 'Creating…' : 'Create contract' }}
+        </button>
+      </mat-dialog-actions>
+    }
+  </div>
+</ng-template>

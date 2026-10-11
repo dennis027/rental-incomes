@@ -1,0 +1,273 @@
+.report-viewer {
+  display: grid;
+  grid-template-columns: 260px minmax(0, 1fr);
+  gap: 20px;
+  padding-top: 20px;
+  align-items: start;
+}
+
+/* ---------- Report picker ---------- */
+.report-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px;
+  background: #fff;
+  border: 1px solid var(--gray-200);
+  border-radius: 16px;
+}
+
+.report-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 10px 12px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+}
+
+.report-item strong {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--gray-800);
+}
+
+.report-item span {
+  font-size: 12px;
+  line-height: 1.35;
+  color: var(--gray-500);
+}
+
+.report-item:hover {
+  background: var(--gray-100);
+}
+
+.report-item.active {
+  background: var(--brand-50);
+}
+
+.report-item.active strong {
+  color: var(--brand-500);
+}
+
+/* ---------- Body ---------- */
+.report-body {
+  min-width: 0;
+  padding: 20px 24px 24px;
+  background: #fff;
+  border: 1px solid var(--gray-200);
+  border-radius: 16px;
+}
+
+.report-header h3 {
+  margin: 0 0 4px;
+}
+
+.report-header p {
+  margin: 0 0 16px;
+  font-size: 14px;
+  color: var(--gray-500);
+}
+
+.report-filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  padding-bottom: 16px;
+  margin-bottom: 16px;
+  border-bottom: 1px solid var(--gray-200);
+}
+
+.report-filters mat-form-field {
+  width: 190px;
+}
+
+.report-filter-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: auto;
+}
+
+.report-period {
+  margin: 0 0 16px;
+  font-size: 13px;
+  color: var(--gray-500);
+}
+
+.report-period i {
+  margin-right: 6px;
+}
+
+/* ---------- Figures ---------- */
+.stat-group {
+  margin-bottom: 20px;
+}
+
+.stat-group h4,
+.report-table-header h4 {
+  margin: 0;
+  font-size: 15px;
+}
+
+.stat-group h4 {
+  margin-bottom: 10px;
+}
+
+.stat-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 12px;
+}
+
+.stat {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 14px 16px;
+  border: 1px solid var(--gray-200);
+  border-radius: 12px;
+  background: var(--gray-25);
+}
+
+.stat span {
+  font-size: 13px;
+  color: var(--gray-500);
+}
+
+.stat strong {
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--gray-800);
+  word-break: break-word;
+}
+
+/* ---------- Tables ---------- */
+.report-table {
+  margin-top: 24px;
+}
+
+.report-table-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 40px;
+  margin-bottom: 8px;
+}
+
+.report-table-header small {
+  font-weight: 400;
+  color: var(--gray-400);
+}
+
+.report-table-scroll {
+  overflow-x: auto;
+  border: 1px solid var(--gray-200);
+  border-radius: 12px;
+}
+
+.report-table table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.report-table th {
+  padding: 10px 16px;
+  background: var(--gray-50);
+  border-bottom: 1px solid var(--gray-200);
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--gray-500);
+  text-align: left;
+  white-space: nowrap;
+}
+
+.report-table td {
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--gray-100);
+  color: var(--gray-700);
+  white-space: nowrap;
+}
+
+.report-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.report-table tbody tr:hover {
+  background: var(--gray-50);
+}
+
+.report-empty {
+  margin: 0;
+  padding: 20px;
+  border: 1px dashed var(--gray-300);
+  border-radius: 12px;
+  font-size: 14px;
+  color: var(--gray-500);
+  text-align: center;
+}
+
+.report-more {
+  margin-top: 8px;
+}
+
+/* ---------- States ---------- */
+.report-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 56px 20px;
+  color: var(--gray-500);
+  text-align: center;
+}
+
+.report-state i {
+  font-size: 28px;
+  color: var(--gray-300);
+}
+
+.report-state p {
+  margin: 0;
+  font-size: 14px;
+}
+
+.report-state--error i {
+  color: var(--error-500);
+}
+
+@media (max-width: 992px) {
+  .report-viewer {
+    grid-template-columns: 1fr;
+  }
+
+  .report-list {
+    flex-direction: row;
+    overflow-x: auto;
+  }
+
+  .report-item {
+    flex: 0 0 auto;
+  }
+
+  .report-item span {
+    display: none;
+  }
+
+  .report-body {
+    padding: 16px;
+  }
+
+  .report-filters mat-form-field {
+    width: 100%;
+  }
+
+  .report-filter-actions {
+    margin-left: 0;
+  }
+}

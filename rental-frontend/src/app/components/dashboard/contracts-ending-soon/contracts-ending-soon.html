@@ -1,0 +1,55 @@
+@if (contracts.length) {
+  <section class="ending-card">
+    <header>
+      <div>
+        <h5>Contracts ending soon</h5>
+        <p>{{ contracts.length }} contract{{ contracts.length === 1 ? '' : 's' }} to renew or end in the next 60 days</p>
+      </div>
+    </header>
+    <ul>
+      @for (contract of contracts; track contract.id) {
+        <li>
+          <div class="who">
+            <strong>{{ contract.customer_name }}</strong>
+            <small>Unit {{ contract.unit }} · ends {{ contract.end_date | date:'d MMM y' }}</small>
+          </div>
+          @if (contract.days_left < 0) {
+            <span class="ui-chip ui-chip--error">Ended {{ -contract.days_left }} day{{ contract.days_left === -1 ? '' : 's' }} ago</span>
+          } @else if (contract.days_left <= 14) {
+            <span class="ui-chip ui-chip--warning">{{ contract.days_left === 0 ? 'Ends today' : contract.days_left + ' days left' }}</span>
+          } @else {
+            <span class="ui-chip">{{ contract.days_left }} days left</span>
+          }
+          <div class="ending-actions">
+            <button mat-icon-button class="whatsapp-btn" (click)="ask(contract)" matTooltip="Ask the tenant on WhatsApp" aria-label="Ask the tenant on WhatsApp">
+              <i class="fab fa-whatsapp"></i>
+            </button>
+            <button mat-stroked-button (click)="openRenew(contract)">Renew</button>
+          </div>
+        </li>
+      }
+    </ul>
+  </section>
+}
+
+<ng-template #renewDialog>
+  <h2 mat-dialog-title>Renew contract</h2>
+  <mat-dialog-content>
+    <p class="renew-for">
+      {{ renewing?.customer_name }} · Unit {{ renewing?.unit }} · currently ends {{ renewing?.end_date | date:'d MMMM y' }}
+    </p>
+    <mat-form-field appearance="outline" style="width: 100%">
+      <mat-label>New end date</mat-label>
+      <input matInput type="date" [(ngModel)]="newEndDate" [min]="renewing?.end_date">
+    </mat-form-field>
+    @if (saveError) {
+      <p class="renew-error" role="alert">{{ saveError }}</p>
+    }
+  </mat-dialog-content>
+  <mat-dialog-actions align="end">
+    <button mat-button mat-dialog-close [disabled]="saving">Cancel</button>
+    <button mat-flat-button color="primary" (click)="renew()" [disabled]="saving || !newEndDate">
+      {{ saving ? 'Saving…' : 'Renew' }}
+    </button>
+  </mat-dialog-actions>
+</ng-template>

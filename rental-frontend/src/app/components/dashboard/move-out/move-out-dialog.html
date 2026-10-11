@@ -1,0 +1,135 @@
+<div class="move-out">
+  <header class="move-out-header">
+    <div>
+      <h2 mat-dialog-title>{{ settlement ? 'Move-out statement' : 'Move out and settle deposit' }}</h2>
+      @if (preview || settlement; as info) {
+        <p>{{ info.tenant.name }} · Unit {{ info.unit }} · {{ info.contract_number }}</p>
+      }
+    </div>
+    <button mat-icon-button (click)="close()" aria-label="Close dialog" [disabled]="saving"><mat-icon>close</mat-icon></button>
+  </header>
+
+  <mat-dialog-content>
+    @if (isLoading) {
+      <div class="move-out-state"><mat-spinner diameter="32"></mat-spinner></div>
+    } @else if (loadError) {
+      <p class="move-out-error" role="alert">{{ loadError }}</p>
+    } @else if (settlement) {
+      <!-- Settled: what was agreed -->
+      <dl class="sums">
+        <div><dt>Moved out</dt><dd>{{ settlement.move_out_date | date:'d MMMM y' }}</dd></div>
+        <div><dt>Deposit held</dt><dd>{{ settlement.deposit_held | number:'1.2-2' }}</dd></div>
+        <div><dt>Less unpaid rent and bills</dt><dd>- {{ settlement.unpaid_balance | number:'1.2-2' }}</dd></div>
+        <div>
+          <dt>Less deductions @if (settlement.deduction_notes) { <small>{{ settlement.deduction_notes }}</small> }</dt>
+          <dd>- {{ settlement.deductions | number:'1.2-2' }}</dd>
+        </div>
+        <div class="sums-total" [class.owed]="+settlement.refund_amount < 0">
+          <dt>{{ +settlement.refund_amount < 0 ? 'Still owed by tenant' : 'Refund to tenant' }}</dt>
+          <dd>KES {{ abs(settlement.refund_amount) | number:'1.2-2' }}</dd>
+        </div>
+      </dl>
+      @if (+settlement.refund_amount > 0) {
+        <p class="move-out-note">
+          {{ settlement.refund_recorded ? 'The refund has been recorded under Payments as money out.' : 'The refund has not been recorded as a payment.' }}
+        </p>
+      }
+    } @else if (preview && !preview.is_active) {
+      <p class="move-out-note">This contract was ended without a deposit settlement, so there is no move-out statement for it.</p>
+    } @else if (preview) {
+      <form [formGroup]="form" class="move-out-form">
+        <mat-form-field appearance="outline">
+          <mat-label>Move-out date</mat-label>
+          <input matInput type="date" formControlName="move_out_date">
+        </mat-form-field>
+        <span></span>
+
+        @if (preview.meters.has_water_bill) {
+          <mat-form-field appearance="outline">
+            <mat-label>Final water reading</mat-label>
+            <input matInput type="number" formControlName="final_water_reading" [min]="preview.meters.water_reading">
+            <mat-hint>Last reading {{ preview.meters.water_reading | number }}</mat-hint>
+          </mat-form-field>
+        }
+        @if (preview.meters.has_electricity_bill) {
+          <mat-form-field appearance="outline">
+            <mat-label>Final electricity reading</mat-label>
+            <input matInput type="number" formControlName="final_electricity_reading" [min]="preview.meters.electricity_reading">
+            <mat-hint>Last reading {{ preview.meters.electricity_reading | number }}</mat-hint>
+          </mat-form-field>
+        }
+
+        <mat-form-field appearance="outline">
+          <mat-label>Deductions (KES)</mat-label>
+          <input matInput type="number" formControlName="deductions" min="0" step="0.01">
+          <mat-hint>Repairs, cleaning, missing items</mat-hint>
+        </mat-form-field>
+        <mat-form-field appearance="outline">
+          <mat-label>What the deductions are for</mat-label>
+          <input matInput formControlName="deduction_notes">
+        </mat-form-field>
+      </form>
+
+      <dl class="sums">
+        <div><dt>Deposit held</dt><dd>{{ preview.deposit_held | number:'1.2-2' }}</dd></div>
+        <div>
+          <dt>
+            Less unpaid rent and bills
+            @if (waterBill + electricityBill > 0) { <small>includes final water and electricity of {{ waterBill + electricityBill | number:'1.2-2' }}</small> }
+          </dt>
+          <dd>- {{ unpaid | number:'1.2-2' }}</dd>
+        </div>
+        <div><dt>Less deductions</dt><dd>- {{ deductions | number:'1.2-2' }}</dd></div>
+        <div class="sums-total" [class.owed]="refund < 0">
+          <dt>{{ refund < 0 ? 'Still owed by tenant' : 'Refund to tenant' }}</dt>
+          <dd>KES {{ abs(refund) | number:'1.2-2' }}</dd>
+        </div>
+      </dl>
+
+      @if (refund > 0) {
+        <form [formGroup]="form" class="refund">
+          <mat-checkbox formControlName="record_refund">Record the refund as money paid out</mat-checkbox>
+          @if (form.value.record_refund) {
+            <div class="move-out-form">
+              <mat-form-field appearance="outline" subscriptSizing="dynamic">
+                <mat-label>Refunded by</mat-label>
+                <mat-select formControlName="refund_method">
+                  <mat-option value="mpesa">M-Pesa</mat-option>
+                  <mat-option value="cash">Cash</mat-option>
+                  <mat-option value="bank">Bank transfer</mat-option>
+                </mat-select>
+              </mat-form-field>
+              <mat-form-field appearance="outline" subscriptSizing="dynamic">
+                <mat-label>Reference (optional)</mat-label>
+                <input matInput formControlName="refund_reference">
+              </mat-form-field>
+            </div>
+          }
+        </form>
+      } @else if (refund < 0) {
+        <p class="move-out-note">The deposit does not cover what is owed. The tenant stays on the Arrears page for the remaining amount.</p>
+      }
+
+      <p class="move-out-note">Ending the contract makes the unit vacant and stops its monthly invoices. This cannot be undone.</p>
+      @if (saveError) {
+        <p class="move-out-error" role="alert">{{ saveError }}</p>
+      }
+    }
+  </mat-dialog-content>
+
+  <mat-dialog-actions align="end">
+    @if (settlement) {
+      <button mat-button (click)="close()">Close</button>
+      <button mat-stroked-button (click)="share()"><i class="fab fa-whatsapp"></i>&nbsp; WhatsApp</button>
+      <button mat-stroked-button (click)="download()"><mat-icon>download</mat-icon> Download PDF</button>
+      <button mat-flat-button color="primary" (click)="print()"><mat-icon>print</mat-icon> Print</button>
+    } @else if (preview?.is_active) {
+      <button mat-stroked-button (click)="close()" [disabled]="saving">Keep contract</button>
+      <button mat-flat-button color="warn" (click)="confirm()" [disabled]="saving || form.invalid">
+        {{ saving ? 'Ending…' : 'End contract and settle' }}
+      </button>
+    } @else {
+      <button mat-button (click)="close()">Close</button>
+    }
+  </mat-dialog-actions>
+</div>

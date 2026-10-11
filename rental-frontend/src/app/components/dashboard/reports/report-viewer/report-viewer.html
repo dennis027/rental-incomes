@@ -1,0 +1,181 @@
+<div class="report-viewer">
+  <!-- Report picker -->
+  <aside class="report-list">
+    @for (report of reports; track report.id) {
+      <button class="report-item" [class.active]="selected()?.id === report.id" (click)="select(report)">
+        <strong>{{ report.title }}</strong>
+        <span>{{ report.description }}</span>
+      </button>
+    }
+  </aside>
+
+  <section class="report-body">
+    @if (selected(); as report) {
+      <header class="report-header">
+        <h3>{{ report.title }}</h3>
+        <p>{{ report.description }}</p>
+      </header>
+
+      <!-- Filters -->
+      <div class="report-filters">
+        @if (report.tenant) {
+          <mat-form-field appearance="outline" subscriptSizing="dynamic">
+            <mat-label>Tenant</mat-label>
+            <mat-select [(ngModel)]="tenantId" (selectionChange)="run()">
+              @for (tenant of tenants(); track tenant.id) {
+                <mat-option [value]="tenant.id.toString()">{{ tenantName(tenant) }}</mat-option>
+              }
+            </mat-select>
+          </mat-form-field>
+        }
+
+        @if (report.property) {
+          <mat-form-field appearance="outline" subscriptSizing="dynamic">
+            <mat-label>Property</mat-label>
+            <mat-select [(ngModel)]="propertyId" (selectionChange)="run()">
+              <mat-option value="">All properties</mat-option>
+              @for (property of properties(); track property.id) {
+                <mat-option [value]="property.id.toString()">{{ property.name }}</mat-option>
+              }
+            </mat-select>
+          </mat-form-field>
+        }
+
+        @if (report.dates) {
+          <mat-form-field appearance="outline" subscriptSizing="dynamic">
+            <mat-label>From</mat-label>
+            <input matInput [matDatepicker]="fromPicker" [(ngModel)]="startDate" (dateChange)="run()">
+            <mat-datepicker-toggle matSuffix [for]="fromPicker"></mat-datepicker-toggle>
+            <mat-datepicker #fromPicker></mat-datepicker>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" subscriptSizing="dynamic">
+            <mat-label>To</mat-label>
+            <input matInput [matDatepicker]="toPicker" [(ngModel)]="endDate" (dateChange)="run()">
+            <mat-datepicker-toggle matSuffix [for]="toPicker"></mat-datepicker-toggle>
+            <mat-datepicker #toPicker></mat-datepicker>
+          </mat-form-field>
+        }
+
+        @for (filter of report.filters ?? []; track filter.key) {
+          <mat-form-field appearance="outline" subscriptSizing="dynamic">
+            <mat-label>{{ filter.label }}</mat-label>
+            @if (filter.type === 'select') {
+              <mat-select [(ngModel)]="extra[filter.key]" (selectionChange)="run()">
+                <mat-option value="">Any</mat-option>
+                @for (option of filter.options ?? []; track option.value) {
+                  <mat-option [value]="option.value">{{ option.label }}</mat-option>
+                }
+              </mat-select>
+            } @else {
+              <input matInput type="number" min="0" [(ngModel)]="extra[filter.key]" (change)="run()" (keyup.enter)="run()">
+            }
+          </mat-form-field>
+        }
+
+        <div class="report-filter-actions">
+          <button mat-stroked-button (click)="run()" [disabled]="loading()">
+            <mat-icon>refresh</mat-icon>
+            Refresh
+          </button>
+          @if (report.property || report.dates || report.filters?.length) {
+            <button mat-button (click)="resetFilters()" [disabled]="loading()">Clear filters</button>
+          }
+        </div>
+      </div>
+
+      @if (loading()) {
+        <div class="report-state">
+          <mat-spinner diameter="36"></mat-spinner>
+          <p>Loading report…</p>
+        </div>
+      } @else if (error()) {
+        <div class="report-state report-state--error">
+          <i class="fas fa-circle-exclamation"></i>
+          <p>{{ error() }}</p>
+          <button mat-stroked-button (click)="run()">Try again</button>
+        </div>
+      } @else if (report.tenant && !tenantId) {
+        <div class="report-state">
+          <i class="fas fa-user"></i>
+          <p>
+            @if (tenants().length > 0) {
+              Choose a tenant above to see their payment history.
+            } @else {
+              You have no tenants yet. Register a tenant to use this report.
+            }
+          </p>
+        </div>
+      } @else if (hasRun()) {
+        @if (period()) {
+          <p class="report-period"><i class="fas fa-calendar"></i> {{ period() }}</p>
+        }
+
+        @for (group of statGroups(); track group.title) {
+          <div class="stat-group">
+            <h4>{{ group.title }}</h4>
+            <div class="stat-grid">
+              @for (stat of group.stats; track stat.label) {
+                <div class="stat">
+                  <span>{{ stat.label }}</span>
+                  <strong>{{ stat.value }}</strong>
+                </div>
+              }
+            </div>
+          </div>
+        }
+
+        @for (table of tables(); track table.title) {
+          <div class="report-table">
+            <div class="report-table-header">
+              <h4>{{ table.title }} <small>({{ table.rows.length }})</small></h4>
+              @if (table.rows.length > 0) {
+                <button mat-button (click)="exportCsv(table)">
+                  <mat-icon>download</mat-icon>
+                  CSV
+                </button>
+              }
+            </div>
+
+            @if (table.rows.length === 0) {
+              <p class="report-empty">Nothing to show for these filters.</p>
+            } @else {
+              <div class="report-table-scroll">
+                <table>
+                  <thead>
+                    <tr>
+                      @for (column of table.columns; track column.key) {
+                        <th>{{ column.label }}</th>
+                      }
+                    </tr>
+                  </thead>
+                  <tbody>
+                    @for (row of visibleRows(table); track $index) {
+                      <tr>
+                        @for (column of table.columns; track column.key) {
+                          <td>{{ format(column.key, row[column.key]) }}</td>
+                        }
+                      </tr>
+                    }
+                  </tbody>
+                </table>
+              </div>
+              @if (table.rows.length > rowLimit) {
+                <button class="report-more" mat-button (click)="toggleRows(table)">
+                  {{ table.expanded ? 'Show fewer rows' : 'Show all ' + table.rows.length + ' rows' }}
+                </button>
+              }
+            }
+          </div>
+        }
+
+        @if (statGroups().length === 0 && tables().length === 0) {
+          <div class="report-state">
+            <i class="fas fa-inbox"></i>
+            <p>This report came back empty.</p>
+          </div>
+        }
+      }
+    }
+  </section>
+</div>

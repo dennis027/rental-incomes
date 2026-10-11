@@ -1,0 +1,279 @@
+<div class="ui-page">
+  <div class="ui-header">
+    <div>
+      <h2>Payments</h2>
+      <p>Money received from tenants and money paid out for expenses and repairs. Every payment received has a receipt you can print here.</p>
+    </div>
+    <button mat-flat-button color="primary" (click)="recordPayment()">
+      <mat-icon>payments</mat-icon>
+      Record payment
+    </button>
+  </div>
+
+  <div class="ui-summary">
+    <div class="ui-summary-card tone-green">
+      <div class="ui-summary-icon"><i class="fas fa-arrow-down"></i></div>
+      <div><span>Money in</span><strong>{{ moneyIn | currency:'KES ' }}</strong></div>
+    </div>
+    <div class="ui-summary-card tone-pink">
+      <div class="ui-summary-icon"><i class="fas fa-arrow-up"></i></div>
+      <div><span>Money out</span><strong>{{ moneyOut | currency:'KES ' }}</strong></div>
+    </div>
+    <div class="ui-summary-card tone-navy">
+      <div class="ui-summary-icon"><i class="fas fa-scale-balanced"></i></div>
+      <div><span>Net</span><strong>{{ moneyIn - moneyOut | currency:'KES ' }}</strong></div>
+    </div>
+  </div>
+
+  <div class="ui-card">
+    <div class="ui-toolbar">
+      <div class="ui-segmented" role="tablist">
+        <button role="tab" [class.active]="tab === 'in'" (click)="setTab('in')">
+          Incoming <span class="count">{{ incomingPayments.length }}</span>
+        </button>
+        <button role="tab" [class.active]="tab === 'out'" (click)="setTab('out')">
+          Outgoing <span class="count">{{ outgoingPayments.length }}</span>
+        </button>
+        <button role="tab" [class.active]="tab === 'mpesa'" (click)="setTab('mpesa')">
+          M-Pesa paybill
+          @if (paybillWaiting) {
+            <span class="count">{{ paybillWaiting }}</span>
+          }
+        </button>
+      </div>
+
+      <div class="ui-toolbar-filters">
+        <mat-form-field appearance="outline" subscriptSizing="dynamic">
+          <mat-label>Month</mat-label>
+          <mat-select [formControl]="selectedMonth">
+            <mat-option value="">All months</mat-option>
+            @for (month of availableMonths; track month.value) {
+              <mat-option [value]="month.value">
+                {{ month.display }}
+              </mat-option>
+            }
+          </mat-select>
+        </mat-form-field>
+
+
+      </div>
+    </div>
+
+    @if (isLoading) {
+      <div class="payments-loading">
+        <mat-spinner diameter="32"></mat-spinner>
+        <p>Loading payments…</p>
+      </div>
+    }
+
+    <!-- Incoming -->
+    <div [hidden]="tab !== 'in' || isLoading">
+      <table mat-table appMatTableResponsive [dataSource]="incomingDataSource" ngSkipHydration>
+        <ng-container matColumnDef="customer_name">
+          <th mat-header-cell *matHeaderCellDef>Tenant</th>
+          <td mat-cell *matCellDef="let element" [attr.data-label]="'Tenant'">
+            <div class="ui-stack">
+              <strong>{{ element.customer_name || '—' }}</strong>
+              <small>Unit {{ element.unit_name }}</small>
+            </div>
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="payment_date">
+          <th mat-header-cell *matHeaderCellDef>Date</th>
+          <td mat-cell *matCellDef="let element" [attr.data-label]="'Date'">{{ element.payment_date | date: 'd MMM y' }}</td>
+        </ng-container>
+
+        <ng-container matColumnDef="amount">
+          <th mat-header-cell *matHeaderCellDef class="ui-num">Amount</th>
+          <td mat-cell *matCellDef="let element" class="ui-num" [attr.data-label]="'Amount'"><strong>{{ element.amount | number:'1.2-2' }}</strong></td>
+        </ng-container>
+
+        <ng-container matColumnDef="method">
+          <th mat-header-cell *matHeaderCellDef>Method</th>
+          <td mat-cell *matCellDef="let element" [attr.data-label]="'Method'"><span class="ui-chip ui-chip--brand">{{ methodLabel(element.method) }}</span></td>
+        </ng-container>
+
+        <ng-container matColumnDef="reference">
+          <th mat-header-cell *matHeaderCellDef>Reference</th>
+          <td mat-cell *matCellDef="let element" [attr.data-label]="'Reference'"><span class="ui-mono">{{ element.reference || '—' }}</span></td>
+        </ng-container>
+
+        <ng-container matColumnDef="receipt_number">
+          <th mat-header-cell *matHeaderCellDef>For invoice</th>
+          <td mat-cell *matCellDef="let element" [attr.data-label]="'For invoice'"><span class="ui-mono">{{ inv(element.receipt_number) }}</span></td>
+        </ng-container>
+
+        <ng-container matColumnDef="actions">
+          <th mat-header-cell *matHeaderCellDef></th>
+          <td mat-cell *matCellDef="let element" class="actions-cell" [attr.data-label]="'Receipt'">
+            <button mat-stroked-button (click)="openReceipt(element)" [disabled]="loadingReceiptFor === element.id">
+              <mat-icon>receipt_long</mat-icon>
+              {{ loadingReceiptFor === element.id ? 'Preparing…' : 'Receipt' }}
+            </button>
+          </td>
+        </ng-container>
+
+        <tr mat-header-row *matHeaderRowDef="incomingColumns"></tr>
+        <tr mat-row *matRowDef="let row; columns: incomingColumns"></tr>
+        <tr class="mat-row" *matNoDataRow>
+          <td class="mat-cell empty-state" [attr.colspan]="incomingColumns.length">
+            <i class="fas fa-arrow-down"></i>
+            <p>No money received in this period. Use "Record payment" when a tenant pays.</p>
+          </td>
+        </tr>
+      </table>
+      <mat-paginator #incomingPaginator></mat-paginator>
+    </div>
+
+    <!-- Paybill payments reported by Safaricom; kept alive so its count shows on the tab -->
+    <div [hidden]="tab !== 'mpesa'">
+      <app-paybill-inbox (matched)="getPayments()" (waiting)="paybillWaiting = $event"></app-paybill-inbox>
+    </div>
+
+    <!-- Outgoing -->
+    <div [hidden]="tab !== 'out' || isLoading">
+      <table mat-table appMatTableResponsive [dataSource]="outgoingDataSource" ngSkipHydration>
+        <ng-container matColumnDef="notes">
+          <th mat-header-cell *matHeaderCellDef>Paid for</th>
+          <td mat-cell *matCellDef="let element" [attr.data-label]="'Paid for'">{{ element.notes || '—' }}</td>
+        </ng-container>
+
+        <ng-container matColumnDef="payment_date">
+          <th mat-header-cell *matHeaderCellDef>Date</th>
+          <td mat-cell *matCellDef="let element" [attr.data-label]="'Date'">{{ element.payment_date | date: 'd MMM y' }}</td>
+        </ng-container>
+
+        <ng-container matColumnDef="amount">
+          <th mat-header-cell *matHeaderCellDef class="ui-num">Amount</th>
+          <td mat-cell *matCellDef="let element" class="ui-num" [attr.data-label]="'Amount'"><strong>{{ element.amount | number:'1.2-2' }}</strong></td>
+        </ng-container>
+
+        <ng-container matColumnDef="method">
+          <th mat-header-cell *matHeaderCellDef>Method</th>
+          <td mat-cell *matCellDef="let element" [attr.data-label]="'Method'"><span class="ui-chip ui-chip--brand">{{ methodLabel(element.method) }}</span></td>
+        </ng-container>
+
+        <ng-container matColumnDef="reference">
+          <th mat-header-cell *matHeaderCellDef>Reference</th>
+          <td mat-cell *matCellDef="let element" [attr.data-label]="'Reference'"><span class="ui-mono">{{ element.reference || '—' }}</span></td>
+        </ng-container>
+
+        <tr mat-header-row *matHeaderRowDef="outgoingColumns"></tr>
+        <tr mat-row *matRowDef="let row; columns: outgoingColumns"></tr>
+        <tr class="mat-row" *matNoDataRow>
+          <td class="mat-cell empty-state" [attr.colspan]="outgoingColumns.length">
+            <i class="fas fa-arrow-up"></i>
+            <p>No money paid out in this period. Pay an expense or a repair on the Expenses & Maintenance page.</p>
+          </td>
+        </tr>
+      </table>
+      <mat-paginator #outgoingPaginator></mat-paginator>
+    </div>
+  </div>
+</div>
+
+<!-- Receipt for one payment -->
+<ng-template #receiptDocDialog>
+  <div class="doc-dialog">
+    <header class="doc-dialog-header">
+      <h2 mat-dialog-title>Receipt {{ documentData?.number }}</h2>
+      <button mat-icon-button mat-dialog-close aria-label="Close dialog">
+        <mat-icon>close</mat-icon>
+      </button>
+    </header>
+
+    <mat-dialog-content>
+      <app-rent-document #receiptDoc [doc]="documentData"></app-rent-document>
+    </mat-dialog-content>
+
+    <mat-dialog-actions align="end">
+      <button mat-button mat-dialog-close>Close</button>
+      <button mat-stroked-button (click)="receiptDoc.share()">
+        <i class="fab fa-whatsapp" style="color: #1fa855; font-size: 18px"></i>&nbsp;
+        WhatsApp
+      </button>
+      <button mat-stroked-button (click)="receiptDoc.download()">
+        <mat-icon>download</mat-icon>
+        Download PDF
+      </button>
+      <button mat-flat-button color="primary" (click)="receiptDoc.print()">
+        <mat-icon>print</mat-icon>
+        Print
+      </button>
+    </mat-dialog-actions>
+  </div>
+</ng-template>
+
+<!-- Add Payment Dialog -->
+<ng-template #addPaymentDialog>
+  <h2 mat-dialog-title>Add Payment</h2>
+  <mat-dialog-content>
+    <form [formGroup]="addPaymentForm" class="payment-form">
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>Payment Type</mat-label>
+        <mat-select formControlName="type">
+          <mat-option value="IN">Money In (Incoming)</mat-option>
+          <mat-option value="OUT">Money Out (Outgoing)</mat-option>
+        </mat-select>
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>Amount</mat-label>
+        <input matInput type="number" formControlName="amount" placeholder="e.g., 25000">
+        @if (addPaymentForm.get('amount')?.hasError('required')) {
+          <mat-error>Amount is required</mat-error>
+        }
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>Payment Date</mat-label>
+        <input matInput type="date" formControlName="payment_date">
+        @if (addPaymentForm.get('payment_date')?.hasError('required')) {
+          <mat-error>Date is required</mat-error>
+        }
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>Payment Method</mat-label>
+        <mat-select formControlName="method">
+          <mat-option value="mpesa">M-Pesa</mat-option>
+          <mat-option value="bank">Bank</mat-option>
+          <mat-option value="cash">Cash</mat-option>
+        </mat-select>
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>Reference</mat-label>
+        <input matInput formControlName="reference" placeholder="MPESA12345">
+        @if (addPaymentForm.get('reference')?.hasError('required')) {
+          <mat-error>Reference is required</mat-error>
+        }
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>Notes</mat-label>
+        <textarea matInput formControlName="notes" rows="2" placeholder="Optional notes"></textarea>
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>Contract ID</mat-label>
+        <input matInput type="number" formControlName="contract" placeholder="e.g., 2">
+        @if (addPaymentForm.get('contract')?.hasError('required')) {
+          <mat-error>Contract ID is required</mat-error>
+        }
+      </mat-form-field>
+    </form>
+  </mat-dialog-content>
+  <mat-dialog-actions align="end">
+    <button mat-button mat-dialog-close>Cancel</button>
+    <button mat-raised-button color="primary" (click)="addPayment()" [disabled]="addPaymentForm.invalid || loadAdding">
+      @if (loadAdding) {
+        <mat-spinner diameter="20"></mat-spinner>
+      }
+      @if (!loadAdding) {
+        <span>Add Payment</span>
+      }
+    </button>
+  </mat-dialog-actions>
+</ng-template>

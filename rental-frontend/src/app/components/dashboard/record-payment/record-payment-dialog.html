@@ -1,0 +1,92 @@
+<div class="record-payment">
+  <header class="record-payment-header">
+    <h2 mat-dialog-title>{{ receipt ? 'Receipt ' + receipt.number : 'Record a payment' }}</h2>
+    <button mat-icon-button (click)="close()" aria-label="Close dialog"><mat-icon>close</mat-icon></button>
+  </header>
+
+  @if (receipt) {
+    <mat-dialog-content>
+      <app-rent-document #receiptDoc [doc]="receipt"></app-rent-document>
+    </mat-dialog-content>
+    <mat-dialog-actions align="end">
+      <button mat-button (click)="close()">Done</button>
+      <button mat-stroked-button (click)="receiptDoc.share()"><i class="fab fa-whatsapp"></i>&nbsp; WhatsApp</button>
+      <button mat-stroked-button (click)="receiptDoc.download()"><mat-icon>download</mat-icon> Download PDF</button>
+      <button mat-flat-button color="primary" (click)="receiptDoc.print()"><mat-icon>print</mat-icon> Print</button>
+    </mat-dialog-actions>
+  } @else {
+    <mat-dialog-content>
+      @if (pickTenant) {
+        @if (loadingTenants) {
+          <div class="record-payment-state"><mat-spinner diameter="28"></mat-spinner></div>
+        } @else if (!tenants.length && !error) {
+          <p class="record-payment-note">No tenant owes rent right now. New invoices appear here once they are generated.</p>
+        } @else if (tenants.length) {
+          <mat-form-field appearance="outline" class="tenant-field">
+            <mat-label>Tenant</mat-label>
+            <mat-select [(ngModel)]="tenantId" (ngModelChange)="onTenantChange($event)">
+              @for (row of tenants; track row.contract_id) {
+                <mat-option [value]="row.contract_id">
+                  {{ row.customer_name }} · Unit {{ row.unit }} · owes {{ row.outstanding | number:'1.2-2' }}
+                </mat-option>
+              }
+            </mat-select>
+            <mat-hint>Tenants with a balance to pay</mat-hint>
+          </mat-form-field>
+        }
+      }
+
+      @if (invoiceId) {
+        @if (!pickTenant) {
+          <p class="pay-for">{{ tenant }} · Unit {{ unit }} · owes <strong>{{ owes | currency:'KES ' }}</strong></p>
+        }
+        <form [formGroup]="form" class="pay-form">
+          <mat-form-field appearance="outline">
+            <mat-label>Amount (KES)</mat-label>
+            <input matInput type="number" formControlName="amount" step="0.01">
+            @if (form.get('amount')?.invalid) {
+              <mat-error>Enter the amount received</mat-error>
+            }
+          </mat-form-field>
+          <mat-form-field appearance="outline">
+            <mat-label>Paid by</mat-label>
+            <mat-select formControlName="method">
+              <mat-option value="mpesa">M-Pesa</mat-option>
+              <mat-option value="cash">Cash</mat-option>
+              <mat-option value="bank">Bank transfer</mat-option>
+            </mat-select>
+          </mat-form-field>
+          <mat-form-field appearance="outline" class="pay-wide">
+            <mat-label>Reference (M-Pesa code or bank reference)</mat-label>
+            <input matInput formControlName="reference">
+          </mat-form-field>
+          <mat-form-field appearance="outline" class="pay-wide">
+            <mat-label>Notes</mat-label>
+            <input matInput formControlName="notes">
+          </mat-form-field>
+        </form>
+
+        <!-- What this payment leaves on the account -->
+        @if (form.value.amount > 0) {
+          @if (remaining > 0) {
+            <p class="after after--owing">After this payment the tenant still owes <strong>{{ remaining | currency:'KES ' }}</strong>.</p>
+          } @else if (remaining < 0) {
+            <p class="after after--credit">This is <strong>{{ -remaining | currency:'KES ' }}</strong> more than is owed. The extra is kept as credit and taken off the next invoice.</p>
+          } @else {
+            <p class="after after--clear">This clears the balance in full.</p>
+          }
+        }
+      }
+
+      @if (error) {
+        <p class="pay-error" role="alert">{{ error }}</p>
+      }
+    </mat-dialog-content>
+    <mat-dialog-actions align="end">
+      <button mat-button (click)="close()" [disabled]="saving">Cancel</button>
+      <button mat-flat-button color="primary" (click)="save()" [disabled]="saving || !invoiceId || form.invalid">
+        {{ saving ? 'Saving…' : 'Record payment' }}
+      </button>
+    </mat-dialog-actions>
+  }
+</div>

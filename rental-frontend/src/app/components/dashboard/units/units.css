@@ -1,0 +1,555 @@
+/* ===========================
+   PROPERTY UNITS CONTAINER
+   =========================== */
+
+.property-units-container {
+  padding: 2rem;
+  max-width: 1400px;
+  margin: 0 auto;
+  background: #fafafa;
+  border-radius: 12px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+}
+
+/* ===========================
+   HEADER
+   =========================== */
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.header h2 {
+  margin: 0;
+  font-size: 24px;
+  font-weight: 600;
+  color: #2c3e50;
+}
+
+/* ===========================
+   UTILITY CLASSES
+   =========================== */
+
+.full-width {
+  width: 100%;
+}
+
+.mt-2 {
+  margin-top: 16px;
+}
+
+.mt-3 {
+  margin-top: 24px;
+}
+
+.mb-3 {
+  margin-bottom: 24px;
+}
+
+.text-center {
+  text-align: center;
+}
+
+/* ===========================
+   TABLE STYLES
+   =========================== */
+
+.table-container {
+  margin-top: 1rem;
+  background: white;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.full-width-table {
+  width: 100%;
+}
+
+.full-width-table th {
+  background-color: #f5f5f5;
+  font-weight: 600;
+  color: #333;
+  padding: 16px;
+}
+
+.full-width-table td {
+  padding: 16px;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.full-width-table tr:hover {
+  background-color: #f5f5f5;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+/* ===========================
+   STATUS BADGES
+   =========================== */
+
+.occupied {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 12px;
+  background-color: #e8f5e9;
+  color: #2e7d32;
+  font-size: 12px;
+  font-weight: 500;
+  text-transform: uppercase;
+}
+
+.vacant {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 12px;
+  background-color: #fff3e0;
+  color: #ef6c00;
+  font-size: 12px;
+  font-weight: 500;
+  text-transform: uppercase;
+}
+
+.status-maintenance {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 12px;
+  background-color: #e3f2fd;
+  color: #1565c0;
+  font-size: 12px;
+  font-weight: 500;
+  text-transform: uppercase;
+}
+
+/* ===========================
+   ACTIONS CELL
+   =========================== */
+
+.actions-cell {
+  text-align: center;
+}
+
+/* ===========================
+   NO DATA MESSAGE
+   =========================== */
+
+.no-data {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+  color: #999;
+}
+
+.no-data mat-icon {
+  font-size: 48px;
+  width: 48px;
+  height: 48px;
+  margin-bottom: 16px;
+  color: #ccc;
+}
+
+.no-data p {
+  margin: 0;
+  font-size: 16px;
+}
+
+/* ===========================
+   DIALOG STYLES
+   =========================== */
+
+.unit-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 400px;
+  padding: 20px 0;
+}
+
+.unit-form mat-form-field {
+  width: 100%;
+}
+
+mat-dialog-content {
+  max-height: 70vh;
+  overflow-y: auto;
+}
+
+mat-dialog-actions {
+  padding: 16px 24px;
+  gap: 8px;
+}
+
+/* ===========================
+   BUTTON STYLES
+   =========================== */
+
+button[mat-raised-button] {
+  font-weight: 500;
+}
+
+button[mat-icon-button] {
+  transition: transform 0.2s ease;
+}
+
+button[mat-icon-button]:hover {
+  transform: scale(1.1);
+}
+
+button mat-spinner {
+  display: inline-block;
+  margin-right: 8px;
+}
+
+/* ===========================
+   LOADING STATE
+   =========================== */
+
+.loading-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 40px;
+}
+
+/* ===========================
+   MATERIAL OVERRIDES
+   =========================== */
+
+::ng-deep .mat-mdc-dialog-container {
+  border-radius: 8px;
+}
+
+::ng-deep .mat-mdc-dialog-title {
+  font-size: 20px;
+  font-weight: 600;
+  margin-bottom: 16px;
+}
+
+::ng-deep .mat-mdc-header-row {
+  background-color: #f5f5f5;
+}
+
+::ng-deep .mat-mdc-row:hover {
+  background-color: #f5f5f5;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+::ng-deep .mat-mdc-paginator {
+  border-top: 1px solid #e0e0e0;
+  background-color: #fafafa;
+}
+
+/* ===========================
+   SNACKBAR STYLES
+   =========================== */
+
+::ng-deep .success-snackbar {
+  background-color: #4caf50 !important;
+  color: white !important;
+}
+
+::ng-deep .error-snackbar {
+  background-color: #f44336 !important;
+  color: white !important;
+}
+
+::ng-deep .success-snackbar .mat-simple-snackbar-action,
+::ng-deep .error-snackbar .mat-simple-snackbar-action {
+  color: white !important;
+}
+
+/* ===========================
+   RESPONSIVE DESIGN
+   =========================== */
+
+@media (max-width: 768px) {
+  .property-units-container {
+    padding: 1rem;
+  }
+
+  .header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 16px;
+  }
+
+  .header h2 {
+    font-size: 20px;
+  }
+
+  .full-width-table th,
+  .full-width-table td {
+    padding: 12px 8px;
+    font-size: 14px;
+  }
+
+  .unit-form {
+    min-width: 300px;
+  }
+
+  .actions-cell button {
+    margin: 0 2px;
+  }
+
+  .mat-mdc-table {
+    display: block;
+    overflow-x: auto;
+  }
+}
+
+@media (max-width: 480px) {
+  .property-units-container {
+    padding: 0.5rem;
+  }
+
+  .header h2 {
+    font-size: 18px;
+  }
+
+  .unit-form {
+    min-width: 250px;
+  }
+
+  .occupied,
+  .vacant,
+  .status-maintenance {
+    padding: 2px 8px;
+    font-size: 11px;
+  }
+}
+.header-context {
+  margin-left: 8px;
+  font-size: 14px;
+  font-weight: 400;
+  color: var(--gray-500);
+}
+
+/* ===========================
+   CONTRACT FLOW
+   =========================== */
+.tenant-name {
+  font-weight: 500;
+  color: var(--gray-800);
+}
+
+.tenant-none {
+  color: var(--gray-400);
+}
+
+.rent-out-btn {
+  --mat-button-outlined-label-text-color: var(--brand-500);
+  --mat-button-outlined-outline-color: var(--brand-100);
+  background: var(--brand-25);
+}
+
+.end-contract-btn {
+  --mat-button-outlined-label-text-color: var(--error-600);
+  --mat-button-outlined-outline-color: #fecdca;
+}
+
+.contract-dialog-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 20px 24px 0;
+}
+
+.contract-dialog-header h2 {
+  margin: 0;
+  padding: 0;
+  font-size: 20px;
+}
+
+.contract-dialog-header h2::before {
+  display: none;
+}
+
+.contract-dialog-header p {
+  margin: 4px 0 0;
+  font-size: 14px;
+  color: var(--gray-500);
+}
+
+.contract-form h5 {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 20px 0 12px;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--gray-800);
+}
+
+.contract-form h5:first-child {
+  margin-top: 4px;
+}
+
+.step {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--brand-500);
+  color: #fff;
+  font-size: 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.contract-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.contract-row mat-form-field {
+  width: 100%;
+}
+
+.link-button {
+  margin: 4px 0 0;
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--brand-500);
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.link-button:hover {
+  text-decoration: underline;
+}
+
+.move-in-summary {
+  margin-top: 20px;
+  padding: 16px;
+  border: 1px solid var(--brand-100);
+  border-radius: 12px;
+  background: var(--brand-25);
+}
+
+.move-in-title {
+  margin: 0 0 10px;
+  font-size: 13px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--brand-600);
+}
+
+.move-in-line {
+  display: flex;
+  justify-content: space-between;
+  padding: 4px 0;
+  font-size: 14px;
+  color: var(--gray-700);
+}
+
+.move-in-total {
+  margin-top: 6px;
+  padding-top: 10px;
+  border-top: 1px solid var(--brand-100);
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--gray-900);
+}
+
+.move-in-note {
+  margin: 10px 0 0;
+  font-size: 13px;
+  color: var(--gray-500);
+}
+
+.contract-error {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-top: 16px;
+  padding: 12px 14px;
+  border: 1px solid #fecdca;
+  border-radius: 8px;
+  background: var(--error-50);
+  color: var(--error-600);
+  font-size: 14px;
+}
+
+.contract-error i {
+  margin-top: 3px;
+}
+
+.contract-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 24px 12px 12px;
+  text-align: center;
+}
+
+.contract-empty i {
+  font-size: 32px;
+  color: var(--brand-300);
+}
+
+.contract-empty h4 {
+  margin: 0;
+}
+
+.contract-empty p {
+  margin: 0 0 8px;
+  max-width: 380px;
+  font-size: 14px;
+  color: var(--gray-500);
+}
+
+.end-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin: 8px 0 0;
+  padding: 0;
+  list-style: none;
+  font-size: 14px;
+  color: var(--gray-700);
+}
+
+.end-list li {
+  display: flex;
+  gap: 12px;
+}
+
+.end-list i {
+  width: 18px;
+  margin-top: 3px;
+  color: var(--gray-400);
+  text-align: center;
+}
+
+@media (max-width: 600px) {
+  .contract-row {
+    grid-template-columns: 1fr;
+    gap: 0;
+  }
+}
+
+/* Keep a row's actions on one line */
+.action-buttons {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: nowrap;
+  gap: 4px;
+}
+
+.action-buttons .rent-out-btn,
+.action-buttons .end-contract-btn {
+  white-space: nowrap;
+  flex-shrink: 0;
+}

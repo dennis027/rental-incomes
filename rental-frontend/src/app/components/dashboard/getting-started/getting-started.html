@@ -1,0 +1,40 @@
+@if (visible()) {
+  <section class="getting-started">
+    <div class="gs-header">
+      <div>
+        <h3>Getting started</h3>
+        <p>Follow these steps in order. Each one builds on the one before it.</p>
+      </div>
+      <div class="gs-progress">
+        <span>{{ doneCount() }} of {{ steps().length }} done</span>
+        <div class="gs-bar"><div class="gs-bar-fill" [style.width.%]="(doneCount() / steps().length) * 100"></div></div>
+      </div>
+      <button class="gs-hide" (click)="hide()" aria-label="Hide getting started">
+        <i class="fas fa-xmark"></i>
+      </button>
+    </div>
+
+    <ol class="gs-steps">
+      @for (step of steps(); track step.route; let i = $index) {
+        <li class="gs-step" [class.done]="step.done" [class.current]="i === currentIndex()">
+          <span class="gs-badge">
+            @if (step.done) {
+              <i class="fas fa-check"></i>
+            } @else {
+              {{ i + 1 }}
+            }
+          </span>
+          <div class="gs-text">
+            <strong>{{ step.title }}</strong>
+            <span>{{ step.description }}</span>
+          </div>
+          @if (i === currentIndex()) {
+            <a class="gs-action" [routerLink]="step.route">{{ step.action }} <i class="fas fa-arrow-right"></i></a>
+          } @else if (step.done) {
+            <a class="gs-link" [routerLink]="step.route">View</a>
+          }
+        </li>
+      }
+    </ol>
+  </section>
+}

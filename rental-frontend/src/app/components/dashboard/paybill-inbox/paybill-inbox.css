@@ -1,0 +1,27 @@
+.paybill-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 56px 20px;
+  color: var(--gray-500);
+  text-align: center;
+}
+.paybill-state i { font-size: 28px; color: var(--gray-200); }
+.paybill-state p { max-width: 520px; margin: 0; font-size: 14px; }
+
+.paybill-table { width: 100%; border-collapse: collapse; font-size: 14px; }
+.paybill-table th {
+  padding: 12px 20px;
+  background: var(--gray-50);
+  color: var(--gray-500);
+  font-size: 12px;
+  font-weight: 600;
+  text-align: left;
+  white-space: nowrap;
+}
+.paybill-table td { padding: 10px 20px; border-top: 1px solid var(--gray-200); color: var(--gray-700); }
+.paybill-table .num { text-align: right; white-space: nowrap; }
+
+.match-for { margin: 0 0 16px; font-size: 14px; color: var(--gray-500); }
+.match-error { margin: 12px 0 0; font-size: 13px; color: var(--error-600); }

@@ -1,0 +1,261 @@
+.sheet-scroll {
+  overflow-x: auto;
+  padding: 4px;
+}
+
+/* Fixed width so the PDF looks the same on every screen */
+.sheet {
+  --accent: #465fff;
+  --accent-soft: #ecf3ff;
+  width: 700px;
+  margin: 0 auto;
+  padding: 40px 44px 28px;
+  background: #fff;
+  color: #1d2939;
+  font-family: 'Outfit', 'Helvetica Neue', Arial, sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
+  border: 1px solid #e4e7ec;
+  border-radius: 4px;
+}
+
+.sheet--receipt {
+  --accent: #039855;
+  --accent-soft: #ecfdf3;
+}
+
+/* ---------- Header ---------- */
+.sheet-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 24px;
+}
+
+.from {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.from-mark {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  background: var(--accent);
+  color: #fff;
+  font-size: 22px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.from strong {
+  display: block;
+  font-size: 18px;
+  font-weight: 600;
+  color: #101828;
+}
+
+.from span:not(.from-mark) {
+  display: block;
+  font-size: 13px;
+  color: #667085;
+}
+
+.title {
+  text-align: right;
+}
+
+.title h1 {
+  margin: 0;
+  font-size: 26px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: var(--accent);
+  white-space: nowrap;
+}
+
+.number {
+  display: inline-block;
+  margin-top: 4px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 13px;
+  color: #344054;
+}
+
+.accent-bar {
+  height: 4px;
+  margin: 24px 0;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--accent) 0%, var(--accent) 22%, #e4e7ec 22%);
+}
+
+/* ---------- Parties ---------- */
+.parties {
+  display: flex;
+  justify-content: space-between;
+  gap: 32px;
+  margin-bottom: 28px;
+}
+
+.label {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #98a2b3;
+}
+
+.party strong {
+  display: block;
+  font-size: 17px;
+  font-weight: 600;
+  color: #101828;
+}
+
+.party span:not(.label) {
+  display: block;
+  color: #475467;
+}
+
+.meta {
+  margin: 0;
+  min-width: 250px;
+}
+
+.meta div {
+  display: flex;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 5px 0;
+  border-bottom: 1px solid #f2f4f7;
+}
+
+.meta dt {
+  color: #667085;
+  font-weight: 400;
+}
+
+.meta dd {
+  margin: 0;
+  font-weight: 500;
+  color: #1d2939;
+  text-align: right;
+}
+
+.status {
+  display: inline-block;
+  padding: 1px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.status--paid    { background: #ecfdf3; color: #039855; }
+.status--partial { background: #fffaeb; color: #dc6803; }
+.status--unpaid  { background: #fef3f2; color: #d92d20; }
+
+/* ---------- Lines ---------- */
+.lines {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.lines th {
+  padding: 10px 14px;
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  text-align: left;
+}
+
+.lines td {
+  padding: 11px 14px;
+  border-bottom: 1px solid #f2f4f7;
+}
+
+.lines small {
+  display: block;
+  font-size: 12px;
+  color: #98a2b3;
+}
+
+.lines .amount {
+  text-align: right;
+  white-space: nowrap;
+}
+
+.lines--plain td:first-child {
+  color: #667085;
+}
+
+.lines--plain td.amount {
+  font-weight: 500;
+}
+
+/* ---------- Receipt amount ---------- */
+.received {
+  margin-bottom: 20px;
+  padding: 20px 24px;
+  border-radius: 12px;
+  background: var(--accent-soft);
+  text-align: center;
+}
+
+.received strong {
+  font-size: 34px;
+  font-weight: 700;
+  color: var(--accent);
+  line-height: 1.1;
+}
+
+/* ---------- Totals ---------- */
+.totals {
+  width: 300px;
+  margin: 18px 0 0 auto;
+}
+
+.totals-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 6px 14px;
+  color: #475467;
+}
+
+.totals-due {
+  margin-top: 6px;
+  padding: 12px 14px;
+  border-radius: 8px;
+  background: var(--accent);
+  color: #fff;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.note {
+  margin: 28px 0 0;
+  padding: 14px 16px;
+  border-left: 3px solid var(--accent);
+  background: #f9fafb;
+  font-size: 13px;
+  color: #475467;
+}
+
+.sheet-foot {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  margin-top: 32px;
+  padding-top: 14px;
+  border-top: 1px solid #e4e7ec;
+  font-size: 11px;
+  color: #98a2b3;
+}

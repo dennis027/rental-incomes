@@ -1,0 +1,457 @@
+<div class="ui-page">
+  <div class="ui-header">
+    <div>
+      <h2>Invoices</h2>
+      <p>The rent bills sent to tenants. Each new invoice brings forward what is still unpaid, so a tenant always pays their latest invoice.</p>
+    </div>
+    <button mat-flat-button color="primary" (click)="openGenerateMonthlyDialog()">
+      <mat-icon>calendar_month</mat-icon>
+      Generate monthly invoices
+    </button>
+  </div>
+
+  <div class="ui-summary">
+    <div class="ui-summary-card">
+      <div class="ui-summary-icon"><i class="fas fa-file-invoice"></i></div>
+      <div><span>Billed</span><strong>{{ totalBilled | currency:'KES ' }}</strong></div>
+    </div>
+    <div class="ui-summary-card tone-green">
+      <div class="ui-summary-icon"><i class="fas fa-circle-check"></i></div>
+      <div><span>Collected</span><strong>{{ totalCollected | currency:'KES ' }}</strong></div>
+    </div>
+    <div class="ui-summary-card tone-pink">
+      <div class="ui-summary-icon"><i class="fas fa-hourglass-half"></i></div>
+      <div><span>Outstanding</span><strong>{{ totalOutstanding | currency:'KES ' }}</strong></div>
+    </div>
+    <div class="ui-summary-card tone-purple">
+      <div class="ui-summary-icon"><i class="fas fa-receipt"></i></div>
+      <div><span>Not fully paid</span><strong>{{ unpaidCount }} of {{ dataSource.data.length }}</strong></div>
+    </div>
+  </div>
+
+  <div class="ui-card">
+    <div class="ui-toolbar">
+      <div class="ui-toolbar-filters">
+        <mat-form-field appearance="outline" subscriptSizing="dynamic">
+          <mat-label>Month</mat-label>
+          <mat-select [formControl]="selectedMonth">
+            <mat-option value="">All months</mat-option>
+            @for (month of availableMonths; track month.value) {
+              <mat-option [value]="month.value">
+                {{ month.display }}
+              </mat-option>
+            }
+          </mat-select>
+        </mat-form-field>
+
+
+      </div>
+
+      <span class="ui-toolbar-note">
+        {{ dataSource.data.length }} invoice(s)
+        @if (selectedMonth.value) {
+          <span> for {{ getSelectedMonthDisplay() }}</span>
+        }
+        @if (selectedProperty.value) {
+          <span> in {{ getPropertyName(selectedProperty.value) }}</span>
+        }
+      </span>
+    </div>
+
+    <div class="ui-table-scroll">
+    <table mat-table appMatTableResponsive [dataSource]="dataSource">
+      <ng-container matColumnDef="receipt_number">
+        <th mat-header-cell *matHeaderCellDef>Invoice</th>
+        <td mat-cell *matCellDef="let r" [attr.data-label]="'Invoice'"><span class="ui-mono">{{ inv(r.receipt_number) }}</span></td>
+      </ng-container>
+
+      <ng-container matColumnDef="unit">
+        <th mat-header-cell *matHeaderCellDef>Unit</th>
+        <td mat-cell *matCellDef="let r" [attr.data-label]="'Unit'">
+          <div class="ui-stack">
+            <strong>{{ r.unit }}</strong>
+            <small>{{ r.customer }}</small>
+          </div>
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="issue_date">
+        <th mat-header-cell *matHeaderCellDef>Issued</th>
+        <td mat-cell *matCellDef="let r" [attr.data-label]="'Issued'">{{ r.issue_date | date: 'd MMM y' }}</td>
+      </ng-container>
+
+      <ng-container matColumnDef="monthly_rent">
+        <th mat-header-cell *matHeaderCellDef class="ui-num">Rent</th>
+        <td mat-cell *matCellDef="let r" class="ui-num" [attr.data-label]="'Rent'">{{ r.monthly_rent | number:'1.2-2' }}</td>
+      </ng-container>
+
+      <ng-container matColumnDef="electricity_bill">
+        <th mat-header-cell *matHeaderCellDef class="ui-num">Electricity</th>
+        <td mat-cell *matCellDef="let r" class="ui-num" [attr.data-label]="'Electricity'">{{ r.electricity_bill | number:'1.2-2' }}</td>
+      </ng-container>
+
+      <ng-container matColumnDef="water_bill">
+        <th mat-header-cell *matHeaderCellDef class="ui-num">Water</th>
+        <td mat-cell *matCellDef="let r" class="ui-num" [attr.data-label]="'Water'">{{ r.water_bill | number:'1.2-2' }}</td>
+      </ng-container>
+
+      <ng-container matColumnDef="service_charge">
+        <th mat-header-cell *matHeaderCellDef class="ui-num">Service</th>
+        <td mat-cell *matCellDef="let r" class="ui-num" [attr.data-label]="'Service'">{{ r.service_charge | number:'1.2-2' }}</td>
+      </ng-container>
+
+      <ng-container matColumnDef="total_amount">
+        <th mat-header-cell *matHeaderCellDef class="ui-num">Total</th>
+        <td mat-cell *matCellDef="let r" class="ui-num" [attr.data-label]="'Total'"><strong>{{ r.total_amount | number:'1.2-2' }}</strong></td>
+      </ng-container>
+
+      <ng-container matColumnDef="balance">
+        <th mat-header-cell *matHeaderCellDef class="ui-num">Balance</th>
+        <td mat-cell *matCellDef="let r" class="ui-num" [attr.data-label]="'Balance'">
+          @if (r.is_latest) {
+            @if (+r.balance_due < 0) {
+              <span class="ui-chip ui-chip--brand" matTooltip="Paid more than was owed; taken off the next invoice">{{ -r.balance_due | number:'1.2-2' }} credit</span>
+            } @else {
+              <span [class.ui-owing]="+r.balance_due > 0">{{ r.balance_due | number:'1.2-2' }}</span>
+            }
+          } @else {
+            <span class="ui-toolbar-note">—</span>
+          }
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="status">
+        <th mat-header-cell *matHeaderCellDef>Status</th>
+        <td mat-cell *matCellDef="let r" [attr.data-label]="'Status'">
+          @if (r.is_latest) {
+            <span class="ui-chip"
+                  [ngClass]="{
+                    'ui-chip--success': +r.balance_due <= 0,
+                    'ui-chip--warning': +r.balance_due > 0 && +r.amount_paid > 0,
+                    'ui-chip--error': +r.balance_due > 0 && +r.amount_paid <= 0
+                  }">
+              {{ +r.balance_due <= 0 ? 'Paid' : +r.amount_paid > 0 ? 'Partly paid' : 'Unpaid' }}
+            </span>
+          } @else if (r.status === 'paid') {
+            <span class="ui-chip ui-chip--success">Paid</span>
+          } @else {
+            <span class="ui-chip" [matTooltip]="'Its unpaid balance is included in ' + inv(r.carried_to)">Carried over</span>
+          }
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="actions">
+        <th mat-header-cell *matHeaderCellDef></th>
+        <td mat-cell *matCellDef="let r" class="actions-cell" [attr.data-label]="'Actions'">
+          <div class="ui-row-actions">
+            @if (r.is_latest && +r.balance_due > 0) {
+              <button mat-stroked-button class="ui-pay-btn" (click)="openPaymentDial(r)">
+                <mat-icon>payments</mat-icon>
+                Pay
+              </button>
+            }
+            <button mat-icon-button (click)="generateReceipt(r); openReceiptReview()" matTooltip="View and print invoice">
+              <mat-icon>print</mat-icon>
+            </button>
+            <button mat-icon-button (click)="openUpdateDialog(r)" matTooltip="Edit invoice">
+              <mat-icon>edit</mat-icon>
+            </button>
+            <button mat-icon-button color="warn" (click)="deleteReceipt(r.id)" matTooltip="Delete invoice">
+              <mat-icon>delete</mat-icon>
+            </button>
+          </div>
+        </td>
+      </ng-container>
+
+      <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+      <tr mat-row *matRowDef="let row; columns: displayedColumns"></tr>
+      <tr class="mat-row" *matNoDataRow>
+        <td class="mat-cell empty-state" [attr.colspan]="displayedColumns.length">
+          <i class="fas fa-receipt"></i>
+          @if (selectedMonth.value) {
+            <p>No invoices for {{ getSelectedMonthDisplay() }}. Use "Generate monthly invoices" to bill your active contracts.</p>
+          } @else {
+            <p>No invoices yet. They are created when you rent out a unit and when you generate monthly invoices.</p>
+          }
+        </td>
+      </tr>
+    </table>
+    </div>
+
+    <mat-paginator aria-label="Invoice pages"></mat-paginator>
+  </div>
+</div>
+
+<!-- Generate Monthly Receipts Dialog -->
+<ng-template #generateMonthlyDialog>
+  <h2 mat-dialog-title>Generate Monthly Invoices</h2>
+  <mat-dialog-content>
+    <p class="dialog-description">This will generate receipts for all active contracts for the selected month.</p>
+    
+    <form [formGroup]="generateMonthlyForm">
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>Year</mat-label>
+        <input matInput formControlName="year" type="number" required />
+        @if (generateMonthlyForm.get('year')?.hasError('required')) {
+          <mat-error>Year is required</mat-error>
+        }
+        @if (generateMonthlyForm.get('year')?.hasError('min')) {
+          <mat-error>Year must be 2000 or later</mat-error>
+        }
+        @if (generateMonthlyForm.get('year')?.hasError('max')) {
+          <mat-error>Year must be 2100 or earlier</mat-error>
+        }
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>Month</mat-label>
+        <mat-select formControlName="month" required>
+          <mat-option [value]="1">January</mat-option>
+          <mat-option [value]="2">February</mat-option>
+          <mat-option [value]="3">March</mat-option>
+          <mat-option [value]="4">April</mat-option>
+          <mat-option [value]="5">May</mat-option>
+          <mat-option [value]="6">June</mat-option>
+          <mat-option [value]="7">July</mat-option>
+          <mat-option [value]="8">August</mat-option>
+          <mat-option [value]="9">September</mat-option>
+          <mat-option [value]="10">October</mat-option>
+          <mat-option [value]="11">November</mat-option>
+          <mat-option [value]="12">December</mat-option>
+        </mat-select>
+        @if (generateMonthlyForm.get('month')?.hasError('required')) {
+          <mat-error>Month is required</mat-error>
+        }
+      </mat-form-field>
+    </form>
+  </mat-dialog-content>
+
+  <mat-dialog-actions align="end">
+    <button mat-button mat-dialog-close>Cancel</button>
+    <button mat-flat-button color="accent" (click)="checkAndProceedToGeneration()" [disabled]="loadGenerating || generateMonthlyForm.invalid">
+      @if (loadGenerating) {
+        <span>
+          <mat-icon class="spin">hourglass_empty</mat-icon>
+          Processing...
+        </span>
+      } @else {
+        <span>Continue</span>
+      }
+    </button>
+  </mat-dialog-actions>
+</ng-template>
+
+<!-- NEW: Meter Readings Dialog -->
+<ng-template #meterReadingsDialog>
+  <h2 mat-dialog-title>
+    <mat-icon style="vertical-align: middle; margin-right: 8px;">speed</mat-icon>
+    Enter Meter Readings
+  </h2>
+  <mat-dialog-content style="max-height: 70vh; overflow-y: auto;">
+    <div class="dialog-info" style="background: #e3f2fd; padding: 12px; border-radius: 4px; margin-bottom: 16px;">
+      <mat-icon style="vertical-align: middle; color: #465fff;">info</mat-icon>
+      <span style="margin-left: 8px;">Please enter current meter readings for all units. Previous readings are shown for reference.</span>
+    </div>
+
+    @if (loadingUnits) {
+      <div style="text-align: center; padding: 40px;">
+        <mat-spinner diameter="40"></mat-spinner>
+        <p>Loading units...</p>
+      </div>
+    } @else {
+      <form [formGroup]="meterReadingsForm">
+        <div formArrayName="readings">
+          @for (reading of readingsArray.controls; track $index) {
+            <div [formGroupName]="$index" class="reading-card" style="border: 1px solid #ddd; border-radius: 8px; padding: 16px; margin-bottom: 16px; background: #fafafa;">
+              <div class="reading-header" style="display: flex; justify-content: space-between; margin-bottom: 12px;">
+                <div>
+                  <h3 style="margin: 0; color: #333;">{{ reading.get('unit_number')?.value }}</h3>
+                  <p style="margin: 4px 0 0 0; color: #666; font-size: 14px;">{{ reading.get('customer_name')?.value }}</p>
+                  @if (reading.get('previous_balance')?.value && reading.get('previous_balance')?.value > 0) {
+                    <p style="margin: 4px 0 0 0; color: #d32f2f; font-size: 13px; font-weight: 500;">
+                      <mat-icon style="vertical-align: middle; font-size: 16px;">warning</mat-icon>
+                      Previous Balance: KES {{ reading.get('previous_balance')?.value | number:'1.2-2' }}
+                    </p>
+                  }
+                </div>
+              </div>
+
+              <div class="readings-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                @if (systemParametersObject?.has_water_bill) {
+                  <div class="reading-section">
+                    <h4 style="margin: 0 0 8px 0; color: #465fff; font-size: 14px;">
+                      <mat-icon style="vertical-align: middle; font-size: 18px;">water_drop</mat-icon>
+                      Water Reading
+                    </h4>
+                    <mat-form-field appearance="outline" class="full-width">
+                      <mat-label>Previous Reading</mat-label>
+                      <input matInput formControlName="previous_water_reading" type="number" readonly />
+                    </mat-form-field>
+                    <mat-form-field appearance="outline" class="full-width">
+                      <mat-label>Current Reading</mat-label>
+                      <input matInput formControlName="current_water_reading" type="number" step="0.01" required />
+                      @if (reading.get('current_water_reading')?.hasError('required')) {
+                        <mat-error>Current reading is required</mat-error>
+                      }
+                      @if (reading.get('current_water_reading')?.hasError('min')) {
+                        <mat-error>Must be greater than or equal to previous reading</mat-error>
+                      }
+                    </mat-form-field>
+                    <div style="padding: 8px; background: #e8f5e9; border-radius: 4px; font-size: 13px;">
+                      <strong>Units:</strong> {{ (reading.get('current_water_reading')?.value || 0) - (reading.get('previous_water_reading')?.value || 0) | number:'1.2-2' }}
+                      <br>
+                      <strong>Amount:</strong> KES {{ calculateWaterBill($index) | number:'1.2-2' }}
+                    </div>
+                  </div>
+                }
+
+                @if (systemParametersObject?.has_electricity_bill) {
+                  <div class="reading-section">
+                    <h4 style="margin: 0 0 8px 0; color: #f57c00; font-size: 14px;">
+                      <mat-icon style="vertical-align: middle; font-size: 18px;">bolt</mat-icon>
+                      Electricity Reading
+                    </h4>
+                    <mat-form-field appearance="outline" class="full-width">
+                      <mat-label>Previous Reading</mat-label>
+                      <input matInput formControlName="previous_electricity_reading" type="number" readonly />
+                    </mat-form-field>
+                    <mat-form-field appearance="outline" class="full-width">
+                      <mat-label>Current Reading</mat-label>
+                      <input matInput formControlName="current_electricity_reading" type="number" step="0.01" required />
+                      @if (reading.get('current_electricity_reading')?.hasError('required')) {
+                        <mat-error>Current reading is required</mat-error>
+                      }
+                      @if (reading.get('current_electricity_reading')?.hasError('min')) {
+                        <mat-error>Must be greater than or equal to previous reading</mat-error>
+                      }
+                    </mat-form-field>
+                    <div style="padding: 8px; background: #fff3e0; border-radius: 4px; font-size: 13px;">
+                      <strong>Units:</strong> {{ (reading.get('current_electricity_reading')?.value || 0) - (reading.get('previous_electricity_reading')?.value || 0) | number:'1.2-2' }}
+                      <br>
+                      <strong>Amount:</strong> KES {{ calculateElectricityBill($index) | number:'1.2-2' }}
+                    </div>
+                  </div>
+                }
+              </div>
+
+              <!-- Additional Charges Section -->
+              <div class="additional-charges" style="margin-top: 16px; padding-top: 16px; border-top: 1px solid #ddd;">
+                <h4 style="margin: 0 0 12px 0; color: #424242; font-size: 14px;">
+                  <mat-icon style="vertical-align: middle; font-size: 18px;">attach_money</mat-icon>
+                  Additional Charges
+                </h4>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px;">
+                  @if (systemParametersObject?.has_service_charge) {
+                    <mat-form-field appearance="outline" class="full-width">
+                      <mat-label>Service Charge</mat-label>
+                      <input matInput formControlName="service_charge" type="number" step="0.01" required />
+                      <mat-hint>Default: KES {{ systemParametersObject.default_service_charge | number:'1.2-2' }}</mat-hint>
+                      @if (reading.get('service_charge')?.hasError('required')) {
+                        <mat-error>Service charge is required</mat-error>
+                      }
+                      @if (reading.get('service_charge')?.hasError('min')) {
+                        <mat-error>Must be 0 or greater</mat-error>
+                      }
+                    </mat-form-field>
+                  }
+
+                  @if (systemParametersObject?.has_security_charge) {
+                    <mat-form-field appearance="outline" class="full-width">
+                      <mat-label>Security Charge</mat-label>
+                      <input matInput formControlName="security_charge" type="number" step="0.01" required />
+                      <mat-hint>Default: KES {{ systemParametersObject.default_security_charge | number:'1.2-2' }}</mat-hint>
+                      @if (reading.get('security_charge')?.hasError('required')) {
+                        <mat-error>Security charge is required</mat-error>
+                      }
+                      @if (reading.get('security_charge')?.hasError('min')) {
+                        <mat-error>Must be 0 or greater</mat-error>
+                      }
+                    </mat-form-field>
+                  }
+
+                  @if (systemParametersObject?.has_other_charges) {
+                    <mat-form-field appearance="outline" class="full-width">
+                      <mat-label>Other Charges</mat-label>
+                      <input matInput formControlName="other_charges" type="number" step="0.01" required />
+                      <mat-hint>Default: KES {{ systemParametersObject.default_other_charge | number:'1.2-2' }}</mat-hint>
+                      @if (reading.get('other_charges')?.hasError('required')) {
+                        <mat-error>Other charges is required</mat-error>
+                      }
+                      @if (reading.get('other_charges')?.hasError('min')) {
+                        <mat-error>Must be 0 or greater</mat-error>
+                      }
+                    </mat-form-field>
+                  }
+                </div>
+              </div>
+            </div>
+          }
+        </div>
+      </form>
+    }
+  </mat-dialog-content>
+
+  <mat-dialog-actions align="end">
+    <button mat-button mat-dialog-close [disabled]="loadGenerating">Cancel</button>
+    <button mat-flat-button color="primary" (click)="submitMeterReadingsAndGenerate()" [disabled]="loadGenerating || meterReadingsForm.invalid || loadingUnits">
+      @if (loadGenerating) {
+        <span>
+          <mat-icon class="spin">hourglass_empty</mat-icon>
+          Generating invoices...
+        </span>
+      } @else {
+        <span>
+          <mat-icon>receipt</mat-icon>
+          Generate invoices
+        </span>
+      }
+    </button>
+  </mat-dialog-actions>
+</ng-template>
+
+<!-- Delete Receipt Dialog -->
+<ng-template #deleteReceiptDial> <br>
+  <div class="container-fluid dialog-header">
+      <h2 style="display: inline;" mat-dialog-title>Delete Invoice</h2>
+      <button style="display: inline;float: right;" mat-icon-button mat-dialog-close aria-label="Close dialog">
+        <mat-icon>close</mat-icon>
+      </button> <br> 
+    <p>Are you sure you want to delete this invoice?</p>
+    <mat-dialog-actions align="end">
+        <button mat-button matDialogClose="no">No</button>
+        <button mat-button matDialogClose="yes">Yes</button>
+    </mat-dialog-actions>
+  </div>
+</ng-template>
+
+<!-- Invoice preview; also shows the receipt right after a payment is recorded -->
+<ng-template #receiptPreviewDialog>
+  <div class="doc-dialog">
+    <header class="doc-dialog-header">
+      <h2 mat-dialog-title>{{ documentData?.kind === 'receipt' ? 'Receipt' : 'Invoice' }} {{ documentData?.number }}</h2>
+      <button mat-icon-button mat-dialog-close aria-label="Close dialog">
+        <mat-icon>close</mat-icon>
+      </button>
+    </header>
+
+    <mat-dialog-content>
+      <app-rent-document #invoiceDoc [doc]="documentData"></app-rent-document>
+    </mat-dialog-content>
+
+    <mat-dialog-actions align="end">
+      <button mat-button mat-dialog-close>Close</button>
+      <button mat-stroked-button (click)="invoiceDoc.share()">
+        <i class="fab fa-whatsapp" style="color: #1fa855; font-size: 18px"></i>&nbsp;
+        WhatsApp
+      </button>
+      <button mat-stroked-button (click)="invoiceDoc.download()">
+        <mat-icon>download</mat-icon>
+        Download PDF
+      </button>
+      <button mat-flat-button color="primary" (click)="invoiceDoc.print()">
+        <mat-icon>print</mat-icon>
+        Print
+      </button>
+    </mat-dialog-actions>
+  </div>
+</ng-template>

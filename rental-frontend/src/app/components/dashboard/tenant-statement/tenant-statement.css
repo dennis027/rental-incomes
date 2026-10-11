@@ -1,0 +1,48 @@
+.back-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 8px;
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--brand-500);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.statement-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.statement-actions .fa-whatsapp { color: #1fa855; font-size: 18px; }
+
+.statement-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 56px 20px;
+  color: var(--gray-500);
+}
+.statement-state p { margin: 0; font-size: 14px; }
+
+.statement-table { width: 100%; border-collapse: collapse; font-size: 14px; }
+.statement-table th {
+  padding: 12px 20px;
+  background: var(--gray-50);
+  color: var(--gray-500);
+  font-size: 12px;
+  font-weight: 600;
+  text-align: left;
+  white-space: nowrap;
+}
+.statement-table td { padding: 12px 20px; border-top: 1px solid var(--gray-200); color: var(--gray-700); }
+.statement-table td:first-child { white-space: nowrap; }
+.statement-table .num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.statement-table .paid { color: var(--success-600); }
+.statement-table .balance { font-weight: 600; color: var(--gray-900); }
+.statement-table .brought-forward td, .statement-table tfoot td { background: var(--gray-50); font-weight: 600; }
+.statement-table .none { padding: 40px 20px; text-align: center; color: var(--gray-500); }
+
+@media (max-width: 768px) {
+  .ui-header { flex-direction: column; }
+}

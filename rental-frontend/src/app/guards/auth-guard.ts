@@ -1,0 +1,28 @@
+import { inject } from '@angular/core';
+import { rememberPath } from '../services/return-path';
+import { Router, CanActivateFn } from '@angular/router';
+import { AuthService } from '../services/auth';
+import { isPlatformBrowser } from '@angular/common';
+import { PLATFORM_ID } from '@angular/core';
+
+export const AuthGuard: CanActivateFn = (route, state) => {
+  const authService = inject(AuthService);
+  const router = inject(Router);
+  const platformId = inject(PLATFORM_ID);
+
+  // ✅ Always allow navigation on the server
+  if (!isPlatformBrowser(platformId)) {
+    return true;
+  }
+
+  // ✅ Check token only in the browser
+  const token = authService.getAccessToken();
+
+  if (token) {
+    return true;
+  }
+
+  // Redirect to login if no token, remembering the page that was asked for
+  rememberPath(state.url);
+  return router.createUrlTree(['/login']);
+};

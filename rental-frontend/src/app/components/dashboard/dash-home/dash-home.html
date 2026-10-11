@@ -1,0 +1,148 @@
+<div class="dashboard-container">
+  <!-- Welcome banner -->
+  <section class="hero">
+    <span class="hero-blob hero-blob--one"></span>
+    <span class="hero-blob hero-blob--two"></span>
+    <span class="hero-blob hero-blob--three"></span>
+
+    <div class="hero-text">
+      <p class="hero-date">{{ today | date: 'EEEE, d MMMM y' }}</p>
+      <h2>{{ greeting }} <span class="wave">👋</span></h2>
+      <p class="hero-sub">Here is how your properties are doing today.</p>
+
+      <div class="hero-actions">
+        @for (action of quickActions; track action.route) {
+          <a class="hero-action" [routerLink]="action.route" [queryParams]="$any(action).query">
+            <i [class]="action.icon"></i>
+            {{ action.label }}
+          </a>
+        }
+      </div>
+    </div>
+
+    <div class="hero-figure">
+      <span>Collected this month</span>
+      <strong>KSh {{ collectedShown | number }}</strong>
+      <div class="hero-meter">
+        <div class="hero-meter-fill" [style.width.%]="occupancyRate"></div>
+      </div>
+      <small>{{ occupancyRate }}% of units occupied</small>
+    </div>
+
+
+  </section>
+
+  <app-getting-started></app-getting-started>
+
+  <app-contracts-ending-soon></app-contracts-ending-soon>
+
+  <!-- Headline figures -->
+  <section class="stat-grid">
+    @for (stat of stats; track stat.key; let i = $index) {
+      <article class="stat-card" [class]="'stat-card tone-' + stat.tone" [style.animation-delay.ms]="i * 80">
+        <div class="stat-top">
+          <div class="stat-icon"><i [class]="stat.icon"></i></div>
+          <span class="stat-label">{{ stat.label }}</span>
+        </div>
+        <h4 class="stat-value">
+          @if (stat.key === 'pending') {
+            <small>KSh</small> {{ stat.shown | number }}
+          } @else {
+            {{ stat.shown | number }}
+          }
+        </h4>
+        <span class="stat-caption">{{ stat.caption }}</span>
+        @if (stat.key === 'occupied') {
+          <div class="stat-meter"><div class="stat-meter-fill" [style.width.%]="occupancyRate"></div></div>
+        }
+      </article>
+    }
+  </section>
+
+  <!-- Charts -->
+  <section class="chart-grid">
+    <article class="chart-card chart-card--wide">
+      <header>
+        <div>
+          <h5>Monthly Rent Collection</h5>
+          <p>Rent received over the last six months</p>
+        </div>
+      </header>
+      <div class="chart-area">
+        <canvas id="rentChart"></canvas>
+        @if (!hasRentData) {
+          <div class="chart-empty">
+            <i class="fas fa-chart-column"></i>
+            <p>No rent collected yet. Payments you record will show up here.</p>
+          </div>
+        }
+      </div>
+    </article>
+
+    <article class="chart-card">
+      <header>
+        <div>
+          <h5>Occupancy</h5>
+          <p>Occupied against vacant units</p>
+        </div>
+      </header>
+      <div class="chart-area chart-area--ring">
+        <canvas id="occupancyChart"></canvas>
+        <div class="ring-center">
+          <strong>{{ occupancyRate }}%</strong>
+          <span>occupied</span>
+        </div>
+      </div>
+      <ul class="legend">
+        <li><span class="dot dot--purple"></span> Occupied</li>
+        <li><span class="dot dot--soft"></span> Vacant</li>
+      </ul>
+    </article>
+
+    <article class="chart-card chart-card--wide">
+      <header>
+        <div>
+          <h5>Revenue vs Expenses</h5>
+          <p>What came in against what went out</p>
+        </div>
+        <ul class="legend legend--inline">
+          <li><span class="dot dot--blue"></span> Revenue</li>
+          <li><span class="dot dot--pink"></span> Expenses</li>
+        </ul>
+      </header>
+      <div class="chart-area">
+        <canvas id="trendChart"></canvas>
+        @if (!hasTrendData) {
+          <div class="chart-empty">
+            <i class="fas fa-chart-line"></i>
+            <p>Nothing to compare yet. Record payments and expenses to see the trend.</p>
+          </div>
+        }
+      </div>
+    </article>
+
+    <article class="chart-card">
+      <header>
+        <div>
+          <h5>How Tenants Pay</h5>
+          <p>Share of payments by method</p>
+        </div>
+      </header>
+      <ul class="methods">
+        @for (method of paymentMethods; track method.label) {
+          <li>
+            <div class="method-row">
+              <span>{{ method.label }}</span>
+              <strong>{{ method.share }}%</strong>
+            </div>
+            <div class="method-bar"><div [class]="'method-fill tone-' + method.tone" [style.width.%]="method.share"></div></div>
+            <small>KSh {{ method.amount | number }}</small>
+          </li>
+        }
+      </ul>
+      @if (paymentsTotal === 0) {
+        <p class="methods-empty">No payments recorded yet.</p>
+      }
+    </article>
+  </section>
+</div>

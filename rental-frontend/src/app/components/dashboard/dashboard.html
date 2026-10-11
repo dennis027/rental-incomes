@@ -1,0 +1,104 @@
+<!-- Sidebar overlay -->
+<div class="sidebar-overlay" (click)="closeSidebar()"></div>
+
+<div class="dashboard-wrapper">
+  <!-- Sidebar -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+      <span class="brand-mark"><i class="fas fa-building"></i></span>
+      <h2>Rental System</h2>
+    </div>
+
+    <nav class="nav-groups">
+      @for (group of groups; track group.name) {
+        <p class="nav-heading">{{ group.name }}</p>
+        <ul class="nav-menu">
+          @for (link of group.links; track link.route) {
+            <li class="nav-item">
+              <a
+                class="nav-link"
+                [routerLink]="link.route"
+                routerLinkActive="active"
+                [routerLinkActiveOptions]="{ exact: false }"
+                (click)="onNavLinkClick()">
+                <i [class]="link.icon"></i> {{ link.name }}
+              </a>
+            </li>
+          }
+        </ul>
+      }
+    </nav>
+  </aside>
+
+  <div class="content-area">
+    <!-- Top bar -->
+    <header class="topbar">
+      <button class="menu-toggle" (click)="toggleSidebar()" aria-label="Toggle menu">
+        <i class="fas fa-bars"></i>
+      </button>
+      <div class="brand">{{ currentTitle }}</div>
+      <!-- Property switcher: one choice for the whole dashboard -->
+      @if (propertyContext.properties().length > 0) {
+        <div class="property-switch">
+          <span class="property-switch-label">Property</span>
+          <button class="property-switch-btn" [matMenuTriggerFor]="propertyMenu"
+                  [disabled]="propertyContext.properties().length < 2"
+                  aria-label="Change property">
+            <i class="fas fa-building"></i>
+            <span class="property-switch-name">{{ propertyContext.selected()?.name || 'Choose property' }}</span>
+            @if (propertyContext.properties().length > 1) {
+              <i class="fas fa-chevron-down property-switch-caret"></i>
+            }
+          </button>
+          <mat-menu #propertyMenu="matMenu" xPosition="before" class="property-menu">
+            @for (property of propertyContext.properties(); track property.id) {
+              <button mat-menu-item (click)="propertyContext.select(property.id)"
+                      [class.property-menu-active]="property.id === propertyContext.selectedId()">
+                <i class="fas fa-check property-menu-check"></i>
+                <span class="property-menu-text">
+                  <strong>{{ property.name }}</strong>
+                  <small>{{ property.address }}</small>
+                </span>
+              </button>
+            }
+            <a mat-menu-item routerLink="/dashboard/properties" class="property-menu-manage">
+              <i class="fas fa-gear property-menu-check property-menu-check--shown"></i>
+              <span class="property-menu-text"><strong>Manage properties</strong></span>
+            </a>
+          </mat-menu>
+        </div>
+      }
+
+      <button class="topbar-help" (click)="toggleTips()" [class.active]="showTips"
+              [attr.aria-label]="showTips ? 'Hide page tips' : 'Show page tips'" [title]="showTips ? 'Hide page tips' : 'Show page tips'">
+        <i class="fas fa-circle-question"></i>
+      </button>
+      <button class="topbar-logout" (click)="logOut()">
+        <i class="fas fa-sign-out-alt"></i>
+        <span>Logout</span>
+      </button>
+    </header>
+
+    <!-- Main content -->
+    <main class="main-content">
+      @if (showTips) {
+        <div class="page-tip">
+          <i class="fas fa-lightbulb page-tip-icon"></i>
+          <div class="page-tip-text">
+            @if (currentStep > 0) {
+              <span class="page-tip-step">Step {{ currentStep }} of {{ flowLength }}</span>
+            }
+            <span>{{ currentLink.hint }}</span>
+          </div>
+          @if (nextLink; as next) {
+            <a class="page-tip-next" [routerLink]="next.route">Next: {{ next.name }} <i class="fas fa-arrow-right"></i></a>
+          }
+          <button class="page-tip-close" (click)="toggleTips()" aria-label="Hide page tips">
+            <i class="fas fa-xmark"></i>
+          </button>
+        </div>
+      }
+      <router-outlet></router-outlet>
+    </main>
+  </div>
+</div>
