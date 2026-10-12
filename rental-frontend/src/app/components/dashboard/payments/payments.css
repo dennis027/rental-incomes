@@ -18,13 +18,13 @@
 .payment-summary {
   margin-bottom: 15px;
   padding: 10px;
-  background-color: #f5f5f5;
+  background-color: var(--gray-100);
   border-radius: 4px;
 }
 
 .summary-text {
   font-size: 14px;
-  color: #666;
+  color: var(--gray-500);
 }
 
 .payments-loading {

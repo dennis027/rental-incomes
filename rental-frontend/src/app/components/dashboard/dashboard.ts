@@ -7,6 +7,7 @@ import { Router, RouterModule } from '@angular/router';
 import { AuthService } from '../../services/auth';
 import { MatMenuModule } from '@angular/material/menu';
 import { PropertyContext } from '../../services/property-context';
+import { ThemeService } from '../../services/theme';
 
 @Component({
   selector: 'app-dashboard',
@@ -61,6 +62,8 @@ links = [
 
   // The property every page works in, chosen from the top bar
   propertyContext = inject(PropertyContext);
+
+  theme = inject(ThemeService);
 
   ngOnInit(): void {
     if (isPlatformBrowser(this.platformId)) {

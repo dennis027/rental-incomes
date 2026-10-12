@@ -15,7 +15,7 @@
   margin: 0;
   font-size: 24px;
   font-weight: 600;
-  color: #333;
+  color: var(--gray-800);
 }
 
 .full-width {
@@ -27,7 +27,7 @@
 }
 
 .table-container {
-  background: white;
+  background: var(--surface);
   border-radius: 8px;
   overflow: hidden;
   margin-top: 20px;
@@ -38,19 +38,19 @@ table {
 }
 
 th {
-  background-color: #f5f5f5;
+  background-color: var(--gray-100);
   font-weight: 600;
-  color: #333;
+  color: var(--gray-800);
   padding: 16px;
 }
 
 td {
   padding: 16px;
-  border-bottom: 1px solid #e0e0e0;
+  border-bottom: 1px solid var(--gray-200);
 }
 
 tr:hover {
-  background-color: #fafafa;
+  background-color: var(--gray-50);
 }
 
 .text-center {
@@ -74,14 +74,14 @@ tr:hover {
   align-items: center;
   gap: 12px;
   padding: 20px;
-  background-color: #ffebee;
+  background-color: var(--error-50);
   border-radius: 8px;
-  color: #c62828;
+  color: var(--error-600);
   margin-top: 20px;
 }
 
 .error-message mat-icon {
-  color: #c62828;
+  color: var(--error-600);
 }
 
 /* No Data Message */
@@ -91,7 +91,7 @@ tr:hover {
   align-items: center;
   justify-content: center;
   padding: 40px 20px;
-  color: #999;
+  color: var(--gray-400);
 }
 
 .no-data mat-icon {
@@ -99,7 +99,7 @@ tr:hover {
   width: 48px;
   height: 48px;
   margin-bottom: 16px;
-  color: #ccc;
+  color: var(--gray-300);
 }
 
 .no-data p {
@@ -126,16 +126,16 @@ tr:hover {
 .image-upload-section {
   margin: 16px 0;
   padding: 16px;
-  border: 1px solid #e0e0e0;
+  border: 1px solid var(--gray-200);
   border-radius: 8px;
-  background-color: #fafafa;
+  background-color: var(--gray-50);
 }
 
 .upload-label {
   display: block;
   font-size: 14px;
   font-weight: 500;
-  color: #333;
+  color: var(--gray-800);
   margin-bottom: 12px;
 }
 
@@ -156,15 +156,15 @@ tr:hover {
 .existing-image {
   margin-bottom: 12px;
   padding: 12px;
-  background-color: white;
-  border: 1px solid #e0e0e0;
+  background-color: var(--surface);
+  border: 1px solid var(--gray-200);
   border-radius: 8px;
 }
 
 .existing-label {
   font-size: 12px;
   font-weight: 500;
-  color: #666;
+  color: var(--gray-500);
   margin: 0 0 8px 0;
 }
 
@@ -173,7 +173,7 @@ tr:hover {
   max-width: 250px;
   height: auto;
   border-radius: 4px;
-  border: 1px solid #ddd;
+  border: 1px solid var(--gray-200);
 }
 
 /* Image Preview */
@@ -181,17 +181,17 @@ tr:hover {
   position: relative;
   width: 100%;
   max-width: 300px;
-  border: 2px solid #465fff;
+  border: 2px solid var(--brand-500);
   border-radius: 8px;
   overflow: hidden;
-  background-color: white;
+  background-color: var(--surface);
   padding: 8px;
 }
 
 .preview-label {
   font-size: 12px;
   font-weight: 500;
-  color: #465fff;
+  color: var(--brand-500);
   margin: 0 0 8px 0;
 }
 
@@ -207,14 +207,14 @@ tr:hover {
   position: absolute;
   top: 4px;
   right: 4px;
-  background-color: rgba(255, 255, 255, 0.9);
+  background-color: color-mix(in srgb, var(--surface) 90%, transparent);
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
 }
 
 .hint-text {
   display: block;
   font-size: 12px;
-  color: #666;
+  color: var(--gray-500);
   margin-top: 8px;
   font-style: italic;
 }
@@ -236,7 +236,7 @@ tr:hover {
   display: flex;
   justify-content: space-between;
   padding: 12px 0;
-  border-bottom: 1px solid #e0e0e0;
+  border-bottom: 1px solid var(--gray-200);
 }
 
 .detail-row:last-child {
@@ -244,13 +244,13 @@ tr:hover {
 }
 
 .detail-row strong {
-  color: #555;
+  color: var(--gray-700);
   font-weight: 500;
   min-width: 140px;
 }
 
 .detail-row span {
-  color: #333;
+  color: var(--gray-800);
   text-align: right;
   flex: 1;
 }
@@ -259,14 +259,14 @@ tr:hover {
 .id-photos-section {
   margin-top: 24px;
   padding-top: 24px;
-  border-top: 2px solid #e0e0e0;
+  border-top: 2px solid var(--gray-200);
 }
 
 .id-photos-section h3 {
   margin: 0 0 16px 0;
   font-size: 16px;
   font-weight: 600;
-  color: #333;
+  color: var(--gray-800);
 }
 
 .id-photos-grid {
@@ -282,7 +282,7 @@ tr:hover {
 .photo-label {
   font-size: 14px;
   font-weight: 500;
-  color: #666;
+  color: var(--gray-500);
   margin: 0 0 8px 0;
 }
 
@@ -290,7 +290,7 @@ tr:hover {
   width: 100%;
   max-width: 250px;
   height: auto;
-  border: 2px solid #e0e0e0;
+  border: 2px solid var(--gray-200);
   border-radius: 8px;
   cursor: pointer;
   transition: transform 0.2s ease;
@@ -298,7 +298,7 @@ tr:hover {
 
 .id-photo-view:hover {
   transform: scale(1.05);
-  border-color: #465fff;
+  border-color: var(--brand-500);
 }
 
 /* Dialog Styles */

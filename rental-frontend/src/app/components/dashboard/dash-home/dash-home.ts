@@ -290,7 +290,7 @@ export class DashHome implements OnInit, AfterViewInit, OnDestroy {
         },
         scales: {
           x: { grid: { display: false }, border: { display: false }, ticks: { color: '#667085' } },
-          y: { beginAtZero: true, grid: { color: '#f2f4f7' }, border: { display: false }, ticks: { color: '#98a2b3' } },
+          y: { beginAtZero: true, grid: { color: 'rgba(152, 162, 179, 0.2)' }, border: { display: false }, ticks: { color: '#98a2b3' } },
         },
       },
     });
@@ -315,8 +315,8 @@ export class DashHome implements OnInit, AfterViewInit, OnDestroy {
         datasets: [
           {
             data: this.hasOccupancyData ? [occupied, vacant] : [0, 1],
-            backgroundColor: ['#7e33e0', '#ece9fb'],
-            hoverBackgroundColor: ['#fb2e86', '#ddd6fb'],
+            backgroundColor: ['#7e33e0', 'rgba(126, 51, 224, 0.18)'],
+            hoverBackgroundColor: ['#fb2e86', 'rgba(126, 51, 224, 0.3)'],
             borderWidth: 0,
             borderRadius: 8,
           },
@@ -381,7 +381,7 @@ export class DashHome implements OnInit, AfterViewInit, OnDestroy {
         },
         scales: {
           x: { grid: { display: false }, border: { display: false }, ticks: { color: '#667085' } },
-          y: { beginAtZero: true, grid: { color: '#f2f4f7' }, border: { display: false }, ticks: { color: '#98a2b3' } },
+          y: { beginAtZero: true, grid: { color: 'rgba(152, 162, 179, 0.2)' }, border: { display: false }, ticks: { color: '#98a2b3' } },
         },
       },
     });

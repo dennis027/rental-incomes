@@ -6,7 +6,8 @@ records payments, chases arrears, and produces the documents that go with all
 of it: invoices, receipts, statements and move-out settlements.
 
 Amounts are in Kenyan shillings (KES). The screenshots below use made-up demo
-data.
+data. The app has a light and a dark theme, and the screenshots show a mix of
+both.
 
 ![Dashboard](docs/screenshots/01-dashboard.png)
 
@@ -40,6 +41,11 @@ data.
 
 The sidebar lists the pages in the order a landlord works through them. The
 property chosen in the top bar applies to every page.
+
+The sun/moon button in the top bar switches between the light and dark theme.
+The choice is remembered on that device; until one is made, the app follows the
+device's own setting. Printable documents (invoices, receipts, contracts) stay
+white in either theme.
 
 ### 1. Sign in
 

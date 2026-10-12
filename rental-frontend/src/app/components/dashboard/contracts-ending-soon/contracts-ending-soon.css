@@ -1,7 +1,7 @@
 .ending-card {
   margin-bottom: 24px;
   padding: 20px 22px;
-  background: #fff;
+  background: var(--surface);
   border: 1px solid var(--gray-200);
   border-radius: 18px;
 }

@@ -12,7 +12,7 @@
   flex-direction: column;
   gap: 4px;
   padding: 8px;
-  background: #fff;
+  background: var(--surface);
   border: 1px solid var(--gray-200);
   border-radius: 16px;
 }
@@ -57,7 +57,7 @@
 .report-body {
   min-width: 0;
   padding: 20px 24px 24px;
-  background: #fff;
+  background: var(--surface);
   border: 1px solid var(--gray-200);
   border-radius: 16px;
 }

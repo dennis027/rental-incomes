@@ -248,8 +248,8 @@
     Enter Meter Readings
   </h2>
   <mat-dialog-content style="max-height: 70vh; overflow-y: auto;">
-    <div class="dialog-info" style="background: #e3f2fd; padding: 12px; border-radius: 4px; margin-bottom: 16px;">
-      <mat-icon style="vertical-align: middle; color: #465fff;">info</mat-icon>
+    <div class="dialog-info" style="background: var(--brand-50); padding: 12px; border-radius: 4px; margin-bottom: 16px;">
+      <mat-icon style="vertical-align: middle; color: var(--brand-500);">info</mat-icon>
       <span style="margin-left: 8px;">Please enter current meter readings for all units. Previous readings are shown for reference.</span>
     </div>
 
@@ -262,13 +262,13 @@
       <form [formGroup]="meterReadingsForm">
         <div formArrayName="readings">
           @for (reading of readingsArray.controls; track $index) {
-            <div [formGroupName]="$index" class="reading-card" style="border: 1px solid #ddd; border-radius: 8px; padding: 16px; margin-bottom: 16px; background: #fafafa;">
+            <div [formGroupName]="$index" class="reading-card" style="border: 1px solid var(--gray-200); border-radius: 8px; padding: 16px; margin-bottom: 16px; background: var(--gray-50);">
               <div class="reading-header" style="display: flex; justify-content: space-between; margin-bottom: 12px;">
                 <div>
-                  <h3 style="margin: 0; color: #333;">{{ reading.get('unit_number')?.value }}</h3>
-                  <p style="margin: 4px 0 0 0; color: #666; font-size: 14px;">{{ reading.get('customer_name')?.value }}</p>
+                  <h3 style="margin: 0; color: var(--gray-800);">{{ reading.get('unit_number')?.value }}</h3>
+                  <p style="margin: 4px 0 0 0; color: var(--gray-500); font-size: 14px;">{{ reading.get('customer_name')?.value }}</p>
                   @if (reading.get('previous_balance')?.value && reading.get('previous_balance')?.value > 0) {
-                    <p style="margin: 4px 0 0 0; color: #d32f2f; font-size: 13px; font-weight: 500;">
+                    <p style="margin: 4px 0 0 0; color: var(--error-600); font-size: 13px; font-weight: 500;">
                       <mat-icon style="vertical-align: middle; font-size: 16px;">warning</mat-icon>
                       Previous Balance: KES {{ reading.get('previous_balance')?.value | number:'1.2-2' }}
                     </p>
@@ -279,7 +279,7 @@
               <div class="readings-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
                 @if (systemParametersObject?.has_water_bill) {
                   <div class="reading-section">
-                    <h4 style="margin: 0 0 8px 0; color: #465fff; font-size: 14px;">
+                    <h4 style="margin: 0 0 8px 0; color: var(--brand-500); font-size: 14px;">
                       <mat-icon style="vertical-align: middle; font-size: 18px;">water_drop</mat-icon>
                       Water Reading
                     </h4>
@@ -297,7 +297,7 @@
                         <mat-error>Must be greater than or equal to previous reading</mat-error>
                       }
                     </mat-form-field>
-                    <div style="padding: 8px; background: #e8f5e9; border-radius: 4px; font-size: 13px;">
+                    <div style="padding: 8px; background: var(--success-50); border-radius: 4px; font-size: 13px;">
                       <strong>Units:</strong> {{ (reading.get('current_water_reading')?.value || 0) - (reading.get('previous_water_reading')?.value || 0) | number:'1.2-2' }}
                       <br>
                       <strong>Amount:</strong> KES {{ calculateWaterBill($index) | number:'1.2-2' }}
@@ -307,7 +307,7 @@
 
                 @if (systemParametersObject?.has_electricity_bill) {
                   <div class="reading-section">
-                    <h4 style="margin: 0 0 8px 0; color: #f57c00; font-size: 14px;">
+                    <h4 style="margin: 0 0 8px 0; color: var(--warning-600); font-size: 14px;">
                       <mat-icon style="vertical-align: middle; font-size: 18px;">bolt</mat-icon>
                       Electricity Reading
                     </h4>
@@ -325,7 +325,7 @@
                         <mat-error>Must be greater than or equal to previous reading</mat-error>
                       }
                     </mat-form-field>
-                    <div style="padding: 8px; background: #fff3e0; border-radius: 4px; font-size: 13px;">
+                    <div style="padding: 8px; background: var(--warning-50); border-radius: 4px; font-size: 13px;">
                       <strong>Units:</strong> {{ (reading.get('current_electricity_reading')?.value || 0) - (reading.get('previous_electricity_reading')?.value || 0) | number:'1.2-2' }}
                       <br>
                       <strong>Amount:</strong> KES {{ calculateElectricityBill($index) | number:'1.2-2' }}
@@ -335,8 +335,8 @@
               </div>
 
               <!-- Additional Charges Section -->
-              <div class="additional-charges" style="margin-top: 16px; padding-top: 16px; border-top: 1px solid #ddd;">
-                <h4 style="margin: 0 0 12px 0; color: #424242; font-size: 14px;">
+              <div class="additional-charges" style="margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--gray-200);">
+                <h4 style="margin: 0 0 12px 0; color: var(--gray-700); font-size: 14px;">
                   <mat-icon style="vertical-align: middle; font-size: 18px;">attach_money</mat-icon>
                   Additional Charges
                 </h4>

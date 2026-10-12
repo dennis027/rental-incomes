@@ -1,260 +1,142 @@
-<div class="container-fluid p-4">
-  <!-- Header Section -->
-  <div class="mb-3">
-    <h2 class="mb-1" style="font-weight: 600; color: #1a1a1a;">Settings</h2>
-    <p style="color: #666; margin: 0; font-size: 14px;">Billing rules for the property chosen in the top bar. Switch property there to edit another one.</p>
+<div class="ui-page settings">
+  <div class="ui-header">
+    <div>
+      <h2>Settings</h2>
+      <p>Billing rules for the property chosen in the top bar. Switch property there to edit another one.</p>
+    </div>
+    <div class="settings-meta">
+      @if (propertyName) {
+        <span class="settings-property"><i class="fas fa-building"></i> {{ propertyName }}</span>
+      }
+      <span class="settings-autosave"><i class="fas fa-circle-check"></i> Changes save automatically</span>
+    </div>
   </div>
 
+  <form [formGroup]="updateSystemParams" class="settings-grid">
 
-
-  <!-- System Parameters Form -->
-  <form [formGroup]="updateSystemParams">
-    
-    <!-- Financial Parameters Section -->
-    <mat-card class="mb-3" style="box-shadow: 0 2px 8px rgba(0,0,0,0.08); border-radius: 12px;">
-      <mat-card-content class="p-3">
-        <h6 class="mb-2" style="font-weight: 600; color: #1a1a1a; border-bottom: 2px solid #e0e0e0; padding-bottom: 8px;">
-          Financial Parameters
-        </h6>
-        
-        <div class="row">
-          <div class="col-md-4">
-            <mat-form-field appearance="outline" class="full-width">
-              <mat-label>Rent Deposit (Months)</mat-label>
-              <input matInput type="number" formControlName="rent_deposit_months" (change)="onUpdateSystemParams()" />
-              <mat-icon matSuffix style="color: #666;">calendar_today</mat-icon>
-            </mat-form-field>
-          </div>
-          <div class="col-md-4">
-            <mat-form-field appearance="outline" class="full-width">
-              <mat-label>Late Payment Penalty (%)</mat-label>
-              <input matInput type="number" formControlName="late_payment_penalty_rate" (change)="onUpdateSystemParams()" />
-              <mat-icon matSuffix style="color: #666;">percent</mat-icon>
-            </mat-form-field>
-          </div>
-          <div class="col-md-4">
-            <mat-form-field appearance="outline" class="full-width">
-              <mat-label>Grace Period (Days)</mat-label>
-              <input matInput type="number" formControlName="grace_period_days" (change)="onUpdateSystemParams()" />
-              <mat-icon matSuffix style="color: #666;">schedule</mat-icon>
-            </mat-form-field>
-          </div>
+    <!-- Rent and penalties -->
+    <section class="ui-card settings-card">
+      <header class="settings-card-head">
+        <span class="settings-icon"><i class="fas fa-coins"></i></span>
+        <div>
+          <h3>Rent &amp; penalties</h3>
+          <p>What a tenant pays up front and what happens when rent is late.</p>
         </div>
-      </mat-card-content>
-    </mat-card>
+      </header>
 
-  
-    <!-- Billing Options Section -->
-    <mat-card class="mb-3" style="box-shadow: 0 2px 8px rgba(0,0,0,0.08); border-radius: 12px;">
-      <mat-card-content class="p-3">
-        <h6 class="mb-2" style="font-weight: 600; color: #1a1a1a; border-bottom: 2px solid #e0e0e0; padding-bottom: 8px;">
-          Billing Options
-        </h6>
-        
-        <div class="row">
-          <div class="col-md-3">
-            <mat-slide-toggle formControlName="has_water_bill" color="primary" (change)="onUpdateSystemParams()">
-              <span style="margin-left: 8px;">Include Water Bill</span>
-            </mat-slide-toggle>
-          </div>
-          <div class="col-md-3">
-            <mat-slide-toggle formControlName="has_electricity_bill" color="primary" (change)="onUpdateSystemParams()">
-              <span style="margin-left: 8px;">Include Electricity Bill</span>
-            </mat-slide-toggle>
-          </div>
-          <div class="col-md-3">
-            <mat-slide-toggle formControlName="has_service_charge" color="primary" (change)="onUpdateSystemParams()">
-              <span style="margin-left: 8px;">Include Service Charge</span>
-            </mat-slide-toggle>
-          </div>
-          <div class="col-md-3">
-            <mat-slide-toggle formControlName="has_security_charge" color="primary" (change)="onUpdateSystemParams()">
-              <span style="margin-left: 8px;">Include Security Charge</span>
-            </mat-slide-toggle>
-          </div>
+      <div class="setting-row">
+        <div class="setting-text">
+          <label for="rent_deposit_months">Rent deposit</label>
+          <small>Months of rent collected as deposit when a contract starts.</small>
         </div>
-        
-        <div class="row mt-2">
-          <div class="col-md-3">
-            <mat-slide-toggle formControlName="has_other_charges" color="primary" (change)="onUpdateSystemParams()">
-              <span style="margin-left: 8px;">Include Other Charges</span>
-            </mat-slide-toggle>
-          </div>
+        <div class="setting-field">
+          <input id="rent_deposit_months" type="number" min="0" formControlName="rent_deposit_months" (change)="onUpdateSystemParams()" />
+          <span>months</span>
         </div>
-      </mat-card-content>
-    </mat-card>
-
-@if (systemParameters?.has_electricity_bill === true || systemParameters?.has_water_bill === true || systemParameters?.has_service_charge === true || systemParameters?.has_security_charge === true || systemParameters?.has_other_charges === true) {
-    <!-- Units Cost Section -->
-  <mat-card class="mb-3" style="box-shadow: 0 2px 8px rgba(0,0,0,0.08); border-radius: 12px;">
-    <mat-card-content class="p-3">
-      <h6 class="mb-2" style="font-weight: 600; color: #1a1a1a; border-bottom: 2px solid #e0e0e0; padding-bottom: 8px;">
-        Units Cost
-      </h6>
-
-      <div class="row">
-
-        @if (systemParameters?.has_electricity_bill === true) {
-          <div class="col-md-4">
-            <mat-form-field appearance="outline" class="full-width">
-              <mat-label>Electricity Unit Cost</mat-label>
-              <input
-                matInput
-                type="number"
-                formControlName="electicity_unit_cost"
-                (change)="onUpdateSystemParams()"
-              />
-              <mat-icon matSuffix style="color: #666;">power</mat-icon>
-            </mat-form-field>
-          </div>
-        }
-
-        @if (systemParameters?.has_water_bill === true) {
-          <div class="col-md-4">
-            <mat-form-field appearance="outline" class="full-width">
-              <mat-label>Water Unit Cost</mat-label>
-              <input
-                matInput
-                type="number"
-                formControlName="water_unit_cost"
-                (change)="onUpdateSystemParams()"
-              />
-              <mat-icon matSuffix style="color: #666;">water</mat-icon>
-            </mat-form-field>
-          </div>
-        }
-
-         @if (systemParameters?.has_service_charge === true) {
-          <div class="col-md-4">
-            <mat-form-field appearance="outline" class="full-width">
-              <mat-label>Default Service Charge</mat-label>
-              <input
-                matInput
-                type="number"
-                formControlName="default_service_charge"
-                (change)="onUpdateSystemParams()"
-              />
-              <mat-icon matSuffix style="color: #666;">handyman</mat-icon>
-            </mat-form-field>
-          </div>
-        }
-
       </div>
 
-      <div class="row"> 
-        @if (systemParameters?.has_security_charge === true) {
-            <div class="col-md-4">
-              <mat-form-field appearance="outline" class="full-width">
-                <mat-label>Default Security Charge</mat-label>
-                <input
-                  matInput
-                  type="number"
-                  formControlName="default_security_charge"
-                  (change)="onUpdateSystemParams()"
-                />
-                <mat-icon matSuffix style="color: #666;">security</mat-icon>
-              </mat-form-field>
-            </div>
-        }
-
-         @if (systemParameters?.has_other_charges === true) {
-            <div class="col-md-4">
-              <mat-form-field appearance="outline" class="full-width">
-                <mat-label>Default Other Charge</mat-label>
-                <input
-                  matInput
-                  type="number"
-                  formControlName="default_other_charge"
-                  (change)="onUpdateSystemParams()"
-                />
-              </mat-form-field>
-            </div>
-          }
+      <div class="setting-row">
+        <div class="setting-text">
+          <label for="late_payment_penalty_rate">Late payment penalty</label>
+          <small>Charged on what is still unpaid once the grace period has passed.</small>
+        </div>
+        <div class="setting-field">
+          <input id="late_payment_penalty_rate" type="number" min="0" formControlName="late_payment_penalty_rate" (change)="onUpdateSystemParams()" />
+          <span>%</span>
+        </div>
       </div>
-    </mat-card-content>
-  </mat-card>
-} @else {
-  <!-- nothing will render when both are false -->
-}
 
-
-
-    <!-- Deposit Requirements Section -->
-    <mat-card class="mb-3" style="box-shadow: 0 2px 8px rgba(0,0,0,0.08); border-radius: 12px;">
-      <mat-card-content class="p-3">
-        <h6 class="mb-2" style="font-weight: 600; color: #1a1a1a; border-bottom: 2px solid #e0e0e0; padding-bottom: 8px;">
-          Deposit Requirements
-        </h6>
-        
-        <div class="row">
-          <div class="col-md-3">
-            <mat-slide-toggle formControlName="require_water_deposit" color="primary" (change)="onUpdateSystemParams()">
-              <span style="margin-left: 8px;">Require Water Deposit</span>
-            </mat-slide-toggle>
-          </div>
-          <div class="col-md-3">
-            <mat-slide-toggle formControlName="require_electricity_deposit" color="primary" (change)="onUpdateSystemParams()">
-              <span style="margin-left: 8px;">Require Electricity Deposit</span>
-            </mat-slide-toggle>
-          </div>
+      <div class="setting-row">
+        <div class="setting-text">
+          <label for="grace_period_days">Grace period</label>
+          <small>Days after an invoice is issued before it counts as overdue.</small>
         </div>
-        @if (systemParameters?.require_water_deposit === true || systemParameters?.require_electricity_deposit === true) {
-          <div class="row">
-            @if (systemParameters?.require_water_deposit === true) {
-              <div class="col-md-4 mt-3">
-                <mat-form-field appearance="outline" class="full-width">
-                  <mat-label>Water Deposit Amount</mat-label>
-                  <input
-                    matInput
-                    type="number"
-                    formControlName="water_deposit_amount"
-                    (change)="onUpdateSystemParams()"
-                  />
-                  <mat-icon matSuffix style="color: #666;">water</mat-icon>
-                </mat-form-field>
+        <div class="setting-field">
+          <input id="grace_period_days" type="number" min="0" formControlName="grace_period_days" (change)="onUpdateSystemParams()" />
+          <span>days</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Payments -->
+    <section class="ui-card settings-card">
+      <header class="settings-card-head">
+        <span class="settings-icon"><i class="fas fa-credit-card"></i></span>
+        <div>
+          <h3>Payments</h3>
+          <p>How money received from tenants is handled.</p>
+        </div>
+      </header>
+
+      @for (option of paymentOptions; track option.toggle) {
+        <div class="setting-row">
+          <div class="setting-text">
+            <label>{{ option.title }}</label>
+            <small>{{ option.hint }}</small>
+          </div>
+          <mat-slide-toggle [formControlName]="option.toggle" [aria-label]="option.title" (change)="onUpdateSystemParams()"></mat-slide-toggle>
+        </div>
+      }
+    </section>
+
+    <!-- Charges on invoices -->
+    <section class="ui-card settings-card">
+      <header class="settings-card-head">
+        <span class="settings-icon"><i class="fas fa-file-invoice"></i></span>
+        <div>
+          <h3>Charges on invoices</h3>
+          <p>Switch on the charges this property bills besides rent, and set their rates.</p>
+        </div>
+      </header>
+
+      @for (charge of charges; track charge.toggle) {
+        <div class="setting-row">
+          <div class="setting-text">
+            <label>{{ charge.title }}</label>
+            <small>{{ charge.hint }}</small>
+          </div>
+          <div class="setting-controls">
+            @if (isOn(charge.toggle)) {
+              <div class="setting-field">
+                <span>KSh</span>
+                <input type="number" min="0" [formControlName]="charge.amount" [attr.aria-label]="charge.title + ' ' + charge.unit" (change)="onUpdateSystemParams()" />
+                <span>{{ charge.unit }}</span>
               </div>
             }
-            
-            @if (systemParameters?.require_electricity_deposit === true) {
-              <div class="col-md-4 mt-3">
-                <mat-form-field appearance="outline" class="full-width">
-                  <mat-label>Electricity Deposit Amount</mat-label>
-                  <input
-                    matInput
-                    type="number"
-                    formControlName="electricity_deposit_amount"
-                    (change)="onUpdateSystemParams()"
-                  />
-                  <mat-icon matSuffix style="color: #666;">power</mat-icon>
-                </mat-form-field>
-              </div>
-            }
-          </div>
-       }
-      </mat-card-content>
-    </mat-card>
-
-    <!-- Payment & System Options Section -->
-    <mat-card class="mb-3" style="box-shadow: 0 2px 8px rgba(0,0,0,0.08); border-radius: 12px;">
-      <mat-card-content class="p-3">
-        <h6 class="mb-2" style="font-weight: 600; color: #1a1a1a; border-bottom: 2px solid #e0e0e0; padding-bottom: 8px;">
-          Payment & System Options
-        </h6>
-        
-        <div class="row">
-          <div class="col-md-3">
-            <mat-slide-toggle formControlName="allow_partial_payments" color="primary" (change)="onUpdateSystemParams()">
-              <span style="margin-left: 8px;">Allow Partial Payments</span>
-            </mat-slide-toggle>
-          </div>
-          <div class="col-md-3">
-            <mat-slide-toggle formControlName="auto_generate_receipts" color="primary" (change)="onUpdateSystemParams()">
-              <span style="margin-left: 8px;">Auto Generate Receipts</span>
-            </mat-slide-toggle>
+            <mat-slide-toggle [formControlName]="charge.toggle" [aria-label]="charge.title" (change)="onUpdateSystemParams()"></mat-slide-toggle>
           </div>
         </div>
-      </mat-card-content>
-    </mat-card>
+      }
+    </section>
+
+    <!-- Utility deposits -->
+    <section class="ui-card settings-card">
+      <header class="settings-card-head">
+        <span class="settings-icon"><i class="fas fa-shield-halved"></i></span>
+        <div>
+          <h3>Utility deposits</h3>
+          <p>Deposits collected for utilities, on top of the rent deposit.</p>
+        </div>
+      </header>
+
+      @for (deposit of deposits; track deposit.toggle) {
+        <div class="setting-row">
+          <div class="setting-text">
+            <label>{{ deposit.title }}</label>
+            <small>{{ deposit.hint }}</small>
+          </div>
+          <div class="setting-controls">
+            @if (isOn(deposit.toggle)) {
+              <div class="setting-field">
+                <span>KSh</span>
+                <input type="number" min="0" [formControlName]="deposit.amount" [attr.aria-label]="deposit.title + ' amount'" (change)="onUpdateSystemParams()" />
+              </div>
+            }
+            <mat-slide-toggle [formControlName]="deposit.toggle" [aria-label]="deposit.title" (change)="onUpdateSystemParams()"></mat-slide-toggle>
+          </div>
+        </div>
+      }
+    </section>
 
   </form>
 </div>

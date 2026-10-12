@@ -1,5 +1,5 @@
 .getting-started {
-  background: #fff;
+  background: var(--surface);
   border: 1px solid var(--gray-200);
   border-radius: 16px;
   padding: 20px 24px;
@@ -45,7 +45,7 @@
 .gs-bar-fill {
   height: 100%;
   border-radius: 999px;
-  background: var(--brand-500);
+  background: var(--brand-solid);
   transition: width 0.3s ease;
 }
 
@@ -102,7 +102,7 @@
 }
 
 .gs-step.current .gs-badge {
-  background: var(--brand-500);
+  background: var(--brand-solid);
   color: #fff;
 }
 
@@ -146,12 +146,12 @@
   gap: 8px;
   padding: 9px 16px;
   border-radius: 8px;
-  background: var(--brand-500);
+  background: var(--brand-solid);
   color: #fff;
 }
 
 .gs-action:hover {
-  background: var(--brand-600);
+  background: var(--brand-solid-hover);
 }
 
 .gs-link {

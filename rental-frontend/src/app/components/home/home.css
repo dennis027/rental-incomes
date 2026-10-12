@@ -122,14 +122,14 @@
 }
 
 .homepage .btn-secondary:hover {
-  background: #fff;
+  background: var(--card);
   border-color: var(--primary);
   color: var(--primary);
   transform: translateY(-1px);
 }
 
 .homepage .btn-outline {
-  background: #fff;
+  background: var(--card);
   color: var(--text-dark);
   border-color: var(--border);
   box-shadow: var(--shadow-sm);
@@ -276,7 +276,7 @@
   flex-direction: column;
   gap: 0.25rem;
   padding: 0 2rem 1.5rem;
-  background: #fff;
+  background: var(--card);
   border-top: 1px solid var(--border);
 }
 
@@ -485,7 +485,7 @@
 }
 
 .homepage .mock-card {
-  background: #fff;
+  background: var(--card);
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
   padding: 1rem;
@@ -547,7 +547,7 @@
 .homepage .occupancy-ring__value {
   width: 48px;
   height: 48px;
-  background: #fff;
+  background: var(--card);
   border-radius: 50%;
   display: flex;
   align-items: center;
@@ -630,7 +630,7 @@
   gap: 0.5rem;
   margin-top: 0.9rem;
   padding: 0.7rem 0.9rem;
-  background: #fff;
+  background: var(--card);
   border: 1px solid var(--border);
   border-radius: 12px;
   font-size: 0.8rem;
@@ -692,7 +692,7 @@
 
 /* ---- Roles ---- */
 .homepage .roles-section {
-  background: #fff;
+  background: var(--card);
   border-top: 1px solid var(--border);
 }
 
@@ -720,7 +720,7 @@
   transform: translateY(-8px);
   box-shadow: var(--shadow-lg);
   border-color: var(--primary);
-  background: #fff;
+  background: var(--card);
 }
 
 .homepage .role-icon {
@@ -816,7 +816,7 @@
 
 .homepage .feature-card {
   position: relative;
-  background: #fff;
+  background: var(--card);
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
   padding: 1.75rem;
@@ -875,7 +875,7 @@
 
 /* ---- Statistics ---- */
 .homepage .stats-section {
-  background: #fff;
+  background: var(--card);
   border-top: 1px solid var(--border);
 }
 
@@ -1264,7 +1264,7 @@
 
 .homepage .btn-secondary,
 .homepage .btn-outline {
-  background: #fff;
+  background: var(--card);
   color: var(--text-dark);
   box-shadow: none;
 }
@@ -1291,7 +1291,7 @@
 /* ---- Navbar: the dashboard top bar ---- */
 .homepage .navbar,
 .homepage .navbar--scrolled {
-  background: #fff;
+  background: var(--card);
   backdrop-filter: none;
   -webkit-backdrop-filter: none;
   border-bottom: 1px solid var(--border);
@@ -1339,7 +1339,7 @@
 }
 
 .homepage .eyebrow {
-  background: #fff;
+  background: var(--card);
   border-color: #E0D9FF;
   color: var(--accent);
 }
@@ -1354,7 +1354,7 @@
 
 /* The preview card is drawn like a real dashboard card */
 .homepage .dashboard-mock {
-  background: #fff;
+  background: var(--card);
   backdrop-filter: none;
   -webkit-backdrop-filter: none;
   border: 1px solid var(--border);
@@ -1397,14 +1397,14 @@
 }
 
 .homepage .stats-section {
-  background: #fff;
+  background: var(--card);
 }
 
 /* ---- Cards: flat and bordered, like the dashboard ---- */
 .homepage .role-card,
 .homepage .feature-card,
 .homepage .stat-card {
-  background: #fff;
+  background: var(--card);
   border: 1px solid var(--border);
   border-radius: 16px;
   box-shadow: none;
@@ -1499,3 +1499,60 @@
 .homepage .footer-social:hover {
   background: var(--accent);
 }
+
+/* ---- Dark theme ---- */
+:host-context([data-theme="dark"]) .homepage {
+  --primary: #6079FF;
+  --primary-dark: #8195FF;
+  --secondary: #A877F0;
+  --lavender: #1D1A3A;
+  --lavender-soft: #141829;
+  --bg: #0C111D;
+  --card: #161B26;
+  --border: #2A303C;
+  --text-dark: #ECECED;
+  --text-light: #94969C;
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.4);
+  --shadow-lg: 0 20px 45px rgba(0, 0, 0, 0.5);
+}
+
+:host-context([data-theme="dark"]) .homepage .brand-text {
+  color: var(--text-dark);
+}
+
+:host-context([data-theme="dark"]) .homepage .eyebrow,
+:host-context([data-theme="dark"]) .homepage .mock-card--revenue {
+  border-color: var(--border);
+}
+
+:host-context([data-theme="dark"]) .homepage .feature-icon {
+  background: rgba(96, 121, 255, 0.16);
+}
+
+:host-context([data-theme="dark"]) .homepage .features-grid > :nth-child(4n + 2) .feature-icon {
+  background: rgba(251, 46, 134, 0.16);
+}
+
+:host-context([data-theme="dark"]) .homepage .features-grid > :nth-child(4n + 3) .feature-icon {
+  background: var(--lavender);
+}
+
+:host-context([data-theme="dark"]) .homepage .features-grid > :nth-child(4n + 4) .feature-icon {
+  background: rgba(236, 236, 237, 0.1);
+}
+
+:host-context([data-theme="dark"]) .homepage .roles-grid > :nth-child(4n + 4) .role-icon,
+:host-context([data-theme="dark"]) .homepage .stats-cards-grid > :nth-child(4n + 4) .stat-card__icon {
+  background: #2B2F8F;
+}
+
+/* These stay solid purple with white text, as in the light theme */
+:host-context([data-theme="dark"]) .homepage .cta-section {
+  background: #7E33E0;
+}
+
+:host-context([data-theme="dark"]) .homepage .btn-white {
+  color: #7E33E0;
+}
+

@@ -4,7 +4,7 @@ padding: 20px;
 align-items: flex-start;
 align-self: stretch;
 border-radius: 8px;
-border: 0.5px solid #BDBDBD;
+border: 0.5px solid var(--gray-300);
 margin-top: 10px;
 }
 
@@ -12,27 +12,27 @@ margin-top: 10px;
 .receipt-summary {
   margin-bottom: 16px;
   padding: 12px;
-  background-color: #f5f5f5;
+  background-color: var(--gray-100);
   border-radius: 4px;
-  border-left: 4px solid #465fff;
+  border-left: 4px solid var(--brand-500);
 }
 
 .summary-text {
   font-size: 14px;
-  color: #424242;
+  color: var(--gray-700);
   font-weight: 500;
 }
 
 
 .container-fluid {
     padding: 20px;
-    background-color: #f8f9fa;
+    background-color: var(--gray-50);
 }
 
 .header {
     margin-bottom: 20px;
     padding: 15px;
-    background: #465fff;
+    background: var(--brand-solid);
     color: white;
     border-radius: 10px;
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
@@ -45,8 +45,8 @@ margin-top: 10px;
 }
 
 .export-buttons .btn {
-    background: white;
-    color: #465fff;
+    background: var(--surface);
+    color: var(--brand-500);
     border: none;
     font-weight: 600;
     padding: 8px 16px;
@@ -54,7 +54,7 @@ margin-top: 10px;
 }
 
 .export-buttons .btn:hover {
-    background: #f8f9fa;
+    background: var(--gray-50);
     transform: translateY(-2px);
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
 }
@@ -64,7 +64,7 @@ margin-top: 10px;
 }
 
 .receipt-summary {
-    background-color: #fff;
+    background-color: var(--surface);
     padding: 15px;
     border-radius: 8px;
     margin-bottom: 20px;
@@ -72,13 +72,13 @@ margin-top: 10px;
 }
 
 .summary-text {
-    color: #6c757d;
+    color: var(--gray-500);
     font-size: 14px;
     font-weight: 500;
 }
 
 .style-card {
-    background: white;
+    background: var(--surface);
     padding: 20px;
     border-radius: 10px;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
@@ -93,14 +93,14 @@ margin-top: 10px;
 }
 
 .style-card p:first-child {
-    color: #6c757d;
+    color: var(--gray-500);
     font-size: 14px;
     margin-bottom: 10px;
     font-weight: 500;
 }
 
 .style-card p:last-child {
-    color: #2c3e50;
+    color: var(--gray-800);
     font-size: 24px;
     font-weight: 700;
     margin: 0;
@@ -108,14 +108,14 @@ margin-top: 10px;
 
 /* Properties Carousel Styles */
 .properties-section {
-    background: white;
+    background: var(--surface);
     padding: 20px;
     border-radius: 10px;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
 }
 
 .section-header h4 {
-    color: #2c3e50;
+    color: var(--gray-800);
     font-weight: 600;
     margin: 0;
 }
@@ -127,7 +127,7 @@ margin-top: 10px;
 
 .carousel-indicator {
     font-size: 14px;
-    color: #6c757d;
+    color: var(--gray-500);
     font-weight: 500;
 }
 
@@ -150,33 +150,33 @@ margin-top: 10px;
 }
 
 .property-carousel-card {
-    background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+    background: linear-gradient(135deg, var(--gray-100) 0%, var(--gray-200) 100%);
     border-radius: 12px;
     padding: 25px;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
 .property-header {
-    border-bottom: 2px solid #e0e0e0;
+    border-bottom: 2px solid var(--gray-200);
     padding-bottom: 15px;
     margin-bottom: 20px;
 }
 
 .property-header h5 {
-    color: #2c3e50;
+    color: var(--gray-800);
     font-size: 22px;
     font-weight: 700;
     margin: 0 0 8px 0;
 }
 
 .property-address {
-    color: #6c757d;
+    color: var(--gray-500);
     font-size: 14px;
     font-weight: 500;
 }
 
 .property-stat-card {
-    background: white;
+    background: var(--surface);
     border-radius: 10px;
     padding: 15px;
     display: flex;
@@ -205,7 +205,7 @@ margin-top: 10px;
 
 .stat-icon {
     font-size: 32px;
-    color: #465fff;
+    color: var(--brand-500);
     width: 50px;
     text-align: center;
 }
@@ -229,19 +229,19 @@ margin-top: 10px;
 
 .stat-label {
     font-size: 12px;
-    color: #6c757d;
+    color: var(--gray-500);
     font-weight: 500;
     text-transform: uppercase;
 }
 
 .stat-value {
     font-size: 24px;
-    color: #2c3e50;
+    color: var(--gray-800);
     font-weight: 700;
 }
 
 .financial-card {
-    background: white;
+    background: var(--surface);
     border-radius: 10px;
     padding: 20px;
     text-align: center;
@@ -273,7 +273,7 @@ margin-top: 10px;
 .financial-label {
     display: block;
     font-size: 13px;
-    color: #6c757d;
+    color: var(--gray-500);
     font-weight: 500;
     margin-bottom: 8px;
     text-transform: uppercase;
@@ -282,12 +282,12 @@ margin-top: 10px;
 .financial-value {
     display: block;
     font-size: 20px;
-    color: #2c3e50;
+    color: var(--gray-800);
     font-weight: 700;
 }
 
 .info-card {
-    background: white;
+    background: var(--surface);
     border-radius: 8px;
     padding: 15px;
     display: flex;
@@ -298,16 +298,16 @@ margin-top: 10px;
 
 .info-card i {
     font-size: 24px;
-    color: #465fff;
+    color: var(--brand-500);
 }
 
 .info-card span {
-    color: #6c757d;
+    color: var(--gray-500);
     font-size: 14px;
 }
 
 .info-card strong {
-    color: #2c3e50;
+    color: var(--gray-800);
     font-weight: 700;
 }
 
@@ -324,18 +324,18 @@ margin-top: 10px;
     width: 12px;
     height: 12px;
     border-radius: 50%;
-    background-color: #d1d5db;
+    background-color: var(--gray-300);
     cursor: pointer;
     transition: all 0.3s ease;
 }
 
 .dot:hover {
-    background-color: #9ca3af;
+    background-color: var(--gray-400);
     transform: scale(1.2);
 }
 
 .dot.active {
-    background-color: #465fff;
+    background-color: var(--brand-solid);
     width: 30px;
     border-radius: 6px;
 }

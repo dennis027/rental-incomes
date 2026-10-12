@@ -69,6 +69,11 @@
         </div>
       }
 
+      <button class="theme-toggle" (click)="theme.toggle()"
+              [attr.aria-label]="theme.theme() === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'"
+              [title]="theme.theme() === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'">
+        <i class="fas" [class.fa-sun]="theme.theme() === 'dark'" [class.fa-moon]="theme.theme() !== 'dark'"></i>
+      </button>
       <button class="topbar-help" (click)="toggleTips()" [class.active]="showTips"
               [attr.aria-label]="showTips ? 'Hide page tips' : 'Show page tips'" [title]="showTips ? 'Hide page tips' : 'Show page tips'">
         <i class="fas fa-circle-question"></i>

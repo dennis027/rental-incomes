@@ -44,6 +44,42 @@ export class Settings implements OnInit {
   private platformId = inject(PLATFORM_ID); // ✅ Add this
 
   updateSystemParams!: FormGroup;
+
+  // Each charge is a switch plus the rate it bills at
+  charges = [
+    { toggle: 'has_water_bill', amount: 'water_unit_cost', unit: 'per unit',
+      title: 'Water', hint: 'Billed from meter readings.' },
+    { toggle: 'has_electricity_bill', amount: 'electicity_unit_cost', unit: 'per unit',
+      title: 'Electricity', hint: 'Billed from meter readings.' },
+    { toggle: 'has_service_charge', amount: 'default_service_charge', unit: 'per month',
+      title: 'Service charge', hint: 'Cleaning, garbage and shared areas.' },
+    { toggle: 'has_security_charge', amount: 'default_security_charge', unit: 'per month',
+      title: 'Security charge', hint: 'Guards and security services.' },
+    { toggle: 'has_other_charges', amount: 'default_other_charge', unit: 'per month',
+      title: 'Other charges', hint: 'Anything else billed every month.' },
+  ];
+
+  deposits = [
+    { toggle: 'require_water_deposit', amount: 'water_deposit_amount',
+      title: 'Water deposit', hint: 'Collected once when a tenant moves in.' },
+    { toggle: 'require_electricity_deposit', amount: 'electricity_deposit_amount',
+      title: 'Electricity deposit', hint: 'Collected once when a tenant moves in.' },
+  ];
+
+  paymentOptions = [
+    { toggle: 'allow_partial_payments',
+      title: 'Allow partial payments', hint: 'Tenants can pay part of an invoice and clear the rest later.' },
+    { toggle: 'auto_generate_receipts',
+      title: 'Auto-generate receipts', hint: 'Create a receipt as soon as a payment is recorded.' },
+  ];
+
+  get propertyName(): string {
+    return this.propertyContext.selected()?.name ?? '';
+  }
+
+  isOn(control: string): boolean {
+    return this.updateSystemParams.get(control)?.value === true;
+  }
   selectedPropertyId: number | null = null;
   systemParameters: any;
   properties: any[] = [];

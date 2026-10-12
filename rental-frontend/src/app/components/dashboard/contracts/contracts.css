@@ -297,20 +297,20 @@
 
 /* Active contracts - green/success */
 .active-row {
-  background-color: #d4edda !important;
+  background-color: var(--success-50) !important;
 }
 
 .active-row:hover {
-  background-color: #c3e6cb !important;
+  background-color: color-mix(in srgb, var(--success-500) 25%, var(--surface)) !important;
 }
 
 /* Inactive contracts - red/error */
 .inactive-row {
-  background-color: #f8d7da !important;
+  background-color: var(--error-50) !important;
 }
 
 .inactive-row:hover {
-  background-color: #f5c6cb !important;
+  background-color: color-mix(in srgb, var(--error-500) 25%, var(--surface)) !important;
 }
 
 /* Responsive adjustments */
@@ -559,7 +559,7 @@ ol.legal-covenants li {
 }
 
 .table-card {
-  background: #fff;
+  background: var(--surface);
   border: 1px solid var(--gray-200);
   border-radius: 16px;
   overflow: hidden;
@@ -612,7 +612,7 @@ ol.legal-covenants li {
 }
 
 .segmented button.active {
-  background: #fff;
+  background: var(--surface);
   color: var(--gray-900);
   box-shadow: var(--shadow-xs);
 }
@@ -667,7 +667,7 @@ ol.legal-covenants li {
   align-items: center;
   gap: 12px;
   padding: 64px 20px;
-  background: #fff;
+  background: var(--surface);
   border: 1px solid var(--gray-200);
   border-radius: 16px;
   color: var(--gray-500);

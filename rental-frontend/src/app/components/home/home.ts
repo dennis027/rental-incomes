@@ -1,7 +1,8 @@
 // home.component.ts
-import { Component, HostListener, AfterViewInit, OnDestroy, ElementRef, PLATFORM_ID, Inject } from '@angular/core';
+import { Component, HostListener, AfterViewInit, OnDestroy, ElementRef, PLATFORM_ID, Inject, inject } from '@angular/core';
 import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { RouterLink } from '@angular/router';
+import { ThemeService } from '../../services/theme';
 
 interface RoleCard {
   id: string;
@@ -33,6 +34,8 @@ interface StatCard {
   styleUrl: './home.css'
 })
 export class Home implements AfterViewInit, OnDestroy {
+  theme = inject(ThemeService);
+
   mobileMenuOpen = false;
   selectedRole = '';
   scrolled = false;

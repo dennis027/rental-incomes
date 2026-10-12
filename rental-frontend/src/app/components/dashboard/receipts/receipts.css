@@ -18,14 +18,14 @@
 .receipt-summary {
   margin-bottom: 16px;
   padding: 12px;
-  background-color: #f5f5f5;
+  background-color: var(--gray-100);
   border-radius: 4px;
-  border-left: 4px solid #465fff;
+  border-left: 4px solid var(--brand-500);
 }
 
 .summary-text {
   font-size: 14px;
-  color: #424242;
+  color: var(--gray-700);
   font-weight: 500;
 }
 
@@ -99,31 +99,31 @@ mat-dialog-content {
 
 
 .balance-paid {
-  background-color: #d4edda !important;
-  color: #155724;
+  background-color: var(--success-50) !important;
+  color: var(--success-600);
 }
 
 .balance-unpaid {
-  background-color: #f8d7da !important;
-  color: #721c24;
+  background-color: var(--error-50) !important;
+  color: var(--error-600);
 }
 
 .balance-partial {
-  background-color: #fff3cd !important;
-  color: #856404;
+  background-color: var(--warning-50) !important;
+  color: var(--warning-600);
 }
 
 /* Optional: Add hover effect */
 .balance-paid:hover {
-  background-color: #c3e6cb !important;
+  background-color: color-mix(in srgb, var(--success-500) 25%, var(--surface)) !important;
 }
 
 .balance-unpaid:hover {
-  background-color: #f5c6cb !important;
+  background-color: color-mix(in srgb, var(--error-500) 25%, var(--surface)) !important;
 }
 
 .balance-partial:hover {
-  background-color: #ffeaa7 !important;
+  background-color: color-mix(in srgb, var(--warning-500) 25%, var(--surface)) !important;
 }
 
 /* Invoice preview dialog */

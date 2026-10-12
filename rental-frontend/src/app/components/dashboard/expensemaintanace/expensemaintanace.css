@@ -30,17 +30,17 @@
 }
 
 .summary-card {
-  --tone: #465fff;
+  --tone: var(--brand-500);
   display: flex;
   align-items: center;
   gap: 14px;
   padding: 16px 18px;
-  background: #fff;
+  background: var(--surface);
   border: 1px solid var(--gray-200);
   border-radius: 16px;
 }
 
-.tone-blue   { --tone: #465fff; }
+.tone-blue   { --tone: var(--brand-500); }
 .tone-pink   { --tone: #fb2e86; }
 .tone-purple { --tone: #7e33e0; }
 .tone-navy   { --tone: #151875; }
@@ -72,7 +72,7 @@
 
 /* ---------- Table card ---------- */
 .table-card {
-  background: #fff;
+  background: var(--surface);
   border: 1px solid var(--gray-200);
   border-radius: 16px;
   overflow: hidden;
@@ -125,7 +125,7 @@
 }
 
 .segmented button.active {
-  background: #fff;
+  background: var(--surface);
   color: var(--gray-900);
   box-shadow: var(--shadow-xs);
 }
@@ -265,7 +265,7 @@
   padding: 6px 12px;
   border: 1px solid var(--gray-200);
   border-radius: 999px;
-  background: #fff;
+  background: var(--surface);
   color: var(--gray-700);
   font-size: 13px;
   cursor: pointer;
