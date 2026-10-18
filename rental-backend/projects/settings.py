@@ -7,6 +7,7 @@ from pathlib import Path
 import os
 import dj_database_url
 
+from celery.schedules import crontab
 from dotenv import load_dotenv
 
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -56,6 +57,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'app.caching.InvalidateOnWriteMiddleware',
 ]
 
 
@@ -102,6 +104,55 @@ DATABASES = {
 #             "PORT": os.getenv("DB_PORT", "5432"),
 #         }
 #     }
+
+# ---------------------------------------------------------------------------
+# Cache and background jobs (Redis)
+# ---------------------------------------------------------------------------
+# Without REDIS_URL everything still works in one process: an in-memory cache
+# and Celery tasks run inline, which is what the tests and quick local runs use.
+REDIS_URL = os.getenv("REDIS_URL", "")
+
+if REDIS_URL:
+    CACHES = {
+        "default": {
+            "BACKEND": "django_redis.cache.RedisCache",
+            "LOCATION": REDIS_URL,
+            "KEY_PREFIX": "rent",
+            "OPTIONS": {
+                "CLIENT_CLASS": "django_redis.client.DefaultClient",
+                # A Redis outage turns into cache misses instead of failed requests
+                "IGNORE_EXCEPTIONS": True,
+                "SOCKET_CONNECT_TIMEOUT": 2,
+                "SOCKET_TIMEOUT": 2,
+            },
+        }
+    }
+    DJANGO_REDIS_LOG_IGNORED_EXCEPTIONS = True
+else:
+    CACHES = {"default": {"BACKEND": "django.core.cache.backends.locmem.LocMemCache"}}
+
+# How long a cached GET response may be served. Any write clears them all
+# straight away, so this only bounds date-driven changes (arrears, expiries).
+API_CACHE_SECONDS = int(os.getenv("API_CACHE_SECONDS", 300))
+
+CELERY_BROKER_URL = os.getenv("CELERY_BROKER_URL", REDIS_URL)
+CELERY_RESULT_BACKEND = None  # nothing reads task results
+CELERY_TASK_ALWAYS_EAGER = not CELERY_BROKER_URL
+CELERY_TASK_EAGER_PROPAGATES = True
+CELERY_TIMEZONE = "Africa/Nairobi"
+CELERY_TASK_ACKS_LATE = True
+CELERY_WORKER_PREFETCH_MULTIPLIER = 1
+CELERY_BROKER_CONNECTION_RETRY_ON_STARTUP = True
+CELERY_BEAT_SCHEDULE = {
+    "recalculate-unit-balances": {
+        "task": "app.tasks.recalculate_unit_balances",
+        "schedule": crontab(hour=1, minute=0),
+    },
+    "flush-expired-tokens": {
+        "task": "app.tasks.flush_expired_tokens",
+        "schedule": crontab(hour=2, minute=30),
+    },
+}
 
 # ---------------------------------------------------------------------------
 # Password validation

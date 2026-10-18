@@ -9,10 +9,11 @@ import { SharedImports } from '../../../shared-imports/imports';
 import { Router, RouterLink } from '@angular/router';
 import { GettingStarted } from '../getting-started/getting-started';
 import { ContractsEndingSoon } from '../contracts-ending-soon/contracts-ending-soon';
+import { ArrearsAgeing } from '../arrears-ageing/arrears-ageing';
 
 @Component({
   selector: 'app-dash-home',
-  imports: [SharedImports, GettingStarted, RouterLink, ContractsEndingSoon],
+  imports: [SharedImports, GettingStarted, RouterLink, ContractsEndingSoon, ArrearsAgeing],
   templateUrl: './dash-home.html',
   styleUrl: './dash-home.css'
 })

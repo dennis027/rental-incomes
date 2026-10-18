@@ -4,7 +4,7 @@ import { Component, inject, ViewChild, AfterViewInit, OnInit, ChangeDetectorRef,
 import { isPlatformBrowser } from '@angular/common';
 import { UnitsService } from '../../../services/units';
 import { PropertiesService } from '../../../services/properties';
-import { Router } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { MatDialog } from '@angular/material/dialog';
 import { SharedImports } from '../../../shared-imports/imports';
 import { MatPaginator } from '@angular/material/paginator';
@@ -96,7 +96,7 @@ export class Units implements OnInit, AfterViewInit {
     return `${year}-${month}-${day}`;
   }
 
-  displayedColumns: string[] = ['unit_number', 'unit_type', 'tenant_name', 'rent_amount', 'active_contract_deposit', 'balance', 'status', 'actions'];
+  displayedColumns: string[] = ['unit_number', 'tenant_name', 'rent_amount', 'active_contract_deposit', 'balance', 'status', 'actions'];
   unitsObject: UnitsTable[] = [];
 
   systemParameters: any;
@@ -128,6 +128,8 @@ export class Units implements OnInit, AfterViewInit {
   properties: any[] = [];
   selectedPropertyId: number | null = null;
   selectedPropertyName: string = '';
+
+  private route = inject(ActivatedRoute);
 
   showElectricityMeter: boolean = true;
   showWaterMeter: boolean = true;
@@ -161,6 +163,12 @@ export class Units implements OnInit, AfterViewInit {
         this.router.navigate(['/login']);
         return;
       }
+
+      // Search in the top bar opens this page with the unit it found
+      this.route.queryParamMap.subscribe(params => {
+        this.searchText = params.get('q') ?? '';
+        this.applyFilter();
+      });
 
       this.getProperties();
       this.loadCustomers();
@@ -327,10 +335,35 @@ export class Units implements OnInit, AfterViewInit {
     }
   }
 
-  /** Apply search filter */
+  statusFilter: 'all' | 'occupied' | 'vacant' = 'all';
+
+  /** The figures on the cards above the table, for the property being shown. */
+  get unitStats() {
+    const units = this.dataSource.data;
+    const occupied = units.filter(unit => unit.status === 'occupied');
+    return {
+      total: units.length,
+      occupied: occupied.length,
+      vacant: units.length - occupied.length,
+      rate: units.length ? Math.round((occupied.length / units.length) * 100) : 0,
+      rent: occupied.reduce((sum, unit) => sum + Number(unit.rent_amount || 0), 0),
+    };
+  }
+
+  setStatusFilter(status: 'all' | 'occupied' | 'vacant') {
+    this.statusFilter = status;
+    this.applyFilter();
+  }
+
+  /** Apply the search text and the status tab together */
   applyFilter() {
-    const filterValue = this.searchText.trim().toLowerCase();
-    this.dataSource.filter = filterValue;
+    this.dataSource.filterPredicate = (unit: any, filter: string) => {
+      const { status, term } = JSON.parse(filter);
+      const matchesStatus = status === 'all' || (status === 'occupied') === (unit.status === 'occupied');
+      const text = `${unit.unit_number} ${unit.unit_type_display || unit.unit_type} ${unit.tenant_name || ''} ${unit.status}`.toLowerCase();
+      return matchesStatus && (!term || text.includes(term));
+    };
+    this.dataSource.filter = JSON.stringify({ status: this.statusFilter, term: this.searchText.trim().toLowerCase() });
   }
 
   openAddUnitDialog() {

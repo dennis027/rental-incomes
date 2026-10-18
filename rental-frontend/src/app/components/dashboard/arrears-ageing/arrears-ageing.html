@@ -1,0 +1,32 @@
+@if (total > 0) {
+  <section class="ageing-card">
+    <header>
+      <div>
+        <h5>Arrears by age</h5>
+        <p>KSh {{ total | number:'1.0-0' }} unpaid, by how long it has been overdue</p>
+      </div>
+      <a routerLink="/dashboard/arrears">View arrears <i class="fas fa-arrow-right"></i></a>
+    </header>
+
+    <div class="ageing-bar" role="img" aria-label="Share of unpaid rent in each age band">
+      @for (bucket of buckets; track bucket.label) {
+        @if (bucket.share > 0) {
+          <span [class]="'ageing-fill ageing-' + bucket.tone" [style.width.%]="bucket.share"></span>
+        }
+      }
+    </div>
+
+    <ul class="ageing-legend">
+      @for (bucket of buckets; track bucket.label) {
+        <li [class.ageing-none]="bucket.amount === 0">
+          <span [class]="'ageing-dot ageing-' + bucket.tone"></span>
+          <div>
+            <small>{{ bucket.label }}</small>
+            <strong>KSh {{ bucket.amount | number:'1.0-0' }}</strong>
+            <em>{{ bucket.tenants }} tenant{{ bucket.tenants === 1 ? '' : 's' }}</em>
+          </div>
+        </li>
+      }
+    </ul>
+  </section>
+}

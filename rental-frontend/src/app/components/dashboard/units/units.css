@@ -553,3 +553,11 @@ button mat-spinner {
   white-space: nowrap;
   flex-shrink: 0;
 }
+
+/* ---------- List page ---------- */
+.unit-search { width: 280px; }
+.unit-rate { margin-left: 6px; font-size: 13px; font-weight: 500; color: var(--gray-500); }
+
+@media (max-width: 768px) {
+  .unit-search { width: 100%; }
+}

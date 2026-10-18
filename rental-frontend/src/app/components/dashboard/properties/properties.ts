@@ -1,15 +1,15 @@
 import { PropertyContext } from '../../../services/property-context';
-import { AfterViewInit, Component, ViewChild, TemplateRef, OnInit, inject, PLATFORM_ID } from '@angular/core';
+import { AfterViewInit, ChangeDetectorRef, Component, ViewChild, TemplateRef, OnInit, inject, PLATFORM_ID } from '@angular/core';
 import { isPlatformBrowser } from '@angular/common';
 import { MatPaginator } from '@angular/material/paginator';
 import { MatTableDataSource } from '@angular/material/table';
 import { PropertiesService } from '../../../services/properties';
 import { MatDialog } from '@angular/material/dialog';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
-import { Router } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
+import { UnitsService } from '../../../services/units';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { SharedImports } from '../../../shared-imports/imports';
-import { MatTableResponsiveDirective } from '../../../directives/mat-table-responsive-directive';
 
 export interface PropertiesTable {
   id: string;
@@ -22,7 +22,7 @@ export interface PropertiesTable {
   selector: 'app-properties',
   standalone: true,
   // 💡 CORRECTED: Removed MatIconButton from imports; MatButtonModule covers the buttons.
-  imports: [SharedImports,MatTableResponsiveDirective],
+  imports: [SharedImports, RouterLink],
   templateUrl: './properties.html',
   styleUrls: ['./properties.css']
 })
@@ -30,6 +30,60 @@ export class Properties implements OnInit, AfterViewInit { // Added OnInit inter
     private snackBar = inject(MatSnackBar);
     private platformId = inject(PLATFORM_ID);
     private propertyContext = inject(PropertyContext);
+    private unitsService = inject(UnitsService);
+    private cdr = inject(ChangeDetectorRef);
+
+  isLoading = true;
+
+  /** Units, occupied units and their rent for each property, by property id. */
+  private unitStats = new Map<number, { units: number; occupied: number; rent: number; rate: number }>();
+  private noUnits = { units: 0, occupied: 0, rent: 0, rate: 0 };
+
+  isCurrent(property: any): boolean {
+    return Number(property.id) === this.propertyContext.selectedId();
+  }
+
+  stats(property: any) {
+    return this.unitStats.get(Number(property.id)) ?? this.noUnits;
+  }
+
+  /** The cards above the list: every property added together. */
+  get totals() {
+    const all = [...this.unitStats.values()];
+    const units = all.reduce((sum, item) => sum + item.units, 0);
+    const occupied = all.reduce((sum, item) => sum + item.occupied, 0);
+    return {
+      units,
+      occupied,
+      rate: units ? Math.round((occupied / units) * 100) : 0,
+      rent: all.reduce((sum, item) => sum + item.rent, 0),
+    };
+  }
+
+  workIn(property: any): void {
+    this.propertyContext.select(Number(property.id));
+  }
+
+  loadUnitStats(): void {
+    this.unitsService.getUnits().subscribe({
+      next: (units: any[]) => {
+        this.unitStats.clear();
+        for (const unit of Array.isArray(units) ? units : []) {
+          const item = this.unitStats.get(unit.property) ?? { units: 0, occupied: 0, rent: 0, rate: 0 };
+          item.units++;
+          if (unit.status === 'occupied') {
+            item.occupied++;
+            item.rent += Number(unit.rent_amount || 0);
+          }
+          item.rate = Math.round((item.occupied / item.units) * 100);
+          this.unitStats.set(unit.property, item);
+        }
+        this.cdr.markForCheck();
+      },
+      // The properties are still listed without their unit figures
+      error: () => {},
+    });
+  }
   // ViewChild for the dialog template
   @ViewChild('openAddDialog') openAddDialog!: TemplateRef<any>;
    @ViewChild('updateDialog') updateDialog!: TemplateRef<any>;
@@ -100,11 +154,16 @@ export class Properties implements OnInit, AfterViewInit { // Added OnInit inter
       next: (res: PropertiesTable[] | any) => { // Use 'any' or correct type if API response is not PropertiesTable[] directly
         this.propertiesObject = res; 
         this.dataSource.data = this.propertiesObject;
+        this.isLoading = false;
+        this.loadUnitStats();
+        this.cdr.markForCheck();
         // Keep the top-bar property switcher in step with adds, edits and deletes
         this.propertyContext.setProperties(res);
         
       },
       error: (err) => {
+        this.isLoading = false;
+        this.cdr.markForCheck();
         if (err.status === 0) {
         }
         if (err.status === 401) {

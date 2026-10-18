@@ -1,0 +1,35 @@
+<div class="palette" (keydown)="onKey($event)">
+  <div class="palette-input">
+    <i class="fas fa-magnifying-glass"></i>
+    <input type="text" [(ngModel)]="query" (ngModelChange)="search()" autocomplete="off" spellcheck="false"
+           placeholder="Search tenants, units, invoices, M-Pesa codes or pages" aria-label="Search" />
+    <kbd>Esc</kbd>
+  </div>
+
+  <div class="palette-results" #list role="listbox">
+    @for (result of results; track $index) {
+      @if (startsGroup($index)) {
+        <p class="palette-group">{{ result.group }}</p>
+      }
+      <button class="palette-item" role="option" [class.active]="$index === active" [attr.aria-selected]="$index === active"
+              (mouseenter)="active = $index" (click)="open(result)">
+        <span class="palette-icon"><i [class]="result.icon"></i></span>
+        <span class="palette-text">
+          <strong>{{ result.title }}</strong>
+          <small>{{ result.detail }}</small>
+        </span>
+        <i class="fas fa-arrow-turn-down palette-enter"></i>
+      </button>
+    } @empty {
+      <p class="palette-empty">
+        @if (loading) { Searching… } @else { Nothing matches "{{ query }}". }
+      </p>
+    }
+  </div>
+
+  <footer class="palette-foot">
+    <span><kbd>↑</kbd><kbd>↓</kbd> to move</span>
+    <span><kbd>Enter</kbd> to open</span>
+    @if (loading) { <span class="palette-loading">Loading your data…</span> }
+  </footer>
+</div>

@@ -42,10 +42,18 @@ both.
 The sidebar lists the pages in the order a landlord works through them. The
 property chosen in the top bar applies to every page.
 
-The sun/moon button in the top bar switches between the light and dark theme.
-The choice is remembered on that device; until one is made, the app follows the
-device's own setting. Printable documents (invoices, receipts, contracts) stay
-white in either theme.
+The top bar is the same on every page:
+
+- **Search** (or `Ctrl+K`) finds a tenant, unit, invoice number, M-Pesa code or
+  page and opens it.
+- **The bell** counts what needs attention in the chosen property: overdue
+  rent, contracts ending within 30 days, M-Pesa payments that could not be
+  matched, and repairs that are not finished.
+- **The account menu** holds the theme (light, dark, or follow the device),
+  the page tips and log out. Printable documents (invoices, receipts,
+  contracts) stay white in either theme.
+
+The arrow beside the page title shrinks the sidebar to its icons.
 
 ### 1. Sign in
 
@@ -66,11 +74,15 @@ things on it are there to be acted on:
   button asks the tenant whether they want to renew.
 - **Record payment** opens the payment dialog directly.
 
+**Arrears by age** splits unpaid rent into not yet overdue, 1–30, 31–60 and
+over 60 days.
+
 ### 3. Properties and their settings
 
 ![Properties](docs/screenshots/02-properties.png)
 
-A property is a building or plot. Everything else belongs to one. Each property
+A property is a building or plot. Everything else belongs to one. Each card
+shows how many of its units are occupied and their monthly rent. Each property
 has its own billing rules under **Settings**:
 
 ![Settings](docs/screenshots/18-settings.png)
@@ -97,8 +109,8 @@ balance column is what the unit's current tenant owes.
 ![Tenants](docs/screenshots/04-tenants.png)
 
 The people who rent. A tenant is registered with phone number, ID number and
-photos of both sides of their ID. The document icon opens the tenant's
-statement.
+photos of both sides of their ID. The list shows who owes rent and who is paid
+up, and **Statement** opens the tenant's statement.
 
 ### 6. Contracts
 
@@ -171,7 +183,8 @@ One row per tenant who owes, most overdue first: the amount, when it started,
 how many days past the grace period, and when they last paid. Each row has
 **Pay**, a WhatsApp reminder with the amount and due date filled in, and a link
 to the statement. Tenants who moved out still owing stay on this list until they
-pay.
+pay. Tick several tenants and **Send reminders** walks through their WhatsApp
+reminders one after the other.
 
 ### 10. Tenant statement
 

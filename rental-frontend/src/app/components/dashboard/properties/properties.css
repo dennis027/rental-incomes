@@ -362,3 +362,71 @@ button[mat-icon-button]:hover {
   background: transparent;
   margin-top: 0;
 }
+
+/* ---------- List page ---------- */
+.property-rate { margin-left: 6px; font-size: 13px; font-weight: 500; color: var(--gray-500); }
+
+.property-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  gap: 20px;
+}
+
+.property-card {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 20px;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.property-card:hover { box-shadow: var(--shadow-sm); }
+.property-card--current { border-color: var(--brand-300); }
+
+.property-card header { display: flex; align-items: flex-start; gap: 14px; }
+
+.property-icon {
+  flex-shrink: 0;
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: var(--brand-50);
+  color: var(--brand-500);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+}
+
+.property-title { flex: 1; min-width: 0; }
+.property-title h3 { margin: 0; font-size: 17px; font-weight: 600; color: var(--gray-900); }
+.property-title p { margin: 2px 0 0; font-size: 13px; color: var(--gray-500); }
+.property-title p i { margin-right: 4px; color: var(--gray-400); }
+
+.property-description { margin: 0; font-size: 14px; line-height: 1.5; color: var(--gray-700); }
+
+.property-occupancy-row { display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 13px; color: var(--gray-500); }
+.property-occupancy-row strong { font-weight: 500; color: var(--gray-800); }
+
+.property-bar { height: 8px; border-radius: 999px; background: var(--gray-100); overflow: hidden; }
+.property-bar div { height: 100%; border-radius: 999px; background: var(--success-500); transition: width 0.6s ease; }
+
+.property-figures { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 0; }
+.property-figures div { padding: 10px 12px; border-radius: var(--radius-sm); background: var(--gray-50); }
+.property-figures dt { font-size: 12px; font-weight: 400; color: var(--gray-500); }
+.property-figures dd { margin: 2px 0 0; font-size: 15px; font-weight: 600; color: var(--gray-900); font-variant-numeric: tabular-nums; }
+
+.property-card footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: auto;
+  padding-top: 16px;
+  border-top: 1px solid var(--gray-100);
+}
+
+.property-actions { display: inline-flex; gap: 4px; }
+
+.property-empty { padding: 56px 20px; text-align: center; color: var(--gray-500); }
+.property-empty i { display: block; font-size: 28px; color: var(--gray-300); margin-bottom: 12px; }
+.property-empty p { margin: 0; font-size: 14px; }

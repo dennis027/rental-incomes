@@ -1,5 +1,6 @@
 import { CommonModule } from '@angular/common';
-import { Component, computed, signal } from '@angular/core';
+import { Component, computed, inject, signal } from '@angular/core';
+import { ThemeService } from '../../../services/theme';
 import { FormGroup, FormBuilder, Validators, ReactiveFormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
 
@@ -10,6 +11,7 @@ import { RouterModule } from '@angular/router';
   styleUrl: './request-demo-component.css',
 })
 export class RequestDemoComponent {
+  theme = inject(ThemeService);
  
   currentStep = signal(1);
   loading     = signal(false);

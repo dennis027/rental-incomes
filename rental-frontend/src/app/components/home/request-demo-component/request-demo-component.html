@@ -1,6 +1,12 @@
 <!-- request-demo-component.html -->
 <div class="login-page">
 
+  <button class="theme-toggle theme-toggle--floating" (click)="theme.toggle()"
+          [attr.aria-label]="theme.theme() === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'"
+          [title]="theme.theme() === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'">
+    <i class="fas" [class.fa-sun]="theme.theme() === 'dark'" [class.fa-moon]="theme.theme() !== 'dark'"></i>
+  </button>
+
   <!-- ── Left Side — Branding ── -->
   <div class="login-brand">
     <div class="brand-content">

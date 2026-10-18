@@ -159,6 +159,8 @@ html[data-theme="dark"] .contract-print-sheet {
   transition: background-color 0.15s ease, color 0.15s ease;
 }
 .theme-toggle:hover { background: var(--gray-100); color: var(--gray-800); }
+/* Pages without a top bar pin it to the corner */
+.theme-toggle--floating { position: fixed; top: 20px; right: 20px; z-index: 10; }
 
 html, body { height: 100%; }
 body {
@@ -732,3 +734,131 @@ app-dashboard .main-content h5 { font-weight: 600; color: var(--gray-800); }
 .property-menu-text strong { font-weight: 500; color: var(--gray-800); font-size: 14px; }
 .property-menu-text small { color: var(--gray-500); font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .property-menu-manage { border-top: 1px solid var(--gray-200); }
+
+
+/* ===========================
+   TOP BAR MENUS AND SEARCH
+   These open in an overlay outside the dashboard component, so they are styled here.
+   =========================== */
+.bell-menu.mat-mdc-menu-panel { width: 380px; max-width: 94vw; max-height: 70vh; border-radius: 12px; }
+.bell-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 16px 12px;
+  border-bottom: 1px solid var(--gray-200);
+  font-size: 14px;
+  color: var(--gray-800);
+}
+.bell-head span {
+  min-width: 24px;
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: var(--brand-50);
+  color: var(--brand-600);
+  font-size: 12px;
+  font-weight: 600;
+  text-align: center;
+}
+.bell-menu .bell-item { height: auto; min-height: 60px; padding-top: 8px; padding-bottom: 8px; }
+.bell-menu .bell-item .mat-mdc-menu-item-text { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.bell-icon {
+  flex-shrink: 0;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+}
+.bell-icon--error   { background: var(--error-50);   color: var(--error-600); }
+.bell-icon--warning { background: var(--warning-50); color: var(--warning-600); }
+.bell-icon--brand   { background: var(--brand-50);   color: var(--brand-600); }
+.bell-text { display: flex; flex-direction: column; min-width: 0; line-height: 1.35; }
+.bell-text strong { font-size: 14px; font-weight: 500; color: var(--gray-800); white-space: normal; }
+.bell-text small { font-size: 12px; color: var(--gray-500); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bell-empty { padding: 32px 20px; text-align: center; color: var(--gray-500); }
+.bell-empty i { font-size: 24px; color: var(--success-500); margin-bottom: 10px; }
+.bell-empty p { margin: 0; font-size: 14px; }
+
+.profile-menu.mat-mdc-menu-panel { width: 290px; max-width: 94vw; border-radius: 12px; }
+.profile-head { display: flex; align-items: center; gap: 12px; padding: 10px 16px 14px; }
+.profile-head .avatar {
+  flex-shrink: 0;
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  background: var(--brand-solid);
+  color: #fff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 15px;
+  font-weight: 600;
+}
+.profile-id { display: flex; flex-direction: column; min-width: 0; line-height: 1.35; }
+.profile-id strong { font-size: 14px; font-weight: 600; color: var(--gray-900); }
+.profile-id small { font-size: 12px; color: var(--gray-500); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.profile-theme {
+  padding: 12px 16px;
+  border-top: 1px solid var(--gray-200);
+  border-bottom: 1px solid var(--gray-200);
+  margin-bottom: 6px;
+}
+.profile-theme > span { display: block; margin-bottom: 8px; font-size: 12px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--gray-400); }
+.profile-theme .ui-segmented { display: flex; }
+.profile-theme .ui-segmented button { flex: 1; justify-content: center; padding: 7px 8px; font-size: 13px; }
+.profile-menu .mat-mdc-menu-item-text { display: flex; align-items: center; gap: 12px; }
+.profile-item-icon { width: 18px; text-align: center; color: var(--gray-500); }
+.profile-menu .profile-logout,
+.profile-menu .profile-logout .profile-item-icon { color: var(--error-600); }
+
+.search-palette-panel .mat-mdc-dialog-container { --mat-dialog-container-shape: 14px; }
+.search-palette-panel .mat-mdc-dialog-surface { overflow: hidden; }
+
+/* ===========================
+   SKELETON LOADING
+   Grey bars in the shape of the rows that are on their way
+   =========================== */
+.ui-skeleton { padding: 8px 20px 16px; }
+.ui-skeleton-row {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  padding: 16px 0;
+  border-bottom: 1px solid var(--gray-100);
+}
+.ui-skeleton-row:last-child { border-bottom: none; }
+.ui-skeleton-bar {
+  height: 12px;
+  flex: 1;
+  border-radius: 6px;
+  background: linear-gradient(90deg, var(--gray-100) 25%, var(--gray-200) 37%, var(--gray-100) 63%);
+  background-size: 400% 100%;
+  animation: ui-shimmer 1.4s ease infinite;
+}
+.ui-skeleton-bar--wide { flex: 2; }
+.ui-skeleton-bar--short { flex: 0 0 72px; }
+@keyframes ui-shimmer {
+  from { background-position: 100% 50%; }
+  to   { background-position: 0 50%; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ui-skeleton-bar { animation: none; }
+}
+
+/* Selection bar that appears above a table when rows are ticked */
+.ui-bulk {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 12px 20px;
+  border-bottom: 1px solid var(--brand-100);
+  background: var(--brand-25);
+  font-size: 14px;
+  color: var(--gray-700);
+}
+.ui-bulk strong { color: var(--gray-900); }
+.ui-bulk-actions { margin-left: auto; display: flex; align-items: center; gap: 8px; }

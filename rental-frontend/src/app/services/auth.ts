@@ -19,6 +19,9 @@ export class AuthService {
         if (isPlatformBrowser(this.platformId) && res.success && res.data?.access) {
           localStorage.setItem('access_token', res.data.access);
           localStorage.setItem('refresh_token', res.data.refresh);
+          // Shown in the top bar's account menu
+          localStorage.setItem('user_name', res.data.user?.username ?? '');
+          localStorage.setItem('user_email', res.data.user?.email ?? '');
         }
       })
     );
@@ -41,6 +44,8 @@ logout(): Observable<any> {
   if (isPlatformBrowser(this.platformId)) {
     localStorage.removeItem('access_token');
     localStorage.removeItem('refresh_token');
+    localStorage.removeItem('user_name');
+    localStorage.removeItem('user_email');
   }
 
   // Nothing to revoke on the server

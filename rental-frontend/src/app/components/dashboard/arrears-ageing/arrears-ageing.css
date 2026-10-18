@@ -1,0 +1,70 @@
+.ageing-card {
+  margin-bottom: 24px;
+  padding: 20px 22px;
+  background: var(--surface);
+  border: 1px solid var(--gray-200);
+  border-radius: 18px;
+}
+
+.ageing-card header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.ageing-card h5 { margin: 0; font-size: 16px; font-weight: 600; color: var(--gray-900); }
+.ageing-card header p { margin: 2px 0 0; font-size: 13px; color: var(--gray-500); }
+
+.ageing-card header a {
+  flex-shrink: 0;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--brand-500);
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.ageing-bar {
+  display: flex;
+  gap: 3px;
+  height: 14px;
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.ageing-fill { min-width: 6px; transition: width 0.6s ease; }
+
+.ageing-grace  { background: var(--gray-300); }
+.ageing-early  { background: var(--warning-500); }
+.ageing-late   { background: #fb6514; }
+.ageing-severe { background: var(--error-500); }
+
+.ageing-legend {
+  list-style: none;
+  margin: 18px 0 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.ageing-legend li { display: flex; align-items: flex-start; gap: 10px; }
+.ageing-legend li.ageing-none { opacity: 0.55; }
+
+.ageing-dot {
+  flex-shrink: 0;
+  width: 10px;
+  height: 10px;
+  margin-top: 5px;
+  border-radius: 50%;
+}
+
+.ageing-legend small { display: block; font-size: 13px; color: var(--gray-500); }
+.ageing-legend strong { display: block; font-size: 16px; font-weight: 600; color: var(--gray-900); font-variant-numeric: tabular-nums; }
+.ageing-legend em { font-style: normal; font-size: 12px; color: var(--gray-500); }
+
+@media (max-width: 768px) {
+  .ageing-legend { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}

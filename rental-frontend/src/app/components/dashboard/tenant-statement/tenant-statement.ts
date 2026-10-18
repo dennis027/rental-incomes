@@ -34,10 +34,13 @@ export class TenantStatement implements OnInit {
 
   ngOnInit(): void {
     // The tenant is a query parameter so the page needs no server-side route parameters
-    this.customerId = Number(this.route.snapshot.queryParamMap.get('tenant'));
-    const contract = Number(this.route.snapshot.queryParamMap.get('contract'));
-    this.contractId = contract > 0 ? contract : '';
-    this.load();
+    // Subscribed rather than read once: search can open another tenant while this page is showing
+    this.route.queryParamMap.subscribe(params => {
+      this.customerId = Number(params.get('tenant'));
+      const contract = Number(params.get('contract'));
+      this.contractId = contract > 0 ? contract : '';
+      this.load();
+    });
   }
 
   load(): void {
