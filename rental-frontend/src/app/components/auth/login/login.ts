@@ -3,6 +3,7 @@ import { takeReturnPath } from '../../../services/return-path';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { AuthService } from '../../../services/auth'
+import { ThemeService } from '../../../services/theme';
 import { finalize } from 'rxjs';
 import { Router, RouterLink } from '@angular/router';
 import { MatSnackBar } from '@angular/material/snack-bar';
@@ -15,6 +16,7 @@ import { MatSnackBar } from '@angular/material/snack-bar';
   styleUrl: './login.css'
 })
 export class Login {
+  theme = inject(ThemeService);
 private fb = inject(FormBuilder);
   private authService = inject(AuthService);
   private route = inject(Router);

@@ -45,7 +45,7 @@ export class Arrears {
   private platformId = inject(PLATFORM_ID);
 
 
-  columns = ['tenant', 'outstanding', 'owing_since', 'overdue', 'last_payment', 'actions'];
+  columns = ['select', 'tenant', 'outstanding', 'owing_since', 'overdue', 'last_payment', 'actions'];
   dataSource = new MatTableDataSource<ArrearsRow>([]);
   rows: ArrearsRow[] = [];
   summary = { tenants: 0, total_outstanding: 0, overdue_tenants: 0, total_overdue: 0 };
@@ -68,6 +68,9 @@ export class Arrears {
     this.billing.arrears(propertyId).subscribe({
       next: data => {
         this.rows = data.rows ?? [];
+        // Someone who has paid up since they were ticked drops out of the selection
+        const owing = new Set(this.rows.map(row => row.contract_id));
+        this.selected.forEach(id => owing.has(id) || this.selected.delete(id));
         this.summary = data.summary ?? this.summary;
         this.isLoading = false;
         this.applyFilter();
@@ -100,6 +103,58 @@ export class Arrears {
       (!term || `${row.customer_name} ${row.unit} ${row.customer_phone}`.toLowerCase().includes(term))
     );
     this.cdr.markForCheck();
+  }
+
+  // ---------- Select and remind several ----------
+
+  /** Contract ids of the ticked rows. */
+  selected = new Set<number>();
+  /** The tenants being reminded one after the other, and how far along we are. */
+  queue: ArrearsRow[] = [];
+  queueIndex = 0;
+
+  get allSelected(): boolean {
+    const shown = this.dataSource.data;
+    return shown.length > 0 && shown.every(row => this.selected.has(row.contract_id));
+  }
+
+  get selectedTotal(): number {
+    return this.rows.filter(row => this.selected.has(row.contract_id)).reduce((sum, row) => sum + Number(row.outstanding), 0);
+  }
+
+  toggle(row: ArrearsRow, checked: boolean): void {
+    checked ? this.selected.add(row.contract_id) : this.selected.delete(row.contract_id);
+  }
+
+  toggleAll(checked: boolean): void {
+    this.dataSource.data.forEach(row => this.toggle(row, checked));
+  }
+
+  clearSelection(): void {
+    this.selected.clear();
+  }
+
+  startQueue(): void {
+    this.queue = this.rows.filter(row => this.selected.has(row.contract_id));
+    this.queueIndex = 0;
+  }
+
+  sendQueued(): void {
+    this.remind(this.queue[this.queueIndex]);
+    this.skipQueued();
+  }
+
+  skipQueued(): void {
+    this.queueIndex++;
+    if (this.queueIndex >= this.queue.length) {
+      this.stopQueue();
+      this.clearSelection();
+    }
+  }
+
+  stopQueue(): void {
+    this.queue = [];
+    this.queueIndex = 0;
   }
 
   // ---------- Remind ----------

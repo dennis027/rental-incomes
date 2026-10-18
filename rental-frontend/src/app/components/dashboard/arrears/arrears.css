@@ -9,3 +9,5 @@
 .arrears-state p { margin: 0; font-size: 14px; }
 
 .whatsapp-btn { color: #1fa855; font-size: 20px; }
+
+.select-cell { width: 48px; padding-right: 0 !important; }
