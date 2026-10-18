@@ -2,12 +2,15 @@
 // dashboard.component.ts
 import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { rememberPath } from '../../services/return-path';
-import { Component, OnInit, HostListener, Inject, PLATFORM_ID, inject } from '@angular/core';
+import { Component, OnInit, HostListener, Inject, PLATFORM_ID, effect, inject, untracked } from '@angular/core';
 import { Router, RouterModule } from '@angular/router';
 import { AuthService } from '../../services/auth';
 import { MatMenuModule } from '@angular/material/menu';
 import { PropertyContext } from '../../services/property-context';
-import { ThemeService } from '../../services/theme';
+import { ThemeService, ThemePreference } from '../../services/theme';
+import { MatDialog } from '@angular/material/dialog';
+import { NotificationsService } from '../../services/notifications';
+import { openSearchPalette } from './search-palette/search-palette';
 
 @Component({
   selector: 'app-dashboard',
@@ -64,10 +67,37 @@ links = [
   propertyContext = inject(PropertyContext);
 
   theme = inject(ThemeService);
+  themeOptions: { value: ThemePreference; label: string; icon: string }[] = [
+    { value: 'light', label: 'Light', icon: 'fas fa-sun' },
+    { value: 'dark', label: 'Dark', icon: 'fas fa-moon' },
+    { value: 'system', label: 'Auto', icon: 'fas fa-circle-half-stroke' },
+  ];
+
+  notifications = inject(NotificationsService);
+  private dialog = inject(MatDialog);
+
+  // The bell follows the property chosen in the top bar
+  private notificationSync = effect(() => {
+    const propertyId = this.propertyContext.selectedId();
+    untracked(() => this.notifications.load(propertyId));
+  });
+
+  // Desktop only: the sidebar shrinks to its icons
+  collapsed = false;
+
+  userName = 'Account';
+  userEmail = '';
+
+  get userInitials(): string {
+    return this.userName.replace(/[^A-Za-z0-9 ]/g, ' ').trim().split(/\s+/).slice(0, 2).map(part => part[0]).join('').toUpperCase() || 'A';
+  }
 
   ngOnInit(): void {
     if (isPlatformBrowser(this.platformId)) {
       this.showTips = localStorage.getItem('page_tips_hidden') !== '1';
+      this.collapsed = localStorage.getItem('sidebar_collapsed') === '1';
+      this.userName = localStorage.getItem('user_name') || 'Account';
+      this.userEmail = localStorage.getItem('user_email') || '';
       this.propertyContext.load();
     }
   }
@@ -107,6 +137,27 @@ links = [
     localStorage.setItem('page_tips_hidden', this.showTips ? '0' : '1');
     if (this.showTips) {
       localStorage.removeItem('getting_started_hidden');
+    }
+  }
+
+  toggleCollapsed(): void {
+    this.collapsed = !this.collapsed;
+    localStorage.setItem('sidebar_collapsed', this.collapsed ? '1' : '0');
+  }
+
+  refreshNotifications(): void {
+    this.notifications.load(this.propertyContext.selectedId());
+  }
+
+  openSearch(): void {
+    openSearchPalette(this.dialog, this.links.filter(link => link.group));
+  }
+
+  @HostListener('document:keydown', ['$event'])
+  onShortcut(event: KeyboardEvent): void {
+    if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'k') {
+      event.preventDefault();
+      this.openSearch();
     }
   }
 

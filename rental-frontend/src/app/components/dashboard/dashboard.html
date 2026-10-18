@@ -1,7 +1,7 @@
 <!-- Sidebar overlay -->
 <div class="sidebar-overlay" (click)="closeSidebar()"></div>
 
-<div class="dashboard-wrapper">
+<div class="dashboard-wrapper" [class.sidebar-collapsed]="collapsed">
   <!-- Sidebar -->
   <aside class="sidebar" id="sidebar">
     <div class="sidebar-header">
@@ -20,8 +20,9 @@
                 [routerLink]="link.route"
                 routerLinkActive="active"
                 [routerLinkActiveOptions]="{ exact: false }"
+                [title]="collapsed ? link.name : ''"
                 (click)="onNavLinkClick()">
-                <i [class]="link.icon"></i> {{ link.name }}
+                <i [class]="link.icon"></i> <span>{{ link.name }}</span>
               </a>
             </li>
           }
@@ -36,11 +37,21 @@
       <button class="menu-toggle" (click)="toggleSidebar()" aria-label="Toggle menu">
         <i class="fas fa-bars"></i>
       </button>
+      <button class="topbar-btn sidebar-collapse" (click)="toggleCollapsed()"
+              [attr.aria-label]="collapsed ? 'Expand the menu' : 'Collapse the menu'" [title]="collapsed ? 'Expand the menu' : 'Collapse the menu'">
+        <i class="fas" [class.fa-angles-right]="collapsed" [class.fa-angles-left]="!collapsed"></i>
+      </button>
       <div class="brand">{{ currentTitle }}</div>
+
+      <button class="topbar-search" (click)="openSearch()" aria-label="Search">
+        <i class="fas fa-magnifying-glass"></i>
+        <span>Search tenants, units, invoices…</span>
+        <kbd>Ctrl K</kbd>
+      </button>
+
       <!-- Property switcher: one choice for the whole dashboard -->
       @if (propertyContext.properties().length > 0) {
         <div class="property-switch">
-          <span class="property-switch-label">Property</span>
           <button class="property-switch-btn" [matMenuTriggerFor]="propertyMenu"
                   [disabled]="propertyContext.properties().length < 2"
                   aria-label="Change property">
@@ -69,19 +80,79 @@
         </div>
       }
 
-      <button class="theme-toggle" (click)="theme.toggle()"
+      <button class="topbar-btn" (click)="theme.toggle()"
               [attr.aria-label]="theme.theme() === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'"
               [title]="theme.theme() === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'">
         <i class="fas" [class.fa-sun]="theme.theme() === 'dark'" [class.fa-moon]="theme.theme() !== 'dark'"></i>
       </button>
-      <button class="topbar-help" (click)="toggleTips()" [class.active]="showTips"
-              [attr.aria-label]="showTips ? 'Hide page tips' : 'Show page tips'" [title]="showTips ? 'Hide page tips' : 'Show page tips'">
-        <i class="fas fa-circle-question"></i>
+
+      <!-- Notifications -->
+      <button class="topbar-btn topbar-bell" [matMenuTriggerFor]="bellMenu" (menuOpened)="refreshNotifications()"
+              [attr.aria-label]="notifications.count() + ' notifications'" title="Notifications">
+        <i class="fas fa-bell"></i>
+        @if (notifications.count() > 0) {
+          <span class="topbar-badge">{{ notifications.count() > 9 ? '9+' : notifications.count() }}</span>
+        }
       </button>
-      <button class="topbar-logout" (click)="logOut()">
-        <i class="fas fa-sign-out-alt"></i>
-        <span>Logout</span>
+      <mat-menu #bellMenu="matMenu" xPosition="before" class="bell-menu">
+        <div class="bell-head" (click)="$event.stopPropagation()">
+          <strong>Needs your attention</strong>
+          <span>{{ notifications.count() }}</span>
+        </div>
+        @for (item of notifications.items(); track $index) {
+          <a mat-menu-item class="bell-item" [routerLink]="item.route" [queryParams]="item.queryParams">
+            <span class="bell-icon" [class]="'bell-icon bell-icon--' + item.tone"><i [class]="item.icon"></i></span>
+            <span class="bell-text">
+              <strong>{{ item.title }}</strong>
+              <small>{{ item.detail }}</small>
+            </span>
+          </a>
+        } @empty {
+          <div class="bell-empty" (click)="$event.stopPropagation()">
+            <i class="fas fa-circle-check"></i>
+            <p>{{ notifications.loading() ? 'Checking…' : 'All caught up. Nothing needs you right now.' }}</p>
+          </div>
+        }
+      </mat-menu>
+
+      <!-- Account -->
+      <button class="topbar-profile" [matMenuTriggerFor]="profileMenu" aria-label="Account menu">
+        <span class="avatar">{{ userInitials }}</span>
+        <span class="topbar-profile-name">{{ userName }}</span>
+        <i class="fas fa-chevron-down"></i>
       </button>
+      <mat-menu #profileMenu="matMenu" xPosition="before" class="profile-menu">
+        <div class="profile-head" (click)="$event.stopPropagation()">
+          <span class="avatar avatar--lg">{{ userInitials }}</span>
+          <span class="profile-id">
+            <strong>{{ userName }}</strong>
+            @if (userEmail) { <small>{{ userEmail }}</small> }
+          </span>
+        </div>
+        <div class="profile-theme" (click)="$event.stopPropagation()">
+          <span>Theme</span>
+          <div class="ui-segmented" role="radiogroup" aria-label="Theme">
+            @for (option of themeOptions; track option.value) {
+              <button role="radio" [class.active]="theme.preference() === option.value" [attr.aria-checked]="theme.preference() === option.value"
+                      (click)="theme.set(option.value)">
+                <i [class]="option.icon"></i> {{ option.label }}
+              </button>
+            }
+          </div>
+        </div>
+        <button mat-menu-item (click)="toggleTips()">
+          <i class="fas fa-circle-question profile-item-icon"></i>
+          <span>{{ showTips ? 'Hide page tips' : 'Show page tips' }}</span>
+        </button>
+        <a mat-menu-item routerLink="/dashboard/settings">
+          <i class="fas fa-sliders-h profile-item-icon"></i>
+          <span>Settings</span>
+        </a>
+        <button mat-menu-item class="profile-logout" (click)="logOut()">
+          <i class="fas fa-sign-out-alt profile-item-icon"></i>
+          <span>Log out</span>
+        </button>
+      </mat-menu>
     </header>
 
     <!-- Main content -->
