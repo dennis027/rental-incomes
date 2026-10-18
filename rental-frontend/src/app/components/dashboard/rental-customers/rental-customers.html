@@ -1,77 +1,104 @@
-<div class="container">
-  <!-- Header Section -->
-  <div class="header">
-    <h2>Tenants</h2>
-    <button mat-raised-button color="primary" (click)="openAddCustomerDialog()">
+<div class="ui-page">
+  <div class="ui-header">
+    <div>
+      <h2>Tenants</h2>
+      <p>Everyone who rents from you, the unit they are in and what they owe.</p>
+    </div>
+    <button mat-flat-button (click)="openAddCustomerDialog()">
       <mat-icon>add</mat-icon>
       Add Tenant
     </button>
   </div>
 
-  <!-- Search Bar -->
-  <mat-form-field appearance="outline" class="full-width mt-3">
-    <mat-label>Search Tenants</mat-label>
-    <input
-      matInput
-      [(ngModel)]="searchText"
-      (keyup)="applyFilter()"
-      placeholder="Search by name, phone, email, or ID number"
-    />
-    <mat-icon matSuffix>search</mat-icon>
-  </mat-form-field>
-
-  <!-- Loading Spinner -->
-  @if (isLoading) {
-    <div class="loading-container">
-      <mat-spinner></mat-spinner>
+  <div class="ui-summary">
+    <div class="ui-summary-card">
+      <div class="ui-summary-icon"><i class="fas fa-users"></i></div>
+      <div><span>Tenants</span><strong>{{ tenantStats.total }}</strong></div>
     </div>
-  }
-
-  <!-- Error Message -->
-  @if (error && !isLoading) {
-    <div class="error-message">
-      <mat-icon>error</mat-icon>
-      <p>{{ error }}</p>
+    <div class="ui-summary-card tone-green">
+      <div class="ui-summary-icon"><i class="fas fa-house-user"></i></div>
+      <div><span>Renting a unit</span><strong>{{ tenantStats.housed }}</strong></div>
     </div>
-  }
+    <div class="ui-summary-card tone-purple">
+      <div class="ui-summary-icon"><i class="fas fa-user-clock"></i></div>
+      <div><span>Without a unit</span><strong>{{ tenantStats.unhoused }}</strong></div>
+    </div>
+    <div class="ui-summary-card tone-pink">
+      <div class="ui-summary-icon"><i class="fas fa-triangle-exclamation"></i></div>
+      <div><span>Owing rent</span><strong>{{ tenantStats.owing }} <small class="tenant-owed">{{ tenantStats.owed | currency:'KES ':'symbol':'1.0-0' }}</small></strong></div>
+    </div>
+  </div>
 
-  <!-- Table Container -->
-  @if (!isLoading && !error) {
-    <div class="table-container">
-      <div class="mat-elevation-z8">
+  <div class="ui-card">
+    <div class="ui-toolbar">
+      <div class="ui-segmented" role="tablist">
+        <button role="tab" [class.active]="tenantFilter === 'all'" (click)="setTenantFilter('all')">
+          All <span class="count">{{ tenantStats.total }}</span>
+        </button>
+        <button role="tab" [class.active]="tenantFilter === 'owing'" (click)="setTenantFilter('owing')">
+          Owing <span class="count">{{ tenantStats.owing }}</span>
+        </button>
+        <button role="tab" [class.active]="tenantFilter === 'unhoused'" (click)="setTenantFilter('unhoused')">
+          No unit <span class="count">{{ tenantStats.unhoused }}</span>
+        </button>
+      </div>
+      <div class="ui-toolbar-filters">
+        <mat-form-field appearance="outline" subscriptSizing="dynamic" class="tenant-search">
+          <mat-label>Search name, phone, ID or unit</mat-label>
+          <input matInput [(ngModel)]="searchText" (ngModelChange)="applyFilter()" />
+          <mat-icon matSuffix>search</mat-icon>
+        </mat-form-field>
+      </div>
+    </div>
+
+    @if (isLoading) {
+      <div class="ui-skeleton" aria-label="Loading tenants">
+        @for (row of [1, 2, 3, 4, 5]; track row) {
+          <div class="ui-skeleton-row">
+            <span class="ui-skeleton-bar ui-skeleton-bar--wide"></span>
+            <span class="ui-skeleton-bar"></span>
+            <span class="ui-skeleton-bar"></span>
+            <span class="ui-skeleton-bar ui-skeleton-bar--short"></span>
+          </div>
+        }
+      </div>
+    }
+
+    @if (error && !isLoading) {
+      <div class="tenant-state">
+        <p>The tenants could not be loaded.</p>
+        <button mat-stroked-button (click)="loadCustomers()">Try again</button>
+      </div>
+    }
+
+    <!-- Table Container -->
+    @if (!isLoading && !error) {
+      <div class="ui-table-scroll">
         <table mat-table [dataSource]="dataSource">
 
-          <!-- First Name Column -->
-          <ng-container matColumnDef="first_name">
-            <th mat-header-cell *matHeaderCellDef>First Name</th>
-            <td mat-cell *matCellDef="let element" [attr.data-label]="'First Name'">{{ element.first_name }}</td>
+          <ng-container matColumnDef="tenant">
+            <th mat-header-cell *matHeaderCellDef>Tenant</th>
+            <td mat-cell *matCellDef="let element" [attr.data-label]="'Tenant'">
+              <div class="tenant-cell">
+                <span class="tenant-avatar">{{ initials(element) }}</span>
+                <div class="ui-stack">
+                  <strong>{{ element.first_name }} {{ element.last_name }}</strong>
+                  <small>ID {{ element.id_number }}</small>
+                </div>
+              </div>
+            </td>
           </ng-container>
 
-          <!-- Last Name Column -->
-          <ng-container matColumnDef="last_name">
-            <th mat-header-cell *matHeaderCellDef>Last Name</th>
-            <td mat-cell *matCellDef="let element" [attr.data-label]="'Last Name'">{{ element.last_name }}</td>
+          <ng-container matColumnDef="contact">
+            <th mat-header-cell *matHeaderCellDef>Contact</th>
+            <td mat-cell *matCellDef="let element" [attr.data-label]="'Contact'">
+              <div class="ui-stack">
+                <strong>{{ element.phone_number }}</strong>
+                @if (element.email) { <small>{{ element.email }}</small> }
+              </div>
+            </td>
           </ng-container>
 
-          <!-- Phone Number Column -->
-          <ng-container matColumnDef="phone_number">
-            <th mat-header-cell *matHeaderCellDef>Phone Number</th>
-            <td mat-cell *matCellDef="let element" [attr.data-label]="'Phone Number'" >{{ element.phone_number }}</td>
-          </ng-container>
-
-          <!-- Email Column -->
-          <ng-container matColumnDef="email">
-            <th mat-header-cell *matHeaderCellDef>Email</th>
-            <td mat-cell *matCellDef="let element" [attr.data-label]="'Email'">{{ element.email }}</td>
-          </ng-container>
-
-          <!-- ID Number Column -->
-          <ng-container matColumnDef="id_number">
-            <th mat-header-cell *matHeaderCellDef>ID Number</th>
-            <td mat-cell *matCellDef="let element" [attr.data-label]="'ID Number'">{{ element.id_number }}</td>
-          </ng-container>
-
-          <!-- Unit Column -->
           <ng-container matColumnDef="unit_number">
             <th mat-header-cell *matHeaderCellDef>Unit</th>
             <td mat-cell *matCellDef="let element" [attr.data-label]="'Unit'">
@@ -86,54 +113,59 @@
             </td>
           </ng-container>
 
-          <!-- Actions Column -->
-          <ng-container matColumnDef="actions">
-            <th mat-header-cell *matHeaderCellDef class="text-center">Actions</th>
-            <td mat-cell *matCellDef="let element" class="actions-cell">
-              <button mat-icon-button color="accent" (click)="openViewDialog(element)" matTooltip="View tenant">
-                <mat-icon>visibility</mat-icon>
-              </button>
-              <button mat-icon-button (click)="openStatement(element)" matTooltip="Statement of invoices and payments">
-                <mat-icon>description</mat-icon>
-              </button>
-              <button mat-icon-button color="primary" (click)="openUpdateDialog(element)" matTooltip="Edit tenant">
-                <mat-icon>edit</mat-icon>
-              </button>
-              <button mat-icon-button color="warn" (click)="openDeleteDialog(element)" matTooltip="Delete tenant">
-                <mat-icon>delete</mat-icon>
-              </button>
+          <ng-container matColumnDef="balance">
+            <th mat-header-cell *matHeaderCellDef>Rent</th>
+            <td mat-cell *matCellDef="let element" [attr.data-label]="'Rent'">
+              @if (owes(element) > 0) {
+                <span class="ui-chip ui-chip--error">Owes KES {{ owes(element) | number:'1.0-0' }}</span>
+              } @else if (element.unit_number) {
+                <span class="ui-chip ui-chip--success">Paid up</span>
+              } @else {
+                <span class="tenant-none">—</span>
+              }
             </td>
           </ng-container>
 
-          <!-- Table Rows -->
+          <ng-container matColumnDef="actions">
+            <th mat-header-cell *matHeaderCellDef></th>
+            <td mat-cell *matCellDef="let element" class="actions-cell" [attr.data-label]="'Actions'">
+              <div class="ui-row-actions">
+                <button mat-stroked-button class="ui-pay-btn" (click)="openStatement(element)" matTooltip="Invoices and payments of this tenant">
+                  <mat-icon>description</mat-icon>
+                  Statement
+                </button>
+                <button mat-icon-button (click)="openViewDialog(element)" matTooltip="View tenant" aria-label="View tenant">
+                  <mat-icon>visibility</mat-icon>
+                </button>
+                <button mat-icon-button (click)="openUpdateDialog(element)" matTooltip="Edit tenant" aria-label="Edit tenant">
+                  <mat-icon>edit</mat-icon>
+                </button>
+                <button mat-icon-button color="warn" (click)="openDeleteDialog(element)" matTooltip="Delete tenant" aria-label="Delete tenant">
+                  <mat-icon>delete</mat-icon>
+                </button>
+              </div>
+            </td>
+          </ng-container>
+
           <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
           <tr mat-row *matRowDef="let row; columns: displayedColumns"></tr>
 
-          <!-- No Data Row -->
-          @if (dataSource.data.length === 0) {
-            <tr class="mat-row">
-              <td class="mat-cell" [attr.colspan]="displayedColumns.length">
-                <div class="no-data">
-                  <mat-icon>inbox</mat-icon>
-                  <p>No customers found</p>
-                </div>
-              </td>
-            </tr>
-          }
-      <tr class="mat-row" *matNoDataRow>
-        <td class="mat-cell empty-state" [attr.colspan]="displayedColumns.length">
-          <i class="fas fa-inbox"></i>
-          <p>No tenants yet. Use "Add Tenant" to register the first one.</p>
-        </td>
-      </tr>
-    </table>
-
-        <mat-paginator
-          aria-label="Select page of customers">
-        </mat-paginator>
+          <tr class="mat-row" *matNoDataRow>
+            <td class="mat-cell empty-state" [attr.colspan]="displayedColumns.length">
+              <i class="fas fa-users"></i>
+              @if (searchText || tenantFilter !== 'all') {
+                <p>No tenant matches. Clear the search or choose "All".</p>
+              } @else {
+                <p>No tenants yet. Use "Add Tenant" to register the first one.</p>
+              }
+            </td>
+          </tr>
+        </table>
       </div>
-    </div>
-  }
+
+      <mat-paginator [pageSize]="10" [pageSizeOptions]="[10, 25, 50]" aria-label="Select page of tenants"></mat-paginator>
+    }
+  </div>
 </div>
 
 <!-- Add Customer Dialog Template -->

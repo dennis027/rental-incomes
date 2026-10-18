@@ -8,7 +8,8 @@ import { SharedImports } from '../../../shared-imports/imports';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { MatDialog } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
-import { Router } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
+import { BillingService } from '../../../services/billing';
 import { environment } from '../../../../environments/environment';
 import { A11yModule } from "@angular/cdk/a11y";
 
@@ -64,7 +65,7 @@ export class RentalCustomers implements OnInit, AfterViewInit {
   updateBackImagePreview: string | null = null;
 
   customers: CustomerObject[] = [];
-  displayedColumns: string[] = ['first_name', 'last_name', 'phone_number', 'email', 'id_number', 'unit_number', 'actions'];
+  displayedColumns: string[] = ['tenant', 'contact', 'unit_number', 'balance', 'actions'];
   dataSource = new MatTableDataSource<CustomerObject>([]);
   
   @ViewChild(MatPaginator) paginator!: MatPaginator;
@@ -73,6 +74,8 @@ export class RentalCustomers implements OnInit, AfterViewInit {
   private dialog = inject(MatDialog);
   private router = inject(Router);
   private cdr = inject(ChangeDetectorRef);
+  private route = inject(ActivatedRoute);
+  private billing = inject(BillingService);
 
   isLoading = true;
   error: string | null = null;
@@ -105,6 +108,12 @@ export class RentalCustomers implements OnInit, AfterViewInit {
         this.router.navigate(['/login']);
         return;
       }
+
+      // Search in the top bar can open this page with a name already typed
+      this.route.queryParamMap.subscribe(params => {
+        this.searchText = params.get('q') ?? '';
+        this.applyFilter();
+      });
 
       this.loadCustomers();
     } else {
@@ -154,6 +163,8 @@ export class RentalCustomers implements OnInit, AfterViewInit {
 
   loadCustomers(): void {
     this.isLoading = true;
+    this.error = null;
+    this.loadBalances();
     
     this.customersService.getCustomers().subscribe({
       next: (res) => {
@@ -191,10 +202,60 @@ export class RentalCustomers implements OnInit, AfterViewInit {
     }
   }
 
-  /** Apply search filter */
+  tenantFilter: 'all' | 'owing' | 'unhoused' = 'all';
+
+  /** What each tenant owes across their contracts, by tenant id. Filled from the arrears list. */
+  private owed = new Map<number, number>();
+
+  owes(customer: any): number {
+    return this.owed.get(Number(customer.id)) ?? 0;
+  }
+
+  initials(customer: any): string {
+    return `${customer.first_name?.[0] ?? ''}${customer.last_name?.[0] ?? ''}`.toUpperCase();
+  }
+
+  /** The figures on the cards above the table. */
+  get tenantStats() {
+    const housed = this.customers.filter((customer: any) => customer.unit_number).length;
+    const owing = this.customers.filter(customer => this.owes(customer) > 0);
+    return {
+      total: this.customers.length,
+      housed,
+      unhoused: this.customers.length - housed,
+      owing: owing.length,
+      owed: owing.reduce((sum, customer) => sum + this.owes(customer), 0),
+    };
+  }
+
+  loadBalances(): void {
+    this.billing.arrears().subscribe({
+      next: data => {
+        this.owed.clear();
+        for (const row of data.rows ?? []) {
+          this.owed.set(row.customer_id, (this.owed.get(row.customer_id) ?? 0) + Number(row.outstanding));
+        }
+        this.cdr.markForCheck();
+      },
+      // Without the balances the page still lists the tenants
+      error: () => {},
+    });
+  }
+
+  setTenantFilter(filter: 'all' | 'owing' | 'unhoused') {
+    this.tenantFilter = filter;
+    this.applyFilter();
+  }
+
+  /** Apply the search text and the tab together */
   applyFilter() {
-    const filterValue = this.searchText.trim().toLowerCase();
-    this.dataSource.filter = filterValue;
+    this.dataSource.filterPredicate = (customer: any, filter: string) => {
+      const { tab, term } = JSON.parse(filter);
+      const inTab = tab === 'all' || (tab === 'owing' ? this.owes(customer) > 0 : !customer.unit_number);
+      const text = `${customer.first_name} ${customer.last_name} ${customer.phone_number} ${customer.email ?? ''} ${customer.id_number} ${customer.unit_number ?? ''}`.toLowerCase();
+      return inTab && (!term || text.includes(term));
+    };
+    this.dataSource.filter = JSON.stringify({ tab: this.tenantFilter, term: this.searchText.trim().toLowerCase() });
   }
 
   /** Handle front image selection for add form */
