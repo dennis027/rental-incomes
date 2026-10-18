@@ -8,7 +8,7 @@
     "watch": "ng build --watch --configuration development",
     "test": "ng test",
     "serve:ssr:rental-frontend": "node dist/rental-frontend/server/server.mjs",
-    "build:gh": "ng build --configuration production --base-href /rental-frontend/",
+    "build:gh": "ng build --configuration production --base-href /rental-incomes/",
     "deploy": "npm run build:gh && npx angular-cli-ghpages --dir=dist/rental-frontend/browser"
   },
   "prettier": {

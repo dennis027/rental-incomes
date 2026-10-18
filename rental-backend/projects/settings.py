@@ -29,6 +29,9 @@ def env_list(key: str, default: str = "") -> list[str]:
 SECRET_KEY = os.getenv("SECRET_KEY", "insecure-dev-key-change-me")
 DEBUG = os.getenv("DEBUG", "False") == "True"
 ALLOWED_HOSTS = env_list("ALLOWED_HOSTS", "localhost,127.0.0.1")
+# Render sets this to the service's own onrender.com address
+if os.getenv("RENDER_EXTERNAL_HOSTNAME"):
+    ALLOWED_HOSTS.append(os.environ["RENDER_EXTERNAL_HOSTNAME"])
 
 # ---------------------------------------------------------------------------
 # Applications
@@ -136,7 +139,9 @@ API_CACHE_SECONDS = int(os.getenv("API_CACHE_SECONDS", 300))
 
 CELERY_BROKER_URL = os.getenv("CELERY_BROKER_URL", REDIS_URL)
 CELERY_RESULT_BACKEND = None  # nothing reads task results
-CELERY_TASK_ALWAYS_EAGER = not CELERY_BROKER_URL
+# Set CELERY_ALWAYS_EAGER=True to keep Redis for the cache but run tasks
+# inline, for hosts with no worker process (e.g. Render's free tier)
+CELERY_TASK_ALWAYS_EAGER = env_bool("CELERY_ALWAYS_EAGER", not CELERY_BROKER_URL)
 CELERY_TASK_EAGER_PROPAGATES = True
 CELERY_TIMEZONE = "Africa/Nairobi"
 CELERY_TASK_ACKS_LATE = True
@@ -239,6 +244,9 @@ CSRF_COOKIE_HTTPONLY = True
 
 if not DEBUG:
     SECURE_SSL_REDIRECT = True
+    # HTTPS ends at the host's proxy (Render, nginx); trust its header or every
+    # request looks like plain http and redirects forever
+    SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
     SESSION_COOKIE_SECURE = True
     CSRF_COOKIE_SECURE = True
     SECURE_HSTS_SECONDS = 31536000
