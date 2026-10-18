@@ -1,8 +1,13 @@
-# Render Blueprint: the Django API plus a Redis-compatible cache, both on the
-# free plan. Frankfurt sits next to the Neon database (aws eu-central-1).
+# Render Blueprint for the Django API on the free plan. Frankfurt sits next to
+# the Neon database (aws eu-central-1).
+#
+# No Redis here: the workspace's one free Key Value instance is taken. The API
+# runs as a single process (threads for concurrency) so its in-memory cache
+# stays consistent, and Celery tasks run inline. To add Redis later, set
+# REDIS_URL and raise WEB_CONCURRENCY; nothing else changes.
 services:
   - type: web
-    name: rental-managment-backend   # gives rental-managment-backend.onrender.com, which the frontend calls
+    name: den-rent   # served at den-rent.onrender.com
     runtime: docker
     plan: free
     region: frankfurt
@@ -20,27 +25,12 @@ services:
       - key: DATABASE_URL
         sync: false   # asked for when the Blueprint is created
       - key: CORS_ALLOWED_ORIGINS
-        value: https://dennis027.github.io
-      - key: REDIS_URL
-        fromService:
-          type: keyvalue
-          name: rental-cache
-          property: connectionString
-      # Free plan has no worker process, so Celery tasks (emails) run inline
-      - key: CELERY_ALWAYS_EAGER
-        value: "True"
-      # 512 MB of memory on the free plan
+        value: http://localhost:4200,https://dennis027.github.io
       - key: WEB_CONCURRENCY
-        value: "2"
+        value: "1"
+      - key: GUNICORN_CMD_ARGS
+        value: --threads 4
       - key: EMAIL_HOST_USER
         sync: false
       - key: EMAIL_HOST_PASSWORD
         sync: false
-
-  - type: keyvalue
-    name: rental-cache
-    plan: free
-    region: frankfurt
-    # Only cached pages and rate-limit counters live here; all safe to evict
-    maxmemoryPolicy: allkeys-lru
-    ipAllowList: []   # reachable only from this Render account's services
