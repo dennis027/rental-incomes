@@ -16,6 +16,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from . import billing
+from .caching import cached_get
 from .models import (
     Customer, Expense, MoveOut, MpesaTransaction, Payment, Receipt, RentalContract, SystemParameter, Unit,
 )
@@ -61,6 +62,7 @@ class CustomerStatementView(APIView):
     """GET api/customers/<id>/statement/?contract_id=&start_date=&end_date="""
     permission_classes = [IsAuthenticated]
 
+    @cached_get
     def get(self, request, customer_id):
         customer = get_object_or_404(Customer, pk=customer_id)
         contracts = list(
@@ -104,6 +106,7 @@ class ArrearsView(APIView):
     """GET api/arrears/?property_id="""
     permission_classes = [IsAuthenticated]
 
+    @cached_get
     def get(self, request):
         property_id = request.query_params.get("property_id") or None
         if property_id and not str(property_id).isdigit():
@@ -131,6 +134,7 @@ class ContractsEndingSoonView(APIView):
     """
     permission_classes = [IsAuthenticated]
 
+    @cached_get
     def get(self, request):
         try:
             days = int(request.query_params.get("days") or 60)
@@ -191,6 +195,7 @@ class ContractMoveOutView(APIView):
     """
     permission_classes = [IsAuthenticated]
 
+    @cached_get
     def get(self, request, pk):
         contract = get_object_or_404(
             RentalContract.objects.select_related("customer", "unit__property"), pk=pk
@@ -468,6 +473,7 @@ class MpesaTransactionListView(APIView):
     """GET api/paybill-transactions/?status=unmatched"""
     permission_classes = [IsAuthenticated]
 
+    @cached_get
     def get(self, request):
         rows = MpesaTransaction.objects.select_related("payment__receipt")
         if request.query_params.get("status") == "unmatched":

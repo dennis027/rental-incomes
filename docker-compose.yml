@@ -1,9 +1,28 @@
+x-backend-env: &backend-env
+  # Cache for API responses and the Celery queue. Leave it unset outside
+  # Docker to run without Redis (in-memory cache, tasks run inline).
+  REDIS_URL: ${REDIS_URL:-redis://redis:6379/0}
+
 services:
+  redis:
+    image: redis:7.4-alpine
+    # Cached pages are disposable; queued jobs survive a restart via AOF
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy volatile-lru
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    restart: unless-stopped
+
   backend:
     build: ./rental-backend
     image: rental-backend
     env_file: ./rental-backend/.env
     environment:
+      <<: *backend-env
       # settings.py forces HTTPS redirects when DEBUG is off, so default to
       # DEBUG=True for plain-http local use. Run with DEBUG=False to override.
       DEBUG: ${DEBUG:-True}
@@ -13,6 +32,44 @@ services:
     volumes:
       - ./rental-backend/media:/app/media
       - ./rental-backend/logs:/app/logs
+    depends_on:
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # Sends emails and runs the scheduled jobs queued by the backend
+  worker:
+    image: rental-backend
+    env_file: ./rental-backend/.env
+    environment:
+      <<: *backend-env
+      DEBUG: ${DEBUG:-True}
+      RUN_MIGRATIONS: "false"
+    command: celery -A projects worker --loglevel=info --concurrency=${CELERY_CONCURRENCY:-2}
+    volumes:
+      - ./rental-backend/media:/app/media
+      - ./rental-backend/logs:/app/logs
+    depends_on:
+      redis:
+        condition: service_healthy
+      backend:
+        condition: service_started
+    restart: unless-stopped
+
+  # Puts the nightly jobs in CELERY_BEAT_SCHEDULE on the queue. Run only one.
+  beat:
+    image: rental-backend
+    env_file: ./rental-backend/.env
+    environment:
+      <<: *backend-env
+      DEBUG: ${DEBUG:-True}
+      RUN_MIGRATIONS: "false"
+    command: celery -A projects beat --loglevel=info --schedule /tmp/celerybeat-schedule
+    depends_on:
+      redis:
+        condition: service_healthy
+      backend:
+        condition: service_started
     restart: unless-stopped
 
   frontend:
@@ -29,3 +86,6 @@ services:
     depends_on:
       - backend
     restart: unless-stopped
+
+volumes:
+  redis-data:

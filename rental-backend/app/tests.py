@@ -331,3 +331,54 @@ class RentFrequencyTests(TestCase):
         self.assertEqual(billing.rent_due(contract, 2027, 10), 0)
         contract.payment_frequency = "monthly"
         self.assertEqual(billing.rent_due(contract, 2027, 3), Decimal("10000.00"))
+
+
+@override_settings(SECURE_SSL_REDIRECT=False)
+class ApiCacheTests(TestCase):
+    def setUp(self):
+        from django.core.cache import cache
+        cache.clear()
+        self.user = get_user_model().objects.create_user(username="landlord", password="pw")
+        self.client = APIClient()
+        self.client.force_authenticate(self.user)
+        self.property = Property.objects.create(name="Sunrise", address="Ngong Road")
+
+    def test_repeat_reads_come_from_the_cache(self):
+        first = self.client.get("/api/properties/")
+        self.assertEqual(first["X-Cache"], "MISS")
+        with self.assertNumQueries(0):
+            second = self.client.get("/api/properties/")
+        self.assertEqual(second["X-Cache"], "HIT")
+        self.assertEqual(second.json(), first.json())
+        # Different filters are different entries
+        self.assertEqual(self.client.get("/api/dashboard/summary/", {"property_id": self.property.id})["X-Cache"], "MISS")
+        self.assertEqual(self.client.get("/api/dashboard/summary/")["X-Cache"], "MISS")
+
+    def test_writes_clear_the_cache(self):
+        self.client.get("/api/properties/")
+        self.client.post("/api/properties/", {"name": "Lakeview", "address": "Kisumu"}, format="json")
+        response = self.client.get("/api/properties/")
+        self.assertEqual(response["X-Cache"], "MISS")
+        self.assertEqual({p["name"] for p in response.json()}, {"Sunrise", "Lakeview"})
+
+        # Writes outside the API (admin, tasks, commands) count too
+        Property.objects.get(name="Lakeview").delete()
+        self.assertEqual([p["name"] for p in self.client.get("/api/properties/").json()], ["Sunrise"])
+
+    def test_logins_do_not_clear_the_cache(self):
+        self.client.get("/api/properties/")
+        self.user.last_login = timezone.now()
+        self.user.save()
+        self.assertEqual(self.client.get("/api/properties/")["X-Cache"], "HIT")
+
+    def test_cached_pages_still_need_a_login(self):
+        self.client.get("/api/properties/")
+        self.assertEqual(APIClient().get("/api/properties/").status_code, 401)
+
+    def test_email_task_sends_the_message(self):
+        from django.core import mail
+        from . import tasks
+        tasks.send_email.delay("Hello", "Plain body", ["t@example.com"], "<p>Html body</p>")
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertEqual(mail.outbox[0].to, ["t@example.com"])
+        self.assertEqual(mail.outbox[0].alternatives[0][0], "<p>Html body</p>")
