@@ -1,0 +1,31 @@
+<section class="page-hero">
+  <div class="page-hero__inner">
+    <span class="eyebrow">FAQ</span>
+    <h1 class="page-title">Frequently asked questions</h1>
+    <p class="page-lead">Straight answers about how the system works. Can't find yours? <a routerLink="/contact">Ask us</a>.</p>
+  </div>
+</section>
+
+<section class="page-section">
+  <div class="page-container page-container--narrow">
+    @for (section of sections; track section.title) {
+      <h2 class="faq-heading">{{ section.title }}</h2>
+      <div class="faq-list">
+        @for (item of section.questions; track item.q) {
+          <details class="faq-item">
+            <summary>
+              <span>{{ item.q }}</span>
+              <app-site-icon name="chevron-down" />
+            </summary>
+            <p>{{ item.a }}</p>
+          </details>
+        }
+      </div>
+    }
+
+    <div class="faq-more">
+      <p>Still have a question?</p>
+      <a class="btn btn-primary" routerLink="/contact">Contact us</a>
+    </div>
+  </div>
+</section>

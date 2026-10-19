@@ -6,7 +6,7 @@ from .views import ActivateAccountView, ContractSearchView, CustomerDetail, Cust
 from django.conf import settings
 from django.conf.urls.static import static
 
-from app import views, billing_views
+from app import views, billing_views, public_views
 
 urlpatterns = [
     path("api/register/", RegisterView.as_view(), name="register"),  
@@ -18,6 +18,10 @@ urlpatterns = [
     path("api/reset-password/", PasswordResetRequestView.as_view(), name="reset-password"),
     path("api/password-reset/confirm/", PasswordResetConfirmView.as_view(), name="password-reset-confirm"),
     path("api/password-reset/check-code/", PasswordResetCodeCheckView.as_view(), name="password-reset-check-code"),
+
+    # Public website forms
+    path("api/contact/", public_views.ContactView.as_view(), name="contact"),
+    path("api/request-demo/", public_views.DemoRequestView.as_view(), name="request-demo"),
 
 
 

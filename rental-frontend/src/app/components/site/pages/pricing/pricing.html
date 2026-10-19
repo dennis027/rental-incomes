@@ -1,0 +1,54 @@
+<section class="page-hero">
+  <div class="page-hero__inner">
+    <span class="eyebrow">Pricing</span>
+    <h1 class="page-title">Simple pricing that grows with your portfolio</h1>
+    <p class="page-lead">Every plan includes every feature. You only pay according to how many units you manage.</p>
+  </div>
+</section>
+
+<section class="page-section">
+  <div class="page-container">
+    <div class="pricing-grid">
+      @for (plan of plans; track plan.name) {
+        <article class="plan-card" [class.plan-card--featured]="plan.featured">
+          @if (plan.featured) {
+            <span class="plan-badge">Most popular</span>
+          }
+          <h2 class="plan-name">{{ plan.name }}</h2>
+          <p class="plan-units">{{ plan.units }}</p>
+          <p class="plan-price">
+            @if (plan.priceKes !== null) {
+              <span class="plan-price__amount">KES {{ plan.priceKes | number }}</span>
+              <span class="plan-price__period">/ month</span>
+            } @else {
+              <span class="plan-price__amount plan-price__amount--quote">Talk to us</span>
+            }
+          </p>
+          <p class="plan-description">{{ plan.description }}</p>
+          <ul class="check-list check-list--compact">
+            @for (item of plan.highlights; track item) {
+              <li><app-site-icon name="check" />{{ item }}</li>
+            }
+          </ul>
+          <a class="btn btn-lg plan-cta" [class.btn-primary]="plan.featured" [class.btn-secondary]="!plan.featured"
+             routerLink="/request-demo">
+            {{ plan.priceKes !== null ? 'Get started' : 'Get a quote' }}
+          </a>
+        </article>
+      }
+    </div>
+
+    <div class="included-panel">
+      <h2 class="included-panel__title">Included in every plan</h2>
+      <ul class="check-list check-list--columns">
+        @for (item of included; track item) {
+          <li><app-site-icon name="check-circle" />{{ item }}</li>
+        }
+      </ul>
+    </div>
+
+    <p class="pricing-note">
+      Questions about pricing? Read the <a routerLink="/faq">FAQ</a> or <a routerLink="/contact">send us a message</a>.
+    </p>
+  </div>
+</section>

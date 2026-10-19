@@ -9,7 +9,7 @@ import { environment } from '../../environments/environment';
 const refreshUrl = `${environment.apiUrl}api/token/refresh/`;
 
 // Requests that must never trigger a token refresh
-const publicCalls = /api\/(login|logout|register|token\/refresh|reset-password|password-reset|activate|resend-activation-limited)\//;
+const publicCalls = /api\/(login|logout|register|token\/refresh|reset-password|password-reset|activate|resend-activation-limited|contact|request-demo)\//;
 
 // Shared so that several requests failing at once only refresh the token once
 let refreshInFlight: Observable<string> | null = null;

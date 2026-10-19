@@ -382,3 +382,50 @@ class ApiCacheTests(TestCase):
         self.assertEqual(len(mail.outbox), 1)
         self.assertEqual(mail.outbox[0].to, ["t@example.com"])
         self.assertEqual(mail.outbox[0].alternatives[0][0], "<p>Html body</p>")
+
+
+@override_settings(SECURE_SSL_REDIRECT=False, CONTACT_NOTIFY_EMAIL="owner@example.com")
+class PublicFormTests(TestCase):
+    contact = {"name": "Achieng Otieno", "email": "achieng@example.com", "phone": "0711000000",
+               "subject": "Pricing", "message": "How much for 40 units?"}
+    demo = {"first_name": "Brian", "last_name": "Mwangi", "email": "brian@example.com", "phone": "0722000000",
+            "role": "Landlord", "units": "11-50", "source": "Google"}
+
+    def setUp(self):
+        from django.core.cache import cache
+        cache.clear()
+
+    def test_contact_message_is_emailed_to_the_owner(self):
+        from django.core import mail
+        response = APIClient().post("/api/contact/", self.contact, format="json")
+        self.assertEqual(response.status_code, 201, response.data)
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertEqual(mail.outbox[0].to, ["owner@example.com"])
+        self.assertEqual(mail.outbox[0].reply_to, ["achieng@example.com"])
+        self.assertIn("How much for 40 units?", mail.outbox[0].body)
+
+    def test_demo_request_is_emailed_to_the_owner(self):
+        from django.core import mail
+        response = APIClient().post("/api/request-demo/", self.demo, format="json")
+        self.assertEqual(response.status_code, 201, response.data)
+        self.assertIn("Brian Mwangi", mail.outbox[0].subject)
+        self.assertIn("Units: 11-50", mail.outbox[0].body)
+
+    def test_invalid_and_bot_submissions_send_nothing(self):
+        from django.core import mail
+        self.assertEqual(APIClient().post("/api/contact/", {**self.contact, "email": "nope"}, format="json").status_code, 400)
+        # The hidden field is filled: the bot is told it worked
+        self.assertEqual(APIClient().post("/api/contact/", {**self.contact, "website": "spam.example"}, format="json").status_code, 201)
+        self.assertEqual(len(mail.outbox), 0)
+
+    def test_one_address_cannot_flood_the_inbox(self):
+        for _ in range(5):
+            self.assertEqual(APIClient().post("/api/contact/", self.contact, format="json").status_code, 201)
+        self.assertEqual(APIClient().post("/api/contact/", self.contact, format="json").status_code, 429)
+        # Each form has its own allowance
+        self.assertEqual(APIClient().post("/api/request-demo/", self.demo, format="json").status_code, 201)
+
+    def test_a_stale_login_token_does_not_block_the_form(self):
+        client = APIClient()
+        client.credentials(HTTP_AUTHORIZATION="Bearer expired-or-garbage")
+        self.assertEqual(client.post("/api/contact/", self.contact, format="json").status_code, 201)

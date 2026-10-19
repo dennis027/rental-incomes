@@ -1,0 +1,32 @@
+<section class="page-hero">
+  <div class="page-hero__inner">
+    <span class="eyebrow">Security</span>
+    <h1 class="page-title">Your tenants' data, kept safe</h1>
+    <p class="page-lead">
+      You're trusted with names, phone numbers, ID documents and payment records. Here's how we protect them.
+    </p>
+  </div>
+</section>
+
+<section class="page-section">
+  <div class="page-container">
+    <div class="value-grid value-grid--four">
+      @for (measure of measures; track measure.title; let i = $index) {
+        <article class="value-card">
+          <span class="tile-icon" [attr.data-tone]="i % 4"><app-site-icon [name]="measure.icon" /></span>
+          <h3>{{ measure.title }}</h3>
+          <p>{{ measure.text }}</p>
+        </article>
+      }
+    </div>
+
+    <div class="included-panel security-report">
+      <h2 class="included-panel__title">Found a security problem?</h2>
+      <p>
+        Please tell us privately through the <a routerLink="/contact">contact form</a> before sharing it anywhere else.
+        We'll confirm we've received it and keep you updated until it's fixed.
+      </p>
+      <p>How we handle personal data is described in our <a routerLink="/privacy">Privacy Policy</a>.</p>
+    </div>
+  </div>
+</section>

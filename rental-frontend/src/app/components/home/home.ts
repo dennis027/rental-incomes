@@ -1,8 +1,7 @@
 // home.component.ts
-import { Component, HostListener, AfterViewInit, OnDestroy, ElementRef, PLATFORM_ID, Inject, inject } from '@angular/core';
+import { Component, AfterViewInit, OnDestroy, ElementRef, PLATFORM_ID, Inject } from '@angular/core';
 import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { RouterLink } from '@angular/router';
-import { ThemeService } from '../../services/theme';
 
 interface RoleCard {
   id: string;
@@ -31,14 +30,9 @@ interface StatCard {
   standalone: true,
   imports: [CommonModule, RouterLink],
   templateUrl: './home.html',
-  styleUrl: './home.css'
 })
 export class Home implements AfterViewInit, OnDestroy {
-  theme = inject(ThemeService);
-
-  mobileMenuOpen = false;
   selectedRole = '';
-  scrolled = false;
 
   private io?: IntersectionObserver;
   private countersAnimated = false;
@@ -108,16 +102,8 @@ export class Home implements AfterViewInit, OnDestroy {
     this.isBrowser = isPlatformBrowser(platformId);
   }
 
-  @HostListener('window:scroll')
-  onWindowScroll() {
-    if (!this.isBrowser) return;
-    this.scrolled = (window.scrollY || window.pageYOffset) > 12;
-  }
-
   ngAfterViewInit(): void {
     if (!this.isBrowser) return;
-
-    this.onWindowScroll();
 
     this.io = new IntersectionObserver(
       (entries) => {
@@ -160,10 +146,6 @@ export class Home implements AfterViewInit, OnDestroy {
       };
       requestAnimationFrame(tick);
     });
-  }
-
-  toggleMobileMenu() {
-    this.mobileMenuOpen = !this.mobileMenuOpen;
   }
 
   selectRole(roleId: string) {

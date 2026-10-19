@@ -1,0 +1,97 @@
+<section class="page-hero">
+  <div class="page-hero__inner">
+    <span class="eyebrow">Contact</span>
+    <h1 class="page-title">We'd love to hear from you</h1>
+    <p class="page-lead">Questions about pricing, a demo or your account? Send us a message and we'll reply by email.</p>
+  </div>
+</section>
+
+<section class="page-section">
+  <div class="page-container contact-grid">
+    <div class="form-card">
+      @if (sent()) {
+        <div class="form-success" role="status">
+          <span class="form-success__icon"><app-site-icon name="check-circle" /></span>
+          <h2>Message sent</h2>
+          <p>{{ sent() }}</p>
+          <button type="button" class="btn btn-secondary" (click)="sent.set('')">Send another message</button>
+        </div>
+      } @else {
+        <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
+          <div class="form-row">
+            <label class="field">
+              <span class="field__label">Your name</span>
+              <input type="text" formControlName="name" autocomplete="name" [class.is-invalid]="invalid('name')" />
+              @if (invalid('name')) { <span class="field__error">Please enter your name.</span> }
+            </label>
+            <label class="field">
+              <span class="field__label">Email</span>
+              <input type="email" formControlName="email" autocomplete="email" [class.is-invalid]="invalid('email')" />
+              @if (invalid('email')) { <span class="field__error">Please enter a valid email address.</span> }
+            </label>
+          </div>
+          <div class="form-row">
+            <label class="field">
+              <span class="field__label">Phone <span class="field__optional">(optional)</span></span>
+              <input type="tel" formControlName="phone" autocomplete="tel" placeholder="07XX XXX XXX" />
+            </label>
+            <label class="field">
+              <span class="field__label">Subject</span>
+              <select formControlName="subject">
+                @for (subject of subjects; track subject) {
+                  <option [value]="subject">{{ subject }}</option>
+                }
+              </select>
+            </label>
+          </div>
+          <label class="field">
+            <span class="field__label">Message</span>
+            <textarea formControlName="message" rows="6" [class.is-invalid]="invalid('message')"
+                      placeholder="How many units do you manage, and what would you like to know?"></textarea>
+            @if (invalid('message')) { <span class="field__error">Please write at least a short message.</span> }
+          </label>
+          <!-- Hidden from people; bots fill it and are quietly ignored -->
+          <label class="field-trap" aria-hidden="true">
+            Website <input type="text" formControlName="website" tabindex="-1" autocomplete="off" />
+          </label>
+
+          @if (error()) { <p class="form-error" role="alert">{{ error() }}</p> }
+
+          <button type="submit" class="btn btn-primary btn-lg form-submit" [disabled]="sending()">
+            {{ sending() ? 'Sending…' : 'Send message' }}
+            @if (!sending()) { <app-site-icon name="arrow-right" /> }
+          </button>
+        </form>
+      }
+    </div>
+
+    <aside class="contact-aside">
+      <div class="contact-card">
+        <h2>Other ways to reach us</h2>
+        <ul class="contact-list">
+          @if (site.email) {
+            <li><app-site-icon name="mail" /><a [href]="'mailto:' + site.email">{{ site.email }}</a></li>
+          }
+          @if (site.phone) {
+            <li><app-site-icon name="phone" /><a [href]="'tel:' + site.phone">{{ site.phone }}</a></li>
+          }
+          @if (whatsappLink) {
+            <li><app-site-icon name="message" /><a [href]="whatsappLink" target="_blank" rel="noopener">Chat on WhatsApp</a></li>
+          }
+          @if (site.location) {
+            <li><app-site-icon name="map-pin" /><span>{{ site.location }}</span></li>
+          }
+          @if (site.officeHours) {
+            <li><app-site-icon name="clock" /><span>{{ site.officeHours }}</span></li>
+          }
+          <li><app-site-icon name="calendar" /><a routerLink="/request-demo">Book a demo with your own properties</a></li>
+        </ul>
+      </div>
+      <div class="contact-card contact-card--muted">
+        <h2>Already a customer?</h2>
+        <p>Log in to your dashboard, or use the form and choose “Support with my account”.</p>
+        <a class="btn btn-secondary" routerLink="/login">Log in</a>
+      </div>
+    </aside>
+  </div>
+</section>

@@ -1,0 +1,47 @@
+<section class="page-hero">
+  <div class="page-hero__inner">
+    <span class="eyebrow">Features</span>
+    <h1 class="page-title">Everything a Kenyan landlord needs, in one place</h1>
+    <p class="page-lead">
+      From the first lease to the final deposit refund: invoices, M-Pesa, arrears, utilities, expenses and reports,
+      all working from the same records.
+    </p>
+    <nav class="chip-nav" aria-label="Jump to a feature">
+      @for (group of groups; track group.id) {
+        <a class="chip" routerLink="/features" [fragment]="group.id">{{ group.title }}</a>
+      }
+    </nav>
+  </div>
+</section>
+
+<section class="page-section">
+  <div class="page-container feature-groups">
+    @for (group of groups; track group.id; let i = $index) {
+      <article class="feature-group" [id]="group.id" [class.feature-group--alt]="i % 2 === 1">
+        <div class="feature-group__head">
+          <span class="tile-icon" [attr.data-tone]="i % 4">
+            <app-site-icon [name]="group.icon" />
+          </span>
+          <h2 class="feature-group__title">{{ group.title }}</h2>
+          <p class="feature-group__summary">{{ group.summary }}</p>
+        </div>
+        <ul class="check-list">
+          @for (point of group.points; track point) {
+            <li><app-site-icon name="check-circle" />{{ point }}</li>
+          }
+        </ul>
+      </article>
+    }
+  </div>
+</section>
+
+<section class="page-cta">
+  <div class="page-cta__inner">
+    <h2>See it with your own buildings</h2>
+    <p>We'll set up a demo with your properties so you can judge it on real numbers.</p>
+    <div class="page-cta__actions">
+      <a class="btn btn-white btn-lg" routerLink="/request-demo">Request a demo</a>
+      <a class="btn btn-ghost btn-lg" routerLink="/pricing">See pricing</a>
+    </div>
+  </div>
+</section>

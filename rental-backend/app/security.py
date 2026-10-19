@@ -1,9 +1,11 @@
-"""Limits on guessing: login attempts and password-reset codes."""
+"""Limits on guessing (login attempts, password-reset codes) and on public form spam."""
 from django.core.cache import cache
 
 LOGIN_LIMIT = 5              # wrong passwords allowed...
 LOGIN_WINDOW = 15 * 60       # ...within this many seconds, per account and address
 RESET_CODE_LIMIT = 5         # wrong reset codes before the code is thrown away
+PUBLIC_FORM_LIMIT = 5        # contact / demo messages allowed...
+PUBLIC_FORM_WINDOW = 60 * 60 # ...within this many seconds, per address
 
 
 def client_ip(request):
@@ -45,4 +47,14 @@ def reset_code_exhausted(user, submitted_code):
         cache.delete(key)
         return True
     cache.set(key, failures, timeout=15 * 60)
+    return False
+
+
+def public_form_limited(request, form_name):
+    """Count one submission of a public form; True once the address is over the limit."""
+    key = f"form:{form_name}:{client_ip(request)}"
+    sent = cache.get(key, 0)
+    if sent >= PUBLIC_FORM_LIMIT:
+        return True
+    cache.set(key, sent + 1, timeout=PUBLIC_FORM_WINDOW)
     return False

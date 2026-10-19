@@ -306,6 +306,12 @@
   font-size: 0.8rem;
 }
 
+.submit-error {
+  display: block;
+  margin: 0 0 0.75rem;
+  font-size: 0.88rem;
+}
+
 /* ── Button row (back + submit) ── */
 .btn-row {
   display: flex;

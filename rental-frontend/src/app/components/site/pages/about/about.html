@@ -1,0 +1,61 @@
+<section class="page-hero">
+  <div class="page-hero__inner">
+    <span class="eyebrow">About us</span>
+    <h1 class="page-title">Taking the paperwork out of renting</h1>
+    <p class="page-lead">
+      {{ site.name }} helps landlords and property managers run their buildings from one place: who lives where,
+      what they owe, what they've paid and what the property is earning.
+    </p>
+  </div>
+</section>
+
+<section class="page-section">
+  <div class="page-container about-story">
+    <div class="about-story__text">
+      <h2 class="block-title">Why we built it</h2>
+      <p>
+        Most rental businesses still run on receipt books, spreadsheets and M-Pesa messages scrolled through at the end
+        of the month. Arrears get missed, deposits get disputed, and nobody is quite sure what each building really earns.
+      </p>
+      <p>
+        {{ site.name }} replaces that with a single record for every property, unit and tenant. Invoices are generated
+        for the whole building at once, paybill payments match themselves to the right tenant, and every report is built
+        from the same numbers, so the dashboard, the statement and the receipt always agree.
+      </p>
+    </div>
+    <aside class="about-story__panel">
+      <h3>Who it's for</h3>
+      <ul class="check-list check-list--compact">
+        <li><app-site-icon name="check-circle" />Landlords with one building or many</li>
+        <li><app-site-icon name="check-circle" />Property managers and letting agencies</li>
+        <li><app-site-icon name="check-circle" />Caretakers and accountants who handle collections</li>
+      </ul>
+    </aside>
+  </div>
+</section>
+
+<section class="page-section page-section--tinted">
+  <div class="page-container">
+    <h2 class="block-title block-title--center">What we care about</h2>
+    <div class="value-grid">
+      @for (value of values; track value.title; let i = $index) {
+        <article class="value-card">
+          <span class="tile-icon" [attr.data-tone]="i % 4"><app-site-icon [name]="value.icon" /></span>
+          <h3>{{ value.title }}</h3>
+          <p>{{ value.text }}</p>
+        </article>
+      }
+    </div>
+  </div>
+</section>
+
+<section class="page-cta">
+  <div class="page-cta__inner">
+    <h2>Let's talk about your properties</h2>
+    <p>Tell us how you manage today and we'll show you what changes.</p>
+    <div class="page-cta__actions">
+      <a class="btn btn-white btn-lg" routerLink="/request-demo">Request a demo</a>
+      <a class="btn btn-ghost btn-lg" routerLink="/contact">Contact us</a>
+    </div>
+  </div>
+</section>

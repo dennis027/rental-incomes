@@ -1,6 +1,6 @@
 // src/app/app.config.ts
 import { ApplicationConfig, provideBrowserGlobalErrorListeners, provideZonelessChangeDetection } from '@angular/core';
-import { provideRouter } from '@angular/router';
+import { provideRouter, withInMemoryScrolling } from '@angular/router';
 import { provideHttpClient, withInterceptors, withFetch } from '@angular/common/http';
 import { MAT_PAGINATOR_DEFAULT_OPTIONS } from '@angular/material/paginator';
 import { routes } from './app.routes';
@@ -11,7 +11,8 @@ export const appConfig: ApplicationConfig = {
   providers: [
     provideBrowserGlobalErrorListeners(),
     provideZonelessChangeDetection(),
-    provideRouter(routes),
+    // Lets links like /features#mpesa jump to that section
+    provideRouter(routes, withInMemoryScrolling({ anchorScrolling: 'enabled' })),
     provideClientHydration(withEventReplay()),
     provideHttpClient(
       withFetch(),

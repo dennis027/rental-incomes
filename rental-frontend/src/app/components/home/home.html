@@ -27,52 +27,6 @@
   </ng-container>
 </ng-template>
 
-<div class="homepage">
-  <!-- Navigation Bar -->
-  <nav class="navbar" [class.navbar--scrolled]="scrolled">
-    <div class="nav-container">
-      <div class="nav-brand">
-        <span class="brand-mark"><i class="fas fa-building"></i></span>
-        <span class="brand-text">Rental System</span>
-      </div>
-
-      <div class="nav-menu desktop-menu">
-        <a href="#features" class="nav-link">Features</a>
-        <a href="#roles" class="nav-link">For You</a>
-        <a href="#contact" class="nav-link">Contact</a>
-      </div>
-
-      <div class="nav-actions desktop-menu">
-        <button class="theme-toggle" (click)="theme.toggle()"
-                [attr.aria-label]="theme.theme() === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'"
-                [title]="theme.theme() === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'">
-          <i class="fas" [class.fa-sun]="theme.theme() === 'dark'" [class.fa-moon]="theme.theme() !== 'dark'"></i>
-        </button>
-        <a class="btn btn-secondary" routerLink="/login">Login</a>
-        <a class="btn btn-primary" routerLink="/request-demo">Get Started</a>
-      </div>
-
-      <button class="mobile-menu-btn" (click)="toggleMobileMenu()" aria-label="Toggle menu">
-        <ng-container *ngTemplateOutlet="icon; context: { name: mobileMenuOpen ? 'x' : 'menu' }"></ng-container>
-      </button>
-    </div>
-
-    <div class="mobile-nav" [class.open]="mobileMenuOpen">
-      <a href="#features" class="mobile-nav-link" (click)="toggleMobileMenu()">Features</a>
-      <a href="#roles" class="mobile-nav-link" (click)="toggleMobileMenu()">For You</a>
-      <a href="#contact" class="mobile-nav-link" (click)="toggleMobileMenu()">Contact</a>
-      <div class="mobile-nav-actions">
-        <button class="theme-toggle" (click)="theme.toggle()"
-                [attr.aria-label]="theme.theme() === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'"
-                [title]="theme.theme() === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'">
-          <i class="fas" [class.fa-sun]="theme.theme() === 'dark'" [class.fa-moon]="theme.theme() !== 'dark'"></i>
-        </button>
-        <a class="btn btn-secondary" routerLink="/login" (click)="toggleMobileMenu()">Login</a>
-        <a class="btn btn-primary" routerLink="/request-demo" (click)="toggleMobileMenu()">Get Started</a>
-      </div>
-    </div>
-  </nav>
-
   <!-- Hero Section -->
   <section class="hero">
     <div class="hero-bg" aria-hidden="true">
@@ -266,44 +220,3 @@
       </div>
     </div>
   </section>
-
-  <!-- Footer -->
-  <footer class="footer">
-    <div class="footer-content">
-      <div class="footer-section footer-section--brand">
-        <div class="footer-brand">
-          <span class="brand-mark"><i class="fas fa-building"></i></span>
-          <span class="brand-text">Rental System</span>
-        </div>
-        <p class="footer-text">Making rental management simple and efficient for everyone.</p>
-        <div class="footer-socials">
-          <a href="#" class="footer-social" aria-label="Twitter"><ng-container *ngTemplateOutlet="icon; context: { name: 'twitter' }"></ng-container></a>
-          <a href="#" class="footer-social" aria-label="LinkedIn"><ng-container *ngTemplateOutlet="icon; context: { name: 'linkedin' }"></ng-container></a>
-          <a href="#" class="footer-social" aria-label="GitHub"><ng-container *ngTemplateOutlet="icon; context: { name: 'github' }"></ng-container></a>
-          <a href="#" class="footer-social" aria-label="Instagram"><ng-container *ngTemplateOutlet="icon; context: { name: 'instagram' }"></ng-container></a>
-        </div>
-      </div>
-      <div class="footer-section">
-        <h4 class="footer-title">Product</h4>
-        <a href="#features" class="footer-link">Features</a>
-        <a href="#" class="footer-link">Pricing</a>
-        <a href="#" class="footer-link">Security</a>
-      </div>
-      <div class="footer-section">
-        <h4 class="footer-title">Company</h4>
-        <a href="#" class="footer-link">About</a>
-        <a href="#contact" class="footer-link">Contact</a>
-        <a href="#" class="footer-link">Careers</a>
-      </div>
-      <div class="footer-section">
-        <h4 class="footer-title">Legal</h4>
-        <a href="#" class="footer-link">Privacy</a>
-        <a href="#" class="footer-link">Terms</a>
-        <a href="#" class="footer-link">Cookie Policy</a>
-      </div>
-    </div>
-    <div class="footer-bottom">
-      <p>© 2026 Rental System. All rights reserved.</p>
-    </div>
-  </footer>
-</div>

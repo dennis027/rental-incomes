@@ -16,10 +16,33 @@ import { Reports } from './components/dashboard/reports/reports';
 import { Arrears } from './components/dashboard/arrears/arrears';
 import { TenantStatement } from './components/dashboard/tenant-statement/tenant-statement';
 import { RequestDemoComponent } from './components/home/request-demo-component/request-demo-component';
+import { SiteLayout } from './components/site/site-layout';
+import { FeaturesPage } from './components/site/pages/features/features';
+import { PricingPage } from './components/site/pages/pricing/pricing';
+import { AboutPage } from './components/site/pages/about/about';
+import { ContactPage } from './components/site/pages/contact/contact';
+import { FaqPage } from './components/site/pages/faq/faq';
+import { SecurityPage } from './components/site/pages/security/security';
+import { PrivacyPage } from './components/site/pages/legal/privacy';
+import { TermsPage } from './components/site/pages/legal/terms';
 
 export const routes: Routes = [
-  // 🌍 Public pages
-  { path: '', component: Home },
+  // 🌍 Public website: shared navigation bar and footer
+  {
+    path: '',
+    component: SiteLayout,
+    children: [
+      { path: '', component: Home, title: 'Rental System – Rental management for Kenyan landlords' },
+      { path: 'features', component: FeaturesPage, title: 'Features – Rental System' },
+      { path: 'pricing', component: PricingPage, title: 'Pricing – Rental System' },
+      { path: 'about', component: AboutPage, title: 'About us – Rental System' },
+      { path: 'contact', component: ContactPage, title: 'Contact us – Rental System' },
+      { path: 'faq', component: FaqPage, title: 'FAQ – Rental System' },
+      { path: 'security', component: SecurityPage, title: 'Security – Rental System' },
+      { path: 'privacy', component: PrivacyPage, title: 'Privacy Policy – Rental System' },
+      { path: 'terms', component: TermsPage, title: 'Terms of Service – Rental System' },
+    ],
+  },
   { path: 'login', component: Login }, 
   {path:'request-demo', component:RequestDemoComponent},
 

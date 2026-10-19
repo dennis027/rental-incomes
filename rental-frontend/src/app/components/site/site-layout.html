@@ -1,0 +1,95 @@
+<div class="homepage">
+  <a class="skip-link" href="#main">Skip to content</a>
+
+  <nav class="navbar" [class.navbar--scrolled]="scrolled" aria-label="Main">
+    <div class="nav-container">
+      <a class="nav-brand" routerLink="/">
+        <span class="brand-mark"><i class="fas fa-building"></i></span>
+        <span class="brand-text">{{ site.name }}</span>
+      </a>
+
+      <div class="nav-menu desktop-menu">
+        @for (link of links; track link.path) {
+          <a class="nav-link" [routerLink]="link.path" routerLinkActive="nav-link--active">{{ link.label }}</a>
+        }
+      </div>
+
+      <div class="nav-actions desktop-menu">
+        <button class="theme-toggle" (click)="theme.toggle()"
+                [attr.aria-label]="theme.theme() === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'"
+                [title]="theme.theme() === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'">
+          <i class="fas" [class.fa-sun]="theme.theme() === 'dark'" [class.fa-moon]="theme.theme() !== 'dark'"></i>
+        </button>
+        <a class="btn btn-secondary" routerLink="/login">Login</a>
+        <a class="btn btn-primary" routerLink="/request-demo">Get Started</a>
+      </div>
+
+      <button class="mobile-menu-btn" (click)="toggleMobileMenu()"
+              [attr.aria-expanded]="mobileMenuOpen" aria-controls="mobile-nav" aria-label="Toggle menu">
+        <app-site-icon [name]="mobileMenuOpen ? 'x' : 'menu'" />
+      </button>
+    </div>
+
+    <div class="mobile-nav" id="mobile-nav" [class.open]="mobileMenuOpen">
+      @for (link of links; track link.path) {
+        <a class="mobile-nav-link" [routerLink]="link.path" routerLinkActive="nav-link--active">{{ link.label }}</a>
+      }
+      <div class="mobile-nav-actions">
+        <button class="theme-toggle" (click)="theme.toggle()"
+                [attr.aria-label]="theme.theme() === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'">
+          <i class="fas" [class.fa-sun]="theme.theme() === 'dark'" [class.fa-moon]="theme.theme() !== 'dark'"></i>
+        </button>
+        <a class="btn btn-secondary" routerLink="/login">Login</a>
+        <a class="btn btn-primary" routerLink="/request-demo">Get Started</a>
+      </div>
+    </div>
+  </nav>
+
+  <main id="main">
+    <router-outlet />
+  </main>
+
+  <footer class="footer">
+    <div class="footer-content">
+      <div class="footer-section footer-section--brand">
+        <div class="footer-brand">
+          <span class="brand-mark"><i class="fas fa-building"></i></span>
+          <span class="brand-text">{{ site.name }}</span>
+        </div>
+        <p class="footer-text">{{ site.tagline }}</p>
+        @if (site.socials.length) {
+          <div class="footer-socials">
+            @for (social of site.socials; track social.url) {
+              <a class="footer-social" [href]="social.url" target="_blank" rel="noopener" [attr.aria-label]="social.label">
+                <app-site-icon [name]="social.icon" />
+              </a>
+            }
+          </div>
+        }
+      </div>
+      <div class="footer-section">
+        <h4 class="footer-title">Product</h4>
+        <a routerLink="/features" class="footer-link">Features</a>
+        <a routerLink="/pricing" class="footer-link">Pricing</a>
+        <a routerLink="/security" class="footer-link">Security</a>
+        <a routerLink="/faq" class="footer-link">FAQ</a>
+      </div>
+      <div class="footer-section">
+        <h4 class="footer-title">Company</h4>
+        <a routerLink="/about" class="footer-link">About</a>
+        <a routerLink="/contact" class="footer-link">Contact</a>
+        <a routerLink="/request-demo" class="footer-link">Request a demo</a>
+        <a routerLink="/login" class="footer-link">Log in</a>
+      </div>
+      <div class="footer-section">
+        <h4 class="footer-title">Legal</h4>
+        <a routerLink="/privacy" class="footer-link">Privacy Policy</a>
+        <a routerLink="/terms" class="footer-link">Terms of Service</a>
+        <a routerLink="/privacy" fragment="cookies" class="footer-link">Cookies</a>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <p>© {{ year }} {{ site.name }}. All rights reserved.</p>
+    </div>
+  </footer>
+</div>

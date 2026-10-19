@@ -3,6 +3,7 @@ import { Component, computed, inject, signal } from '@angular/core';
 import { ThemeService } from '../../../services/theme';
 import { FormGroup, FormBuilder, Validators, ReactiveFormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
+import { SiteFormsService, formErrorMessage } from '../../../services/site-forms';
 
 @Component({
   selector: 'app-request-demo-component',
@@ -12,9 +13,11 @@ import { RouterModule } from '@angular/router';
 })
 export class RequestDemoComponent {
   theme = inject(ThemeService);
+  private forms = inject(SiteFormsService);
  
   currentStep = signal(1);
   loading     = signal(false);
+  error       = signal('');
   submitted   = false;
  
   progressWidth = computed(() => {
@@ -60,14 +63,27 @@ export class RequestDemoComponent {
     }
  
     this.loading.set(true);
- 
-    const payload = { ...this.step1Form.value, ...this.step2Form.value };
- 
-    // Replace with your actual API call:
-    // this.demoService.requestDemo(payload).subscribe(() => { ... })
-    setTimeout(() => {
-      this.loading.set(false);
-      this.submitted = true;
-    }, 1500);
+    this.error.set('');
+
+    const one = this.step1Form.value;
+    const two = this.step2Form.value;
+    this.forms.requestDemo({
+      first_name: one.firstName,
+      last_name: one.lastName,
+      email: one.email,
+      phone: one.phone,
+      role: two.role,
+      units: two.units,
+      source: two.source || '',
+    }).subscribe({
+      next: () => {
+        this.loading.set(false);
+        this.submitted = true;
+      },
+      error: (err) => {
+        this.loading.set(false);
+        this.error.set(formErrorMessage(err));
+      },
+    });
   }
 }

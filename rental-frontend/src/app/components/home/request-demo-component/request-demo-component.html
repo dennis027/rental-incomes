@@ -201,6 +201,10 @@
                 </div>
               </div>
 
+              @if (error()) {
+                <p class="form-error submit-error" role="alert">{{ error() }}</p>
+              }
+
               <div class="btn-row">
                 <button type="button" class="btn-back" (click)="goToStep1()" title="Back">←</button>
                 <button type="submit" class="submit-btn" [disabled]="loading()">
