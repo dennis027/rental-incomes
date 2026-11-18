@@ -22,46 +22,59 @@ class Account(models.Model):
     sms_reminders_enabled = models.BooleanField(default=False)
     sms_days_before_due = models.PositiveSmallIntegerField(default=3)
     sms_overdue_every_days = models.PositiveSmallIntegerField(default=7)
-    # The account's own paybill/till for "pay now" prompts and SMS pay lines.
-    # Blank: only the first account may fall back to the server's MPESA_* settings.
+    # The account's own paybill for "pay now" prompts and SMS pay lines. Saved
+    # as a pair: a passkey only works with the shortcode it was issued for.
     mpesa_shortcode = models.CharField(max_length=20, blank=True, default="")
     mpesa_passkey = models.CharField(max_length=128, blank=True, default="")
+    # The one account that the server-wide MPESA_SHORTCODE / MPESA_PASSKEY /
+    # MPESA_CALLBACK_TOKEN belong to; they date from before there were several
+    # accounts. Stored, not worked out from ids, so deleting that account never
+    # hands the operator's paybill to another landlord.
+    uses_server_mpesa = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=["uses_server_mpesa"], condition=models.Q(uses_server_mpesa=True),
+                                    name="one_account_uses_server_mpesa"),
+        ]
 
     def __str__(self):
         return self.name
 
-    @classmethod
-    def first_account_id(cls):
-        return cls.objects.order_by("id").values_list("id", flat=True).first()
-
-    def owns_server_mpesa_settings(self):
-        """
-        The server-wide MPESA_SHORTCODE/PASSKEY and MPESA_CALLBACK_TOKEN date from
-        before there were several accounts, when all the data was the first account's.
-        """
-        return self.pk is not None and self.pk == Account.first_account_id()
+    def save(self, *args, **kwargs):
+        # The first account on a new server is the one the server's settings were made for
+        if self._state.adding and not Account.objects.exists():
+            self.uses_server_mpesa = True
+        super().save(*args, **kwargs)
 
     def mpesa_credentials(self):
-        """(shortcode, passkey) this account is paid into; blanks when it has none."""
+        """(shortcode, passkey) this account is paid into; blanks when it has none. No queries."""
         if self.mpesa_shortcode:
             return self.mpesa_shortcode, self.mpesa_passkey
-        if self.owns_server_mpesa_settings():
+        if self.uses_server_mpesa:
             return getattr(settings, "MPESA_SHORTCODE", ""), getattr(settings, "MPESA_PASSKEY", "")
         return "", ""
+
+    def mpesa_is_till(self):
+        """
+        Whether tenants pay a Buy Goods till rather than a paybill. An account's
+        own shortcode is always a paybill; only the server's may be a till
+        (MPESA_TRANSACTION_TYPE=CustomerBuyGoodsOnline).
+        """
+        if self.mpesa_shortcode or not self.uses_server_mpesa:
+            return False
+        return getattr(settings, "MPESA_TRANSACTION_TYPE", "") == "CustomerBuyGoodsOnline"
 
 
 class CustomUserManager(UserManager):
     def create_superuser(self, username, email=None, password=None, **extra_fields):
-        # An operator made with createsuperuser joins the data that is already
-        # there when there is only one account; with none, they start one. With
-        # several it is ambiguous, so they are left without one (Django admin
-        # still works) until an account is picked for them in the admin.
+        # A platform operator is not made a member of a landlord's account
+        # behind their back: with accounts already on the server they get none
+        # (Django admin still works) until one is picked for them in the admin.
+        # On a new, empty server they start the first account.
         if extra_fields.get("account") is None and extra_fields.get("account_id") is None:
-            accounts = list(Account.objects.order_by("id")[:2])
-            if len(accounts) == 1:
-                extra_fields["account"] = accounts[0]
-            elif not accounts:
+            if not Account.objects.exists():
                 extra_fields["account"] = Account.objects.create(name=username or "My properties")
             extra_fields.setdefault("role", CustomUser.OWNER)
         return super().create_superuser(username, email, password, **extra_fields)
@@ -85,6 +98,9 @@ class CustomUser(AbstractUser):
     reset_code_expiry = models.DateTimeField(blank=True, null=True)
     account = models.ForeignKey(Account, on_delete=models.CASCADE, null=True, blank=True, related_name="members")
     role = models.CharField(max_length=20, choices=ROLES, default=OWNER)
+    # Set when an owner removes them from the team. Unlike a sign-up waiting
+    # for its activation email, a removed member cannot switch themselves back on.
+    removed_at = models.DateTimeField(null=True, blank=True)
 
     objects = CustomUserManager()
 
@@ -528,11 +544,16 @@ class Payment(models.Model):
             latest = Receipt.objects.filter(contract_id=self.receipt.contract_id).order_by("issue_date", "id").last()
             if latest is not None and latest.pk != self.receipt_id:
                 self.receipt = latest
-        self.account_id = self.account_from_related() or self.account_id or current_account_id()
+        links = ("receipt_id", "expense_id", "maintenance_request_id")
+        relinked = previous is None or any(getattr(previous, name) != getattr(self, name) for name in links)
+        if relinked or self.account_id is None:
+            # Only when what it pays is new or changed: an ordinary edit keeps its account
+            account_id = self.account_from_related() or self.account_id or current_account_id()
+            if account_id != self.account_id and kwargs.get("update_fields") is not None:
+                kwargs["update_fields"] = {*kwargs["update_fields"], "account"}
+            self.account_id = account_id
         if self.account_id is None:
             raise ValueError("Payment needs an account: link it to an invoice, expense or repair, or set .account.")
-        if kwargs.get("update_fields") is not None:
-            kwargs["update_fields"] = {*kwargs["update_fields"], "account"}
         super().save(*args, **kwargs)
         if previous is None:
             self._apply(self.amount)

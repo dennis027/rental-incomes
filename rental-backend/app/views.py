@@ -408,6 +408,14 @@ class ActivateAccountView(APIView):
                     "message": "Invalid activation link."
                 }, status=status.HTTP_400_BAD_REQUEST)
 
+            # A member removed from a team cannot activate themselves back in
+            if user.removed_at is not None:
+                return Response({
+                    "success": False,
+                    "error": "invalid_link",
+                    "message": "Invalid activation link."
+                }, status=status.HTTP_400_BAD_REQUEST)
+
             # Check if user is already active
             if user.is_active:
                 return Response({

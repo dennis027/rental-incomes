@@ -135,13 +135,13 @@
               <span class="team-icon"><i class="fas fa-mobile-screen"></i></span>
               <div>
                 <h3>M-Pesa paybill</h3>
-                <p>Your own paybill or till: "pay now" prompts and SMS reminders send tenants' money here.</p>
+                <p>Your own paybill: "pay now" prompts and SMS reminders send tenants' money here.</p>
               </div>
             </header>
             <form [formGroup]="mpesaForm" class="team-form" (ngSubmit)="saveMpesa()">
               <div class="dialog-grid">
                 <mat-form-field appearance="outline">
-                  <mat-label>Paybill or till number</mat-label>
+                  <mat-label>Paybill number</mat-label>
                   <input matInput inputmode="numeric" autocomplete="off" formControlName="mpesa_shortcode" />
                   @if (mpesaForm.get('mpesa_shortcode')?.hasError('pattern')) {
                     <mat-error>5 to 7 digits</mat-error>
@@ -151,14 +151,17 @@
                   <mat-label>Lipa na M-Pesa passkey</mat-label>
                   <input matInput type="password" autocomplete="new-password" formControlName="mpesa_passkey"
                          [placeholder]="account.mpesa_passkey_set ? 'Saved. Leave blank to keep it' : ''" />
-                  <mat-hint>From Safaricom when your paybill goes live on Daraja</mat-hint>
+                  <mat-hint>From Safaricom for this paybill. A new paybill needs its own passkey.</mat-hint>
                 </mat-form-field>
               </div>
+              @if (!isOwner) {
+                <p class="team-note">Only an owner can change the paybill.</p>
+              }
               @if (!account.stk_configured) {
                 <p class="team-note team-warn">"Pay now" prompts are off until a paybill number and passkey are saved.</p>
               }
               <div class="team-form-actions">
-                <button mat-flat-button color="primary" type="submit" [disabled]="mpesaForm.invalid || mpesaForm.pristine">Save</button>
+                <button mat-flat-button color="primary" type="submit" [disabled]="!isOwner || mpesaForm.invalid || mpesaForm.pristine">Save</button>
               </div>
             </form>
             <div class="team-links">

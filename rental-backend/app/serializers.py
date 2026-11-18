@@ -50,6 +50,10 @@ class ResendActivationSerializer(serializers.Serializer):
     def validate_email(self, value):
         try:
             user = User.objects.get(email=value)
+            # Removed from a team: not a sign-up waiting for its email, and must
+            # not be able to switch itself back on
+            if user.removed_at is not None:
+                raise User.DoesNotExist
             if user.is_active:
                 raise serializers.ValidationError("This account is already activated.")
             return value

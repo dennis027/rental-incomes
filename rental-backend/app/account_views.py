@@ -16,7 +16,9 @@ from django.contrib.auth import get_user_model
 from django.db import transaction
 from django.db.models import Q
 from django.shortcuts import get_object_or_404
+from django.utils import timezone
 from rest_framework import serializers, status
+from rest_framework.exceptions import PermissionDenied
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.token_blacklist.models import BlacklistedToken, OutstandingToken
@@ -91,8 +93,31 @@ class AccountSerializer(serializers.ModelSerializer):
     def validate_mpesa_shortcode(self, value):
         value = value.strip()
         if value and not (value.isdigit() and 5 <= len(value) <= 7):
-            raise serializers.ValidationError("Enter the 5 to 7 digit paybill or till number.")
+            raise serializers.ValidationError("Enter the 5 to 7 digit paybill number.")
         return value
+
+    def validate(self, data):
+        touched = {"mpesa_shortcode", "mpesa_passkey"} & set(data)
+        if not touched:
+            return data
+        # Where tenants' rent is paid is the owner's decision alone
+        if self.context["request"].user.role != User.OWNER:
+            raise PermissionDenied("Only an owner can change the M-Pesa paybill.")
+        account = self.instance
+        shortcode = data.get("mpesa_shortcode", account.mpesa_shortcode)
+        passkey = data.get("mpesa_passkey", "")
+        if not shortcode:
+            # Clearing the paybill clears its passkey with it
+            data["mpesa_shortcode"], data["mpesa_passkey"] = "", ""
+            return data
+        # A passkey belongs to one shortcode: a new paybill needs its own, and
+        # no paybill may be saved without one
+        if shortcode != account.mpesa_shortcode or not account.mpesa_passkey:
+            if not passkey:
+                raise serializers.ValidationError({"mpesa_passkey": ["Enter the passkey for this paybill."]})
+        if not passkey:
+            data.pop("mpesa_passkey", None)  # same paybill, keep the saved passkey
+        return data
 
     def get_paybill_validation_url(self, obj):
         return self._callback(obj, "validation")
@@ -194,6 +219,7 @@ class TeamView(APIView):
             member.last_name = data.get("last_name", "")
             member.role = data["role"]
             member.is_active = True
+            member.removed_at = None
             # They choose their own password through "Forgot password"
             member.set_unusable_password()
             member.save()
@@ -241,6 +267,9 @@ class TeamMemberView(APIView):
             return Response({"error": "The account needs at least one owner."}, status=status.HTTP_400_BAD_REQUEST)
         # Kept, not deleted, so the invoices and payments they recorded still name them
         member.is_active = False
-        member.save(update_fields=["is_active"])
+        member.removed_at = timezone.now()
+        # Also voids any activation link or password they were sent
+        member.set_unusable_password()
+        member.save(update_fields=["is_active", "removed_at", "password"])
         end_sessions(member)
         return Response(status=status.HTTP_204_NO_CONTENT)

@@ -1,4 +1,5 @@
 from django.contrib import admin
+from django.forms.models import construct_instance
 
 from .models import AccountOwnedMixin
 from .models import (
@@ -19,22 +20,39 @@ from .models import (
 
 class AccountOwnedAdmin(admin.ModelAdmin):
     """
-    Rows added here without an account go to the admin user's own, rather than
-    to nobody. An admin user with no account of their own (a superuser on a
-    server with several accounts) must pick one, as a form error, not a crash.
+    Rows added here get their account from the row they belong to (a tenant's
+    unit), or else from what was picked, or else the admin user's own account.
+    A pick that contradicts the row it belongs to, or no account at all, is a
+    form error rather than a crash or a row filed under the wrong landlord.
     """
 
     def get_form(self, request, obj=None, **kwargs):
         form = super().get_form(request, obj, **kwargs)
-        field = form.base_fields.get("account")
-        if field is not None and not request.user.account_id and issubclass(self.model, AccountOwnedMixin):
-            field.required = True
-            field.help_text = "You have no account of your own, so pick the one this belongs to."
-        return form
+        if not issubclass(self.model, AccountOwnedMixin):
+            return form
+        admin_account_id = request.user.account_id
+
+        class AccountCheckedForm(form):
+            def clean(self):
+                data = super().clean()
+                if "account" not in self.fields:
+                    return data
+                # A throwaway copy with the submitted values, to ask it where it belongs
+                probe = construct_instance(self, self._meta.model(), fields=self._meta.fields,
+                                           exclude=self._meta.exclude)
+                from_related = probe.account_from_related()
+                picked = data.get("account")
+                if picked is not None and from_related is not None and picked.pk != from_related:
+                    self.add_error("account", "This belongs to another account: it must match the unit's account.")
+                elif picked is None and from_related is None and not admin_account_id:
+                    self.add_error("account", "You have no account of your own, so pick the one this belongs to.")
+                return data
+
+        return AccountCheckedForm
 
     def save_model(self, request, obj, form, change):
-        if obj.account_id is None and request.user.account_id:
-            obj.account_id = request.user.account_id
+        if obj.account_id is None:
+            obj.account_id = obj.account_from_related() or request.user.account_id
         super().save_model(request, obj, form, change)
 
 

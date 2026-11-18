@@ -74,6 +74,9 @@ export class Team implements OnInit {
         this.members = team;
         this.accountForm.patchValue(account, { emitEvent: false });
         this.mpesaForm.reset({ mpesa_shortcode: account.mpesa_shortcode, mpesa_passkey: '' }, { emitEvent: false });
+        if (!this.isOwner) {
+          this.mpesaForm.disable({ emitEvent: false });
+        }
         this.loading = false;
         this.cdr.markForCheck();
       },

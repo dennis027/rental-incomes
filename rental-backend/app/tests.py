@@ -913,12 +913,12 @@ class ReviewFixTests(TestCase):
         self.assertEqual(user.role, "owner")
 
     # 6. createsuperuser
-    def test_superuser_joins_the_only_account_instead_of_an_empty_one(self):
+    def test_superuser_is_not_slipped_into_a_landlords_account(self):
         from .models import Account
         Account.objects.exclude(pk=self.user.account_id).delete()
         ops = get_user_model().objects.create_superuser("ops", "ops@example.com", "pw")
-        self.assertEqual(ops.account_id, self.user.account_id)
-        self.assertEqual(Account.objects.count(), 1)
+        self.assertIsNone(ops.account_id)
+        self.assertNotIn("ops", [m["username"] for m in self.client.get("/api/team/").json()])
 
     def test_superuser_with_several_accounts_is_left_for_the_admin_to_place(self):
         from .models import Account
@@ -1017,3 +1017,169 @@ class ReviewFixTests(TestCase):
         migration.payments_to_accounts(apps, None)
         self.assertEqual(set(Payment.all_objects.values_list("account_id", flat=True)), {self.user.account_id})
 
+
+@override_settings(MPESA_CALLBACK_TOKEN="secret-token", SECURE_SSL_REDIRECT=False, MPESA_SHORTCODE="174379",
+                   MPESA_CONSUMER_KEY="key", MPESA_CONSUMER_SECRET="secret", MPESA_PASSKEY="passkey",
+                   MPESA_CALLBACK_BASE_URL="https://api.example.com")
+class SecondReviewFixTests(TestCase):
+    """Fixes from the second code review."""
+
+    def setUp(self):
+        from django.core.cache import cache
+        cache.clear()
+        AccountIsolationTests.setUp(self)
+
+    member = AccountIsolationTests.member
+
+    def stk(self, client, **body):
+        get, post = StkPushTests.daraja(self)
+        with get, post as sent:
+            response = client.post("/api/mpesa/stk/", {"receipt": self.first_invoice.id, **body}, format="json")
+        return response, sent
+
+    # 1. Removed members stay removed
+    def test_removed_member_cannot_reactivate_themselves(self):
+        from django.contrib.auth.tokens import default_token_generator
+        from django.utils.encoding import force_bytes
+        from django.utils.http import urlsafe_base64_encode
+        body = {"username": "bob", "email": "bob@example.com", "role": "caretaker"}
+        member_id = self.client.post("/api/team/", body, format="json").data["id"]
+        bob = get_user_model().objects.get(pk=member_id)
+        bob.set_password("old-password"); bob.save()
+        bob.refresh_from_db()
+        uid, token = urlsafe_base64_encode(force_bytes(bob.pk)), default_token_generator.make_token(bob)
+        self.client.delete(f"/api/team/{member_id}/")
+
+        resend = APIClient().post("/api/resend-activation-limited/", {"email": "bob@example.com"}, format="json")
+        self.assertEqual(resend.status_code, 400)
+        self.assertEqual(APIClient().get(f"/api/activate/{uid}/{token}/").status_code, 400)
+        bob.refresh_from_db()
+        self.assertFalse(bob.is_active)
+        self.assertFalse(bob.check_password("old-password"))
+        # Being added again is the way back
+        self.assertEqual(self.client.post("/api/team/", body, format="json").status_code, 201)
+        bob.refresh_from_db()
+        self.assertTrue(bob.is_active)
+        self.assertIsNone(bob.removed_at)
+
+    # 2. Only owners choose the paybill
+    def test_managers_cannot_change_the_paybill(self):
+        manager = self.member("manager")
+        response = manager.patch("/api/account/", {"mpesa_shortcode": "600999", "mpesa_passkey": "x"}, format="json")
+        self.assertEqual(response.status_code, 403)
+        self.user.account.refresh_from_db()
+        self.assertEqual(self.user.account.mpesa_shortcode, "")
+        # Other settings are still theirs to change
+        self.assertEqual(manager.patch("/api/account/", {"sms_days_before_due": 2}, format="json").status_code, 200)
+
+    # 3. Till vs paybill
+    def test_server_till_sends_buy_goods_and_says_till(self):
+        from .sms import reminder_text
+        row = {"customer_name": "Wanjiru Kamau", "unit": "B12", "property": "Sunrise", "outstanding": Decimal("1"),
+               "due_date": timezone.localdate(), "days_overdue": 0}
+        with self.settings(MPESA_TRANSACTION_TYPE="CustomerBuyGoodsOnline"):
+            response, sent = self.stk(self.client)
+            self.assertEqual(response.status_code, 201, response.data)
+            self.assertEqual(sent.call_args.kwargs["json"]["TransactionType"], "CustomerBuyGoodsOnline")
+            self.assertIn("Buy Goods till 174379.", reminder_text(row, "due", self.user.account))
+            # An account's own shortcode is a paybill
+            account = self.user.account
+            account.mpesa_shortcode, account.mpesa_passkey = "600100", "pk"
+            self.assertFalse(account.mpesa_is_till())
+            self.assertIn("paybill 600100, account B12", reminder_text(row, "due", account))
+
+    # 4. The server's M-Pesa settings have one, stored owner
+    def test_deleting_the_owner_of_the_server_paybill_hands_it_to_nobody(self):
+        from .models import Account
+        self.assertTrue(self.user.account.uses_server_mpesa)
+        self.assertFalse(self.other.account.uses_server_mpesa)
+        self.user.account.delete()
+        other = Account.objects.get(pk=self.other.account_id)
+        self.assertEqual(other.mpesa_credentials(), ("", ""))
+        self.assertEqual(APIClient().post("/api/paybill/secret-token/confirmation/", {
+            "TransID": "X1", "TransAmount": "100", "BillRefNumber": "C1"}, format="json").status_code, 404)
+
+    def test_mpesa_credentials_need_no_queries(self):
+        account = self.user.account
+        with self.assertNumQueries(0):
+            account.mpesa_credentials()
+            account.mpesa_is_till()
+
+    # 5. Admin files tenants under their unit's account
+    def test_admin_customer_takes_the_units_account(self):
+        prop_b = Property.objects.create(name="Hillside", address="Thika Road", account=self.other.account)
+        unit_b = Unit.objects.create(property=prop_b, unit_number="C1", rent_amount=8000)
+        admin_user = get_user_model().objects.create_superuser("ops", "ops@example.com", "pw", account=self.user.account)
+        client = APIClient()
+        client.force_login(admin_user)
+        fields = {"first_name": "Njeri", "last_name": "W", "phone_number": "0755000000", "id_number": "55",
+                  "unit": unit_b.id, "is_active": "on"}
+        # Picking the admin's own account for account B's unit is refused
+        response = client.post("/admin/app/customer/add/", {**fields, "account": self.user.account_id})
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("account", response.context["adminform"].form.errors)
+        # Left blank, it goes to the unit's account, not the admin's
+        response = client.post("/admin/app/customer/add/", fields)
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(Customer.all_objects.get(id_number="55").account_id, self.other.account_id)
+
+    # 6. Shortcode and passkey go together
+    def test_shortcode_and_passkey_are_saved_as_a_pair(self):
+        account_url = "/api/account/"
+        # The first account cannot drop its server passkey by typing only a shortcode
+        self.assertEqual(self.client.patch(account_url, {"mpesa_shortcode": "600100"}, format="json").status_code, 400)
+        self.assertEqual(self.client.patch(account_url, {"mpesa_shortcode": "600100", "mpesa_passkey": "pk1"},
+                                           format="json").status_code, 200)
+        # Same paybill, passkey left blank: kept
+        self.assertEqual(self.client.patch(account_url, {"mpesa_shortcode": "600100", "mpesa_passkey": ""},
+                                           format="json").status_code, 200)
+        self.user.account.refresh_from_db()
+        self.assertEqual(self.user.account.mpesa_passkey, "pk1")
+        # A new paybill needs its own passkey
+        self.assertEqual(self.client.patch(account_url, {"mpesa_shortcode": "600200"}, format="json").status_code, 400)
+        # Clearing the paybill clears its passkey and returns to the server's settings
+        self.assertEqual(self.client.patch(account_url, {"mpesa_shortcode": ""}, format="json").status_code, 200)
+        self.user.account.refresh_from_db()
+        self.assertEqual(self.user.account.mpesa_passkey, "")
+        self.assertEqual(self.user.account.mpesa_credentials(), ("174379", "passkey"))
+
+    # 7. Amounts that are not numbers
+    def test_stk_rejects_amounts_that_are_not_whole_shillings(self):
+        for raw in ("Infinity", "NaN", "abc", "500.10"):
+            response, sent = self.stk(self.client, amount=raw)
+            self.assertEqual(response.status_code, 400, raw)
+            sent.assert_not_called()
+        response, sent = self.stk(self.client, amount="500")
+        self.assertEqual(response.status_code, 201, response.data)
+        self.assertEqual(sent.call_args.kwargs["json"]["Amount"], 500)
+
+    # 10. Payment edits keep their account without looking it up again
+    def test_editing_a_payment_does_not_look_up_its_account_again(self):
+        response = self.client.post("/api/payments/", {"receipt": self.first_invoice.id, "amount": "100",
+                                                       "method": "cash"}, format="json")
+        payment = Payment.all_objects.get(pk=response.data["id"])
+        from unittest import mock
+        with mock.patch.object(Payment, "account_from_related", side_effect=AssertionError("looked up")):
+            payment.notes = "edited"
+            payment.save(update_fields=["notes"])
+        self.assertEqual(Payment.all_objects.get(pk=payment.pk).account_id, self.user.account_id)
+
+
+    def test_migration_marks_the_server_paybill_owner_and_removed_members(self):
+        import importlib
+        from django.apps import apps
+        from .models import Account
+        migration = importlib.import_module("app.migrations.0009_server_mpesa_owner_and_removed_members")
+        Account.objects.update(uses_server_mpesa=False)
+        removed = get_user_model().objects.create_user(username="gone", email="gone@example.com", password="pw",
+                                                       account=self.user.account, role="caretaker", is_active=False)
+        pending = get_user_model().objects.create_user(username="pending", email="pending@example.com", password="pw",
+                                                       is_active=False)  # a sign-up awaiting activation
+        migration.mark_server_mpesa_owner(apps, None)
+        migration.mark_removed_members(apps, None)
+        self.assertEqual(list(Account.objects.filter(uses_server_mpesa=True).values_list("id", flat=True)),
+                         [self.user.account_id])
+        removed.refresh_from_db(); pending.refresh_from_db()
+        self.assertIsNotNone(removed.removed_at)
+        self.assertFalse(removed.has_usable_password())
+        self.assertIsNone(pending.removed_at)

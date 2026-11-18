@@ -76,6 +76,8 @@ def _money(value):
 def _pay_line(row, account):
     # The account's own paybill, never another landlord's
     shortcode, _ = account.mpesa_credentials()
+    if shortcode and account.mpesa_is_till():
+        return f" Pay via M-Pesa Buy Goods till {shortcode}."
     return f" Pay via M-Pesa paybill {shortcode}, account {row['unit']}." if shortcode else ""
 
 

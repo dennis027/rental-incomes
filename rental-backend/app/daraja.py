@@ -71,7 +71,7 @@ def stk_push(account, phone, amount, reference, description, callback_url):
         "BusinessShortCode": shortcode,
         "Password": password,
         "Timestamp": timestamp,
-        "TransactionType": getattr(settings, "MPESA_TRANSACTION_TYPE", "") or "CustomerPayBillOnline",
+        "TransactionType": "CustomerBuyGoodsOnline" if account.mpesa_is_till() else "CustomerPayBillOnline",
         "Amount": int(amount),
         "PartyA": phone,
         "PartyB": shortcode,

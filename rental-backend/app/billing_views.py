@@ -40,9 +40,11 @@ def _decimal(raw, default=None):
     if raw in (None, ""):
         return default
     try:
-        return Decimal(str(raw))
+        value = Decimal(str(raw))
     except (InvalidOperation, ValueError):
         return default
+    # "Infinity" and "NaN" parse, but are no amount of money
+    return value if value.is_finite() else default
 
 
 def _property_card(prop):
@@ -349,7 +351,7 @@ def _callback_account(token):
     """
     The callback URLs are public, so they carry a secret that only Safaricom is
     given. Each account has its own; the older single MPESA_CALLBACK_TOKEN still
-    works and belongs to the first account, so a paybill already registered with
+    works and belongs to the account marked uses_server_mpesa, so a paybill already registered with
     Safaricom keeps working.
     """
     token = str(token)
@@ -357,7 +359,7 @@ def _callback_account(token):
     if account is None:
         expected = getattr(settings, "MPESA_CALLBACK_TOKEN", "")
         if expected and hmac.compare_digest(token, str(expected)):
-            account = Account.objects.filter(pk=Account.first_account_id()).first()
+            account = Account.objects.filter(uses_server_mpesa=True).first()
     if account is None:
         raise Http404()
     return account
@@ -563,10 +565,22 @@ class StkPushView(APIView):
         owed = billing.outstanding(billing.contract_invoices(contract)).quantize(Decimal("1"), rounding=ROUND_CEILING)
         if owed < 1:
             return Response({"error": "Nothing is owed on this invoice."}, status=status.HTTP_400_BAD_REQUEST)
-        amount = _decimal(request.data.get("amount"), owed)
-        if amount is None or amount < 1:
+        raw = request.data.get("amount")
+        if raw in (None, ""):
+            amount = owed  # the whole balance, already rounded up
+        else:
+            amount = _decimal(raw)
+            if amount is None:
+                return Response({"amount": ["Enter an amount in shillings, such as 1500."]},
+                                status=status.HTTP_400_BAD_REQUEST)
+            # An amount typed in is asked for as typed: whole shillings only,
+            # never rounded up to more than the user meant
+            if amount != amount.to_integral_value():
+                return Response({"amount": ["M-Pesa takes whole shillings; enter an amount without cents."]},
+                                status=status.HTTP_400_BAD_REQUEST)
+        if amount < 1:
             return Response({"amount": ["Enter at least KES 1."]}, status=status.HTTP_400_BAD_REQUEST)
-        amount = amount.quantize(Decimal("1"), rounding=ROUND_CEILING)
+        amount = amount.quantize(Decimal("1"))
         if amount > owed:
             return Response({"amount": [f"The tenant owes KES {owed:,}; ask for that or less."]},
                             status=status.HTTP_400_BAD_REQUEST)
