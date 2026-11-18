@@ -15,6 +15,7 @@ import random
 import logging
 from datetime import datetime
 from rest_framework.permissions import AllowAny, IsAuthenticated
+from .permissions import IsAccountMember
 from django.template.loader import render_to_string
 from django.utils.html import strip_tags
 from django.core.cache import cache
@@ -93,7 +94,7 @@ class RegisterView(generics.CreateAPIView):
                     html_content = render_to_string('emails/activation_email.html', {
                         'user': user,
                         'activation_link': activation_link,
-                        'site_name': 'RentSystem',
+                        'site_name': 'KodiDesk',
                     })
                     
                     # Create plain text version
@@ -103,7 +104,7 @@ class RegisterView(generics.CreateAPIView):
                     plain_text_message = f"""
                     Hi {user.username},
 
-                    Welcome to RentSystem! 
+                    Welcome to KodiDesk! 
 
                     Please click the link below to activate your account:
                     {activation_link}
@@ -113,13 +114,13 @@ class RegisterView(generics.CreateAPIView):
                     If you didn't create this account, please ignore this email.
 
                     Best regards,
-                    RentSystem Team
+                    KodiDesk Team
 
                     ---
                     This is an automated email, please do not reply directly to this message.
                     """.strip()
                     
-                    subject = "Activate your RentSystem Account"
+                    subject = "Activate your KodiDesk Account"
                     
                     # Sent by the Celery worker once the user row is committed
                     transaction.on_commit(lambda: tasks.send_email.delay(
@@ -240,7 +241,7 @@ class ResendActivationWithRateLimitView(APIView):
                 html_content = render_to_string('emails/activation_email.html', {
                     'user': user,
                     'activation_link': activation_link,
-                    'site_name': 'RentSystem',
+                    'site_name': 'KodiDesk',
                     'is_resend': True,
                 })
                 
@@ -248,7 +249,7 @@ class ResendActivationWithRateLimitView(APIView):
                 plain_text_message = f"""
                     Hi {user.username},
 
-                    We received a request to resend your account activation email for RentSystem.
+                    We received a request to resend your account activation email for KodiDesk.
 
                     Please click the link below to activate your account:
                     {activation_link}
@@ -258,13 +259,13 @@ class ResendActivationWithRateLimitView(APIView):
                     If you didn't request this email, please ignore this message.
 
                     Best regards,
-                    RentSystem Team
+                    KodiDesk Team
 
                     ---
                     This is an automated email, please do not reply directly to this message.
                 """.strip()
                 
-                subject = "RentSystem - Account Activation (Resend)"
+                subject = "KodiDesk - Account Activation (Resend)"
                 
                 tasks.send_email.delay(subject, plain_text_message, [user.email], html_content)
                 
@@ -366,7 +367,11 @@ class LoginView(generics.GenericAPIView):
                             "id": user.id,
                             "username": user.username,
                             "email": user.email,
-                            "is_active": user.is_active
+                            "is_active": user.is_active,
+                            "full_name": user.get_full_name(),
+                            # The dashboard shows only the pages this role may open
+                            "role": user.role,
+                            "account": user.account.name if user.account_id else None,
                         }
                     }
                 }, status=status.HTTP_200_OK)
@@ -732,7 +737,7 @@ class PasswordResetConfirmView(generics.GenericAPIView):
         
 
 class LogoutView(generics.GenericAPIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAccountMember]
 
     def post(self, request, *args, **kwargs):
         try:
@@ -776,7 +781,7 @@ class LogoutView(generics.GenericAPIView):
 
 # ----------------- Property APIs -----------------
 class PropertyListCreate(APIView):
-    # permission_classes = [IsAuthenticated]
+    # permission_classes = [IsAccountMember]
 
     @cached_get
     def get(self, request):
@@ -793,7 +798,7 @@ class PropertyListCreate(APIView):
 
 
 class PropertyDetail(APIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAccountMember]
 
     @cached_get
     def get(self, request, pk):
@@ -837,7 +842,7 @@ class PropertyDetail(APIView):
 
 # ----------------- Unit APIs -----------------
 class UnitListCreate(APIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAccountMember]
 
     @cached_get
     def get(self, request):
@@ -864,7 +869,7 @@ class UnitListCreate(APIView):
 
 
 class UnitDetail(APIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAccountMember]
 
     @cached_get
     def get(self, request, pk):
@@ -907,7 +912,7 @@ class PropertyDetailView(APIView):
     - System parameters
     - Recent maintenance requests
     """
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAccountMember]
     
     @cached_get
     def get(self, request, property_id):
@@ -1025,7 +1030,7 @@ class UnitDetailView(APIView):
     - Payment history
     - Maintenance requests
     """
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAccountMember]
     
     @cached_get
     def get(self, request, unit_id):
@@ -1177,7 +1182,7 @@ class PropertyDashboardView(APIView):
     - Top performing properties
     - Alerts and notifications
     """
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAccountMember]
     
     @cached_get
     def get(self, request):
@@ -1283,7 +1288,7 @@ class PropertyUnitsListView(APIView):
     """
     Get all units for a specific property with tenant and contract info
     """
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAccountMember]
     
     @cached_get
     def get(self, request, property_id):
@@ -1348,7 +1353,7 @@ class PropertyUnitsListView(APIView):
 
 # ----------------- Customer APIs -----------------
 class CustomerListCreate(APIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAccountMember]
 
     @cached_get
     def get(self, request):
@@ -1369,7 +1374,7 @@ class CustomerListCreate(APIView):
 
 
 class CustomerDetail(APIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAccountMember]
 
     @cached_get
     def get(self, request, pk):
@@ -1414,7 +1419,7 @@ class CustomerDetailView(APIView):
     - Maintenance requests submitted
     - Payment behavior analytics
     """
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAccountMember]
     
     @cached_get
     def get(self, request, customer_id):
@@ -1673,7 +1678,7 @@ class CustomerDetailView(APIView):
 
 # ----------------- RentalContract APIs -----------------
 class RentalContractListCreate(APIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAccountMember]
 
     @cached_get
     def get(self, request):
@@ -1773,7 +1778,7 @@ class RentalContractListCreate(APIView):
 
 
 class RentalContractCancel(APIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAccountMember]
 
     def post(self, request, pk):
         contract = get_object_or_404(RentalContract, pk=pk)
@@ -1800,7 +1805,7 @@ class RentalContractCancel(APIView):
 
 
 class RentalContractDetail(APIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAccountMember]
 
     @cached_get
     def get(self, request, pk):
@@ -1824,7 +1829,7 @@ class RentalContractDetail(APIView):
 
 
 class ContractSearchView(CachedGetMixin, generics.ListAPIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAccountMember]
     queryset = RentalContract.objects.all().select_related("customer", "unit")
     serializer_class = RentalContractSerializer
     filter_backends = [filters.SearchFilter]
@@ -1842,7 +1847,7 @@ class ContractSearchView(CachedGetMixin, generics.ListAPIView):
 
 
 class PaymentListCreateView(CachedGetMixin, generics.ListCreateAPIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAccountMember]
     # Everything the serializer reads is fetched in the same query; one query
     # per payment is slow enough to time the request out
     queryset = Payment.objects.select_related(
@@ -1881,7 +1886,7 @@ class PaymentListCreateView(CachedGetMixin, generics.ListCreateAPIView):
 
 
 class PaymentDetailView(CachedGetMixin, generics.RetrieveUpdateDestroyAPIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAccountMember]
     queryset = Payment.objects.all()
     serializer_class = PaymentSerializer
 
@@ -1889,7 +1894,7 @@ class PaymentDetailView(CachedGetMixin, generics.RetrieveUpdateDestroyAPIView):
 
 # ----------------- Models (for expenses) -----------------
 class ExpenseListCreateView(CachedGetMixin, generics.ListCreateAPIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAccountMember]
     queryset = Expense.objects.select_related("property", "recorded_by").only(*_columns(
         Expense, "property__name", "recorded_by__username"
     )).order_by("-expense_date")
@@ -1902,13 +1907,13 @@ class ExpenseListCreateView(CachedGetMixin, generics.ListCreateAPIView):
 
 
 class ExpenseDetailView(CachedGetMixin, generics.RetrieveUpdateDestroyAPIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAccountMember]
     queryset = Expense.objects.all()
     serializer_class = ExpenseSerializer
 
 
 class MaintenanceRequestListCreateView(CachedGetMixin, generics.ListCreateAPIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAccountMember]
     queryset = MaintenanceRequest.objects.select_related("unit__property", "customer").order_by("-reported_date")
     serializer_class = MaintenanceRequestSerializer
     filter_backends = [filters.SearchFilter]
@@ -1922,7 +1927,7 @@ class MaintenanceRequestListCreateView(CachedGetMixin, generics.ListCreateAPIVie
 
 
 class MaintenanceRequestDetailView(CachedGetMixin, generics.RetrieveUpdateDestroyAPIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAccountMember]
     queryset = MaintenanceRequest.objects.all()
     serializer_class = MaintenanceRequestSerializer
 
@@ -1939,7 +1944,7 @@ class MaintenanceRequestDetailView(CachedGetMixin, generics.RetrieveUpdateDestro
 # #########################   ANALYTICS VIEWS  #########################
 
 class PropertyUnitsAnalyticsView(APIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAccountMember]
     @cached_get
     def get(self, request):
         properties = Property.objects.annotate(
@@ -1990,7 +1995,7 @@ class PropertyUnitsAnalyticsView(APIView):
 # ######## RECEIPT VIEW #########
 
 class ReceiptListCreateView(CachedGetMixin, generics.ListCreateAPIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAccountMember]
     queryset = Receipt.objects.select_related("contract__customer", "contract__unit__property").only(*_columns(
         Receipt,
         "contract__contract_number",
@@ -2010,7 +2015,7 @@ class ReceiptListCreateView(CachedGetMixin, generics.ListCreateAPIView):
 
 
 class ReceiptDetailView(CachedGetMixin, generics.RetrieveUpdateDestroyAPIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAccountMember]
     queryset = Receipt.objects.all().select_related(
         "contract", 
         "issued_by", 
@@ -2072,7 +2077,7 @@ class ReceiptDetailView(CachedGetMixin, generics.RetrieveUpdateDestroyAPIView):
 
 
 class GenerateMonthlyReceiptsView(APIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAccountMember]
     
     def post(self, request):
         month = request.data.get("month")
@@ -2186,14 +2191,15 @@ class GenerateMonthlyReceiptsView(APIView):
                 "already_existed": skipped_existing,
                 "no_active_contract": skipped_inactive,
             },
-            "generated_receipts": created_receipts
+            "generated_receipts": created_receipts,
+            "count": created_count,
         }, status=status.HTTP_201_CREATED)
 
 
 
 
 class GetActiveUnitsForPropertyView(APIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAccountMember]
 
     @cached_get
     def get(self, request):
@@ -2252,7 +2258,7 @@ class GenerateMonthlyReceiptsWithReadingsView(APIView):
     Generate monthly receipts with meter readings
     This accepts meter readings for water and electricity and calculates bills
     """
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAccountMember]
     
     def post(self, request):
         month = request.data.get("month")
@@ -2440,7 +2446,7 @@ class GenerateMonthlyReceiptsWithReadingsView(APIView):
         return Response(response_data, status=status.HTTP_201_CREATED)
 
 class PropertySystemParameterView(APIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAccountMember]
 
     @cached_get
     def get(self, request, property_id):
@@ -2478,7 +2484,7 @@ class PropertySystemParameterView(APIView):
 
 
 @api_view(['GET'])
-@permission_classes([IsAuthenticated])
+@permission_classes([IsAccountMember])
 @cached_get
 def dashboard_summary(request):
     """
@@ -2553,7 +2559,7 @@ def _recent_months(months):
 
 
 @api_view(['GET'])
-@permission_classes([IsAuthenticated])
+@permission_classes([IsAccountMember])
 @cached_get
 def monthly_rent_collection(request):
     """
@@ -2579,7 +2585,7 @@ def monthly_rent_collection(request):
 
 
 @api_view(['GET'])
-@permission_classes([IsAuthenticated])
+@permission_classes([IsAccountMember])
 @cached_get
 def occupancy_stats(request):
     """
@@ -2606,7 +2612,7 @@ def occupancy_stats(request):
 
 
 @api_view(['GET'])
-@permission_classes([IsAuthenticated])
+@permission_classes([IsAccountMember])
 @cached_get
 def payment_methods_breakdown(request):
     """
@@ -2637,7 +2643,7 @@ def payment_methods_breakdown(request):
 
 
 @api_view(['GET'])
-@permission_classes([IsAuthenticated])
+@permission_classes([IsAccountMember])
 @cached_get
 def revenue_vs_expenses(request):
     """
@@ -2697,7 +2703,7 @@ def _date_param(request, name, default):
 
 class BaseReportView(APIView):
     """Base class with common filtering logic"""
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAccountMember]
 
     # Filters that are passed straight into queries and must be numeric
     numeric_params = ('property_id', 'min_balance', 'max_rent')
@@ -2777,7 +2783,7 @@ class TotalRevenueReportView(BaseReportView):
     Revenue, expenses and outstanding amounts for each property
     Query params: ?property_id=1&start_date=2024-01-01&end_date=2024-12-31
     """
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAccountMember]
 
     @cached_get
     def get(self, request):
@@ -2846,7 +2852,7 @@ class OutstandingBalancesReportView(BaseReportView):
     All units with outstanding balances
     Query params: ?property_id=1&min_balance=1000&status=occupied
     """
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAccountMember]
     @cached_get
     def get(self, request):
         property_id = request.query_params.get('property_id')
@@ -2910,7 +2916,7 @@ class PaymentCollectionReportView(BaseReportView):
     Payment collections over time with trends
     Query params: ?property_id=1&start_date=2024-01-01&end_date=2024-12-31&group_by=day
     """
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAccountMember]
     @cached_get
     def get(self, request):
         start_date, end_date = self.get_date_range(request)
@@ -2972,7 +2978,7 @@ class RentRollReportView(BaseReportView):
     Current rent roll - all active contracts
     Query params: ?property_id=1&unit_type=one_bedroom
     """
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAccountMember]
     @cached_get
     def get(self, request):
         property_id = request.query_params.get('property_id')
@@ -3035,7 +3041,7 @@ class DepositTrackingReportView(BaseReportView):
     Track all deposits collected and status
     Query params: ?property_id=1&start_date=2024-01-01&end_date=2024-12-31
     """
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAccountMember]
     @cached_get
     def get(self, request):
         start_date, end_date = self.get_date_range(request)
@@ -3103,7 +3109,7 @@ class ExpenseAnalysisReportView(BaseReportView):
     Expense analysis by property and time period
     Query params: ?property_id=1&start_date=2024-01-01&end_date=2024-12-31
     """
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAccountMember]
     @cached_get
     def get(self, request):
         start_date, end_date = self.get_date_range(request)
@@ -3174,7 +3180,7 @@ class ProfitLossReportView(BaseReportView):
     Profit & Loss statement
     Query params: ?property_id=1&start_date=2024-01-01&end_date=2024-12-31
     """
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAccountMember]
     @cached_get
     def get(self, request):
         start_date, end_date = self.get_date_range(request)
@@ -3244,7 +3250,7 @@ class DefaultersReportView(BaseReportView):
     Tenants with overdue balances
     Query params: ?property_id=1&min_balance=500&days_overdue=7
     """
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAccountMember]
 
     @cached_get
     def get(self, request):
@@ -3324,7 +3330,7 @@ class PaymentMethodAnalysisView(BaseReportView):
     Analysis of payment methods usage
     Query params: ?property_id=1&start_date=2024-01-01&end_date=2024-12-31
     """
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAccountMember]
     @cached_get
     def get(self, request):
         start_date, end_date = self.get_date_range(request)
@@ -3370,7 +3376,7 @@ class RevenueForecastReportView(BaseReportView):
     Revenue forecast based on active contracts
     Query params: ?property_id=1&months=3
     """
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAccountMember]
     @cached_get
     def get(self, request):
         property_id = request.query_params.get('property_id')
@@ -3413,7 +3419,7 @@ class OccupancyRateReportView(BaseReportView):
     Occupancy rate by property
     Query params: ?property_id=1
     """
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAccountMember]
     @cached_get
     def get(self, request):
         property_id = request.query_params.get('property_id')
@@ -3469,7 +3475,7 @@ class UnitPerformanceReportView(BaseReportView):
     Performance metrics for each unit
     Query params: ?property_id=1&order_by=revenue
     """
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAccountMember]
 
     @cached_get
     def get(self, request):
@@ -3529,7 +3535,7 @@ class VacancyDurationReportView(BaseReportView):
     Track how long units have been vacant
     Query params: ?property_id=1&min_days=30
     """
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAccountMember]
     @cached_get
     def get(self, request):
         property_id = request.query_params.get('property_id')
@@ -3589,7 +3595,7 @@ class UnitTypeAnalysisView(BaseReportView):
     Performance analysis by unit type
     Query params: ?property_id=1
     """
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAccountMember]
 
     @cached_get
     def get(self, request):
@@ -3639,7 +3645,7 @@ class TenantMovementReportView(BaseReportView):
     Track tenant move-ins and move-outs
     Query params: ?property_id=1&start_date=2024-01-01&end_date=2024-12-31
     """
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAccountMember]
     @cached_get
     def get(self, request):
         start_date, end_date = self.get_date_range(request)
@@ -3696,7 +3702,7 @@ class RentPricingAnalysisView(BaseReportView):
     Rent pricing analysis by unit type and property
     Query params: ?property_id=1
     """
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAccountMember]
 
     @cached_get
     def get(self, request):
@@ -3755,7 +3761,7 @@ class UnitUtilizationReportView(BaseReportView):
     Historical occupancy trends
     Query params: ?property_id=1&months=12
     """
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAccountMember]
 
     @cached_get
     def get(self, request):
@@ -3815,7 +3821,7 @@ class AvailableUnitsReportView(BaseReportView):
     List of all available (vacant) units
     Query params: ?property_id=1&unit_type=one_bedroom&max_rent=50000
     """
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAccountMember]
     @cached_get
     def get(self, request):
         property_id = request.query_params.get('property_id')
@@ -3876,7 +3882,7 @@ class TenantDirectoryReportView(BaseReportView):
     Complete tenant directory
     Query params: ?property_id=1&is_active=true
     """
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAccountMember]
     @cached_get
     def get(self, request):
         property_id = request.query_params.get('property_id')
@@ -3917,7 +3923,7 @@ class TenantDirectoryReportView(BaseReportView):
         })
 
 class TenantPaymentHistoryView(BaseReportView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAccountMember]
 
     @cached_get
     def get(self, request, tenant_id):
@@ -3974,7 +3980,7 @@ class TenantPaymentHistoryView(BaseReportView):
     
 
 class TenantArrearsAgingView(BaseReportView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAccountMember]
 
     @cached_get
     def get(self, request):
@@ -4055,7 +4061,7 @@ class ContractExpiryReportView(BaseReportView):
     Contracts expiring soon
     Query params: ?property_id=1&days=30
     """
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAccountMember]
     @cached_get
     def get(self, request):
         property_id = request.query_params.get('property_id')
@@ -4105,7 +4111,7 @@ class NewTenantReportView(BaseReportView):
     Recently onboarded tenants
     Query params: ?property_id=1&days=30
     """
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAccountMember]
     @cached_get
     def get(self, request):
         property_id = request.query_params.get('property_id')
@@ -4145,7 +4151,7 @@ class TenantRetentionReportView(BaseReportView):
     Tenant retention metrics
     Query params: ?property_id=1
     """
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAccountMember]
     @cached_get
     def get(self, request):
         property_id = request.query_params.get('property_id')
@@ -4197,7 +4203,7 @@ class UtilityConsumptionReportView(BaseReportView):
     Water and electricity consumption by unit
     Query params: ?property_id=1&start_date=2024-01-01&end_date=2024-12-31
     """
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAccountMember]
     @cached_get
     def get(self, request):
         start_date, end_date = self.get_date_range(request)
@@ -4249,7 +4255,7 @@ class UtilityRevenueReportView(BaseReportView):
     Revenue from utility bills
     Query params: ?property_id=1&start_date=2024-01-01&end_date=2024-12-31
     """
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAccountMember]
     @cached_get
     def get(self, request):
         start_date, end_date = self.get_date_range(request)
@@ -4299,7 +4305,7 @@ class MaintenanceRequestReportView(BaseReportView):
     Maintenance requests tracking
     Query params: ?property_id=1&status=pending&start_date=2024-01-01
     """
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAccountMember]
     @cached_get
     def get(self, request):
         start_date, end_date = self.get_date_range(request)
@@ -4364,7 +4370,7 @@ class MaintenanceCostReportView(BaseReportView):
     Maintenance-related expenses
     Query params: ?property_id=1&start_date=2024-01-01&end_date=2024-12-31
     """
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAccountMember]
     @cached_get
     def get(self, request):
         start_date, end_date = self.get_date_range(request)
@@ -4425,7 +4431,7 @@ class ExecutiveDashboardView(BaseReportView):
     High-level KPIs for executive dashboard
     Query params: ?property_id=1&period=30 (days)
     """
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAccountMember]
     @cached_get
     def get(self, request):
         property_id = request.query_params.get('property_id')
@@ -4510,7 +4516,7 @@ class PropertyComparisonReportView(BaseReportView):
     Side-by-side comparison of all properties
     Query params: ?start_date=2024-01-01&end_date=2024-12-31
     """
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAccountMember]
 
     @cached_get
     def get(self, request):
@@ -4557,7 +4563,7 @@ class ProtectedMediaView(APIView):
     Uploaded files (tenant ID photos) for signed-in users only. The files used
     to be public links in development and were not served at all in production.
     """
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAccountMember]
 
     def get(self, request, path):
         try:
