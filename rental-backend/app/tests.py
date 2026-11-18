@@ -19,14 +19,15 @@ class BillingFlowTests(TestCase):
         self.client = APIClient()
         self.client.force_authenticate(self.user)
 
-        self.property = Property.objects.create(name="Sunrise", address="Ngong Road")
+        self.property = Property.objects.create(name="Sunrise", address="Ngong Road", account=self.user.account)
         self.params = SystemParameter.objects.create(
             property=self.property, late_payment_penalty_rate=Decimal("5"), grace_period_days=5,
             has_service_charge=False, water_unit_cost=Decimal("100"), electicity_unit_cost=Decimal("20"),
         )
         self.unit = Unit.objects.create(property=self.property, unit_number="B12", rent_amount=10000)
         self.customer = Customer.objects.create(
-            first_name="Wanjiru", last_name="Kamau", phone_number="0712345678", id_number="1"
+            first_name="Wanjiru", last_name="Kamau", phone_number="0712345678", id_number="1",
+            account=self.user.account,
         )
         response = self.client.post("/api/contracts/", {
             "customer": self.customer.id, "unit": self.unit.id, "start_date": "2026-01-01",
@@ -341,7 +342,7 @@ class ApiCacheTests(TestCase):
         self.user = get_user_model().objects.create_user(username="landlord", password="pw")
         self.client = APIClient()
         self.client.force_authenticate(self.user)
-        self.property = Property.objects.create(name="Sunrise", address="Ngong Road")
+        self.property = Property.objects.create(name="Sunrise", address="Ngong Road", account=self.user.account)
 
     def test_repeat_reads_come_from_the_cache(self):
         first = self.client.get("/api/properties/")
@@ -429,3 +430,314 @@ class PublicFormTests(TestCase):
         client = APIClient()
         client.credentials(HTTP_AUTHORIZATION="Bearer expired-or-garbage")
         self.assertEqual(client.post("/api/contact/", self.contact, format="json").status_code, 201)
+
+
+@override_settings(MPESA_CALLBACK_TOKEN="secret-token", SECURE_SSL_REDIRECT=False)
+class AccountIsolationTests(TestCase):
+    """Two landlords on the same server never see each other's data."""
+
+    def setUp(self):
+        from django.core.cache import cache
+        cache.clear()
+        BillingFlowTests.setUp(self)  # landlord A with a property, unit, tenant, contract and invoice
+        self.other = get_user_model().objects.create_user(username="other", email="other@example.com", password="pw")
+        self.other_client = APIClient()
+        self.other_client.force_authenticate(self.other)
+
+    def member(self, role):
+        user = get_user_model().objects.create_user(
+            username=role, email=f"{role}@example.com", password="pw", account=self.user.account, role=role,
+        )
+        client = APIClient()
+        client.force_authenticate(user)
+        return client
+
+    def test_each_signup_gets_its_own_account(self):
+        self.assertIsNotNone(self.user.account_id)
+        self.assertNotEqual(self.user.account_id, self.other.account_id)
+        self.assertEqual(self.other.role, "owner")
+
+    def test_lists_only_show_your_own_rows(self):
+        self.client.post("/api/payments/", {
+            "receipt": self.first_invoice.id, "amount": "100", "method": "cash",
+        }, format="json")
+        for url in ("/api/properties/", "/api/units/", "/api/customers/", "/api/contracts/",
+                    "/api/receipts/", "/api/payments/"):
+            response = self.other_client.get(url)
+            self.assertEqual(response.status_code, 200, url)
+            self.assertEqual(response.json(), [], url)
+            self.assertNotEqual(self.client.get(url).json(), [], url)
+
+    def test_cannot_open_or_change_another_accounts_rows(self):
+        self.assertEqual(self.other_client.get(f"/api/properties/{self.property.id}/").status_code, 404)
+        self.assertEqual(self.other_client.get(f"/api/customers/{self.customer.id}/").status_code, 404)
+        self.assertEqual(self.other_client.delete(f"/api/receipts/{self.first_invoice.id}/").status_code, 404)
+        # Nor attach new rows to them
+        response = self.other_client.post("/api/units/", {
+            "property": self.property.id, "unit_number": "X1", "rent_amount": 5000,
+        }, format="json")
+        self.assertEqual(response.status_code, 400)
+        response = self.other_client.post("/api/payments/", {
+            "receipt": self.first_invoice.id, "amount": "100", "method": "cash",
+        }, format="json")
+        self.assertEqual(response.status_code, 400)
+
+    def test_new_rows_belong_to_the_creator_and_the_body_cannot_say_otherwise(self):
+        response = self.other_client.post("/api/properties/", {
+            "name": "Lakeview", "address": "Kisumu", "account": self.user.account_id,
+        }, format="json")
+        self.assertEqual(response.status_code, 201, response.data)
+        self.assertEqual(Property.all_objects.get(name="Lakeview").account_id, self.other.account_id)
+        self.assertEqual([p["name"] for p in self.client.get("/api/properties/").json()], ["Sunrise"])
+
+    def test_the_same_tenant_can_rent_from_two_landlords(self):
+        data = {"first_name": "Wanjiru", "last_name": "Kamau", "phone_number": "0712345678", "id_number": "1"}
+        self.assertEqual(self.other_client.post("/api/customers/", data, format="json").status_code, 201)
+        # but not twice from the same one
+        self.assertEqual(self.client.post("/api/customers/", data, format="json").status_code, 400)
+
+    def test_cached_pages_are_per_account(self):
+        self.assertEqual(len(self.client.get("/api/properties/").json()), 1)
+        self.assertEqual(self.other_client.get("/api/properties/").json(), [])
+
+    def test_paybill_payments_go_to_the_account_of_the_callback_url(self):
+        other_property = Property.all_objects.create(name="Elsewhere", address="Thika", account=self.other.account)
+        other_unit = Unit.all_objects.create(property=other_property, unit_number="B12", rent_amount=1000)
+        self.assertTrue(other_unit.pk)
+        token = self.user.account.mpesa_callback_token
+        response = self.client.post(f"/api/paybill/{token}/confirmation/", {
+            "TransID": "Y1", "TransAmount": "1000", "BillRefNumber": "B12",
+        }, format="json")
+        self.assertEqual(response.status_code, 200)
+        row = MpesaTransaction.all_objects.get(trans_id="Y1")
+        self.assertEqual(row.account_id, self.user.account_id)
+        self.assertEqual(row.payment.receipt.contract_id, self.contract.id)
+        self.assertEqual(self.other_client.get("/api/paybill-transactions/").data["transactions"], [])
+
+    def test_caretaker_handles_repairs_but_not_money(self):
+        caretaker = self.member("caretaker")
+        self.assertEqual(caretaker.get("/api/units/").status_code, 200)
+        self.assertEqual(caretaker.get("/api/payments/").status_code, 403)
+        self.assertEqual(caretaker.get("/api/receipts/").status_code, 403)
+        self.assertEqual(caretaker.post("/api/properties/", {"name": "N", "address": "A"}, format="json").status_code, 403)
+        response = caretaker.post("/api/maintenance-requests/", {
+            "unit": self.unit.id, "description": "Leaking tap",
+        }, format="json")
+        self.assertNotEqual(response.status_code, 403)
+
+    def test_accountant_records_money_but_not_buildings(self):
+        accountant = self.member("accountant")
+        self.assertEqual(accountant.get("/api/properties/").status_code, 200)
+        self.assertEqual(accountant.post("/api/properties/", {"name": "N", "address": "A"}, format="json").status_code, 403)
+        response = accountant.post("/api/payments/", {
+            "receipt": self.first_invoice.id, "amount": "100", "method": "cash",
+        }, format="json")
+        self.assertEqual(response.status_code, 201, response.data)
+
+    def test_only_owners_manage_the_team(self):
+        manager = self.member("manager")
+        new = {"username": "kamau", "email": "kamau@example.com", "role": "caretaker"}
+        self.assertEqual(manager.post("/api/team/", new, format="json").status_code, 403)
+        self.assertEqual(manager.get("/api/team/").status_code, 200)
+
+        from django.core import mail
+        with self.captureOnCommitCallbacks(execute=True):
+            response = self.client.post("/api/team/", new, format="json")
+        self.assertEqual(response.status_code, 201, response.data)
+        added = get_user_model().objects.get(username="kamau")
+        self.assertEqual(added.account_id, self.user.account_id)
+        self.assertFalse(added.has_usable_password())
+        self.assertEqual(mail.outbox[-1].to, ["kamau@example.com"])
+
+        # Members of another account are out of reach
+        self.assertEqual(self.other_client.patch(f"/api/team/{added.id}/", {"role": "owner"}, format="json").status_code, 404)
+        # The last owner stays an owner
+        me = self.client.patch(f"/api/team/{self.user.id}/", {"role": "manager"}, format="json")
+        self.assertEqual(me.status_code, 400)
+        self.assertEqual(self.client.delete(f"/api/team/{added.id}/").status_code, 204)
+        added.refresh_from_db()
+        self.assertFalse(added.is_active)
+
+    def test_me_and_account(self):
+        me = self.client.get("/api/me/").json()
+        self.assertEqual(me["role"], "owner")
+        self.assertEqual(me["account"]["id"], self.user.account_id)
+        account = self.client.get("/api/account/").json()
+        self.assertIn(self.user.account.mpesa_callback_token, account["paybill_confirmation_url"])
+        response = self.client.patch("/api/account/", {"name": "Kamau Homes", "sms_reminders_enabled": True}, format="json")
+        self.assertEqual(response.status_code, 200, response.data)
+        self.assertEqual(self.member("caretaker").patch("/api/account/", {"name": "x"}, format="json").status_code, 403)
+
+
+@override_settings(MPESA_CALLBACK_TOKEN="secret-token", SECURE_SSL_REDIRECT=False)
+class RentalIncomeTaxTests(TestCase):
+    def setUp(self):
+        BillingFlowTests.setUp(self)
+
+    def test_tax_is_on_the_rent_share_of_payments_received(self):
+        # The first invoice is rent 10,000 plus a 10,000 deposit, so half of each payment is rent
+        self.assertEqual(self.first_invoice.new_charges, Decimal("20000.00"))
+        self.client.post("/api/payments/", {
+            "receipt": self.first_invoice.id, "amount": "8000", "method": "mpesa", "reference": "T1",
+        }, format="json")
+        today = timezone.localdate()
+        data = self.client.get(f"/api/reports/rental-income-tax/?month={today:%Y-%m}").json()
+        self.assertEqual(data["totals"]["collected"], 8000)
+        self.assertEqual(data["totals"]["rent"], 4000)
+        self.assertEqual(data["totals"]["tax"], 300)
+        self.assertEqual(data["due_date"][-2:], "20")
+        self.assertEqual(data["regime"], "below_threshold")
+        self.assertEqual(len(data["payments"]), 1)
+
+        # A month with nothing received is a nil return
+        empty = self.client.get("/api/reports/rental-income-tax/?month=2020-01").json()
+        self.assertEqual(empty["totals"]["tax"], 0)
+        self.assertEqual(empty["due_date"], "2020-02-20")
+
+
+@override_settings(MPESA_CALLBACK_TOKEN="secret-token", SECURE_SSL_REDIRECT=False,
+                   AT_USERNAME="sandbox", AT_API_KEY="key", MPESA_SHORTCODE="174379")
+class SmsReminderTests(TestCase):
+    def setUp(self):
+        BillingFlowTests.setUp(self)  # the first invoice is unpaid and past its grace period
+        self.account = self.user.account
+        self.account.sms_reminders_enabled = True
+        self.account.save()
+
+    def provider(self, status="Success"):
+        from unittest import mock
+        response = mock.Mock()
+        response.json.return_value = {"SMSMessageData": {"Recipients": [{"status": status, "number": "+254712345678"}]}}
+        response.raise_for_status.return_value = None
+        return mock.patch("app.sms.requests.post", return_value=response)
+
+    def test_phone_numbers(self):
+        from .sms import kenyan_number
+        self.assertEqual(kenyan_number("0712 345 678"), "+254712345678")
+        self.assertEqual(kenyan_number("254112345678"), "+254112345678")
+        self.assertEqual(kenyan_number("+254712345678"), "+254712345678")
+        self.assertIsNone(kenyan_number("020 123 4567"))
+
+    def test_daily_run_texts_overdue_tenants_once_per_period(self):
+        from .models import SmsMessage
+        from .sms import send_daily_reminders
+        with self.provider() as post:
+            self.assertEqual(send_daily_reminders(), 1)
+            self.assertEqual(send_daily_reminders(), 0)  # not again until the repeat period passes
+        sent = post.call_args.kwargs["data"]
+        self.assertEqual(sent["to"], "+254712345678")
+        self.assertIn("overdue", sent["message"])
+        self.assertIn("paybill 174379, account B12", sent["message"])
+        self.assertEqual(SmsMessage.all_objects.get().kind, "overdue")
+
+        # Accounts that have not switched reminders on are left alone
+        SmsMessage.all_objects.all().delete()
+        self.account.sms_reminders_enabled = False
+        self.account.save()
+        with self.provider():
+            self.assertEqual(send_daily_reminders(), 0)
+
+    def test_send_now_from_the_arrears_page(self):
+        with self.provider("InvalidPhoneNumber"):
+            response = self.client.post("/api/reminders/send/", {"contract_ids": [self.contract.id]}, format="json")
+        self.assertEqual(response.status_code, 200, response.data)
+        self.assertEqual(response.data["failed"], 1)
+        with self.provider():
+            response = self.client.post("/api/reminders/send/", {"contract_ids": [self.contract.id]}, format="json")
+        self.assertEqual(response.data["sent"], 1)
+        log = self.client.get("/api/reminders/").data
+        self.assertTrue(log["configured"])
+        self.assertEqual([m["sent"] for m in log["messages"]], [True, False])
+
+    @override_settings(AT_API_KEY="")
+    def test_off_until_configured(self):
+        response = self.client.post("/api/reminders/send/", {"contract_ids": [self.contract.id]}, format="json")
+        self.assertEqual(response.status_code, 400)
+
+
+@override_settings(MPESA_CALLBACK_TOKEN="secret-token", SECURE_SSL_REDIRECT=False, MPESA_SHORTCODE="174379",
+                   MPESA_CONSUMER_KEY="key", MPESA_CONSUMER_SECRET="secret", MPESA_PASSKEY="passkey",
+                   MPESA_CALLBACK_BASE_URL="https://api.example.com")
+class StkPushTests(TestCase):
+    def setUp(self):
+        from django.core.cache import cache
+        cache.clear()
+        BillingFlowTests.setUp(self)
+
+    def daraja(self, response_code="0"):
+        from unittest import mock
+        token = mock.Mock(**{"json.return_value": {"access_token": "t"}, "raise_for_status.return_value": None})
+        push = mock.Mock(**{"json.return_value": {
+            "ResponseCode": response_code, "MerchantRequestID": "M1", "CheckoutRequestID": "ws_CO_1",
+            "errorMessage": "Invalid PhoneNumber",
+        }})
+        return mock.patch("app.daraja.requests.get", return_value=token), mock.patch("app.daraja.requests.post", return_value=push)
+
+    def callback(self, code=0, receipt="QK1ABC", amount=20000, token=None):
+        body = {"Body": {"stkCallback": {
+            "MerchantRequestID": "M1", "CheckoutRequestID": "ws_CO_1", "ResultCode": code,
+            "ResultDesc": "ok" if code == 0 else "Request cancelled by user",
+            "CallbackMetadata": {"Item": [{"Name": "Amount", "Value": amount}, {"Name": "MpesaReceiptNumber", "Value": receipt}]},
+        }}}
+        return APIClient().post(f"/api/mpesa/stk/{token or self.user.account.mpesa_callback_token}/callback/", body, format="json")
+
+    def test_prompt_then_payment_is_recorded_once(self):
+        get, post = self.daraja()
+        with get, post as sent:
+            response = self.client.post("/api/mpesa/stk/", {"receipt": self.first_invoice.id}, format="json")
+        self.assertEqual(response.status_code, 201, response.data)
+        payload = sent.call_args.kwargs["json"]
+        self.assertEqual(payload["PhoneNumber"], "254712345678")
+        self.assertEqual(payload["Amount"], 20000)  # the whole balance by default
+        self.assertEqual(payload["AccountReference"], "B12")
+        self.assertTrue(payload["CallBackURL"].endswith(f"/api/mpesa/stk/{self.user.account.mpesa_callback_token}/callback/"))
+
+        self.assertEqual(self.callback().status_code, 200)
+        self.assertEqual(self.callback().status_code, 200)  # Safaricom retries
+        status_row = self.client.get(f"/api/mpesa/stk/{response.data['id']}/").data
+        self.assertEqual(status_row["status"], "paid")
+        self.first_invoice.refresh_from_db()
+        self.assertEqual(self.first_invoice.amount_paid, Decimal("20000.00"))
+        self.assertEqual(Payment.objects.filter(reference="QK1ABC").count(), 1)
+
+        # The paybill confirmation for the same payment does not count it again
+        APIClient().post("/api/paybill/secret-token/confirmation/", {
+            "TransID": "QK1ABC", "TransAmount": "20000", "BillRefNumber": "B12",
+        }, format="json")
+        self.assertEqual(Payment.objects.filter(reference="QK1ABC").count(), 1)
+
+    def test_cancelled_prompt_and_refused_requests(self):
+        get, post = self.daraja()
+        with get, post:
+            response = self.client.post("/api/mpesa/stk/", {"receipt": self.first_invoice.id, "amount": "500"}, format="json")
+        self.callback(code=1032)
+        self.assertEqual(self.client.get(f"/api/mpesa/stk/{response.data['id']}/").data["status"], "failed")
+        self.assertEqual(Payment.objects.count(), 0)
+
+        get, post = self.daraja(response_code="1")
+        with get, post:
+            refused = self.client.post("/api/mpesa/stk/", {"receipt": self.first_invoice.id, "phone": "0712345678"}, format="json")
+        self.assertEqual(refused.status_code, 502)
+        self.assertEqual(self.client.post("/api/mpesa/stk/", {"receipt": self.first_invoice.id, "phone": "020123"}, format="json").status_code, 400)
+        self.assertEqual(self.callback(token="wrong").status_code, 404)
+
+    @override_settings(MPESA_PASSKEY="")
+    def test_off_until_configured(self):
+        self.assertFalse(self.client.get("/api/mpesa/stk/").data["configured"])
+        self.assertEqual(self.client.post("/api/mpesa/stk/", {"receipt": self.first_invoice.id}, format="json").status_code, 400)
+
+
+@override_settings(SECURE_SSL_REDIRECT=False)
+class LoginResponseTests(TestCase):
+    def test_login_returns_role_and_account(self):
+        user = get_user_model().objects.create_user(
+            username="kamau", email="k@example.com", password="Pw-123456!", first_name="John", last_name="Kamau",
+        )
+        user.role = "caretaker"
+        user.save()
+        response = APIClient().post("/api/login/", {"identifier": "kamau", "password": "Pw-123456!"}, format="json")
+        self.assertEqual(response.status_code, 200, response.data)
+        data = response.data["data"]["user"]
+        self.assertEqual(data["role"], "caretaker")
+        self.assertEqual(data["full_name"], "John Kamau")
+        self.assertEqual(data["account"], user.account.name)

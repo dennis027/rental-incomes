@@ -34,3 +34,11 @@ def recalculate_unit_balances():
 def flush_expired_tokens():
     """Drop expired refresh tokens so the blacklist tables stay small."""
     call_command("flushexpiredtokens")
+
+
+@shared_task
+def send_rent_reminders():
+    """Every morning: SMS tenants whose rent is due soon or overdue."""
+    from .sms import send_daily_reminders
+    sent = send_daily_reminders()
+    logger.info("Sent %d rent reminders", sent)
