@@ -123,7 +123,8 @@ class PasswordResetConfirmSerializer(serializers.Serializer):
 class PropertySerializer(serializers.ModelSerializer):
     class Meta:
         model = Property
-        fields = "__all__"
+        # The account comes from the signed-in user, never from the request body
+        exclude = ("account",)
 
 
 class UnitSerializer(serializers.ModelSerializer):
@@ -185,7 +186,28 @@ class CustomerSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Customer
-        fields = "__all__"
+        # The account comes from the signed-in user, never from the request body
+        exclude = ("account",)
+
+    def _unique_in_account(self, field, value, label):
+        # Customer.objects only holds the signed-in account's tenants
+        if value in (None, ""):
+            return value
+        taken = Customer.objects.filter(**{field: value})
+        if self.instance is not None:
+            taken = taken.exclude(pk=self.instance.pk)
+        if taken.exists():
+            raise serializers.ValidationError(f"A tenant with this {label} already exists.")
+        return value
+
+    def validate_phone_number(self, value):
+        return self._unique_in_account("phone_number", value, "phone number")
+
+    def validate_email(self, value):
+        return self._unique_in_account("email", value, "email")
+
+    def validate_id_number(self, value):
+        return self._unique_in_account("id_number", value, "ID number")
 
 
 # =================================================================
