@@ -21,11 +21,21 @@ TEAM = re.compile(r"^/api/team/")
 ACCOUNTANT_WRITES = re.compile(
     r"^/api/(receipts|payments|paybill-transactions|expenses|maintenance-requests|mpesa/stk|reminders)/"
 )
-# Everything a caretaker may open
+# Everything a caretaker may open. An allow list of exact routes rather than
+# prefixes: report and money endpoints keep being added under units/,
+# customers/, contracts/... and must not become readable by default.
+# Contracts still show their rent and deposit, which are terms of the
+# tenancy; payments, balances, statements and revenue are not.
 CARETAKER_READS = re.compile(
-    r"^/api/(properties|units|customers|tenants/directory|contracts|expenses|maintenance-requests|maintenance/requests|account)/"
+    r"^/api/("
+    r"(properties|units|customers|contracts|expenses|maintenance-requests)/(\d+/)?"
+    r"|properties/\d+/(units|system-parameters)/"
+    r"|units/active/"
+    r"|maintenance/requests/"
+    r"|account/"
+    r")$"
 )
-CARETAKER_WRITES = re.compile(r"^/api/maintenance-requests/")
+CARETAKER_WRITES = re.compile(r"^/api/maintenance-requests/(\d+/)?$")
 
 
 def role_allows(role, method, path):

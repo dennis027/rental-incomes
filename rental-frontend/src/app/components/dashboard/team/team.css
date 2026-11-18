@@ -81,7 +81,8 @@
 }
 .team-toggle label { display: block; font-weight: 500; color: var(--gray-800); }
 .team-toggle small { color: var(--gray-500); font-size: 13px; }
-.team-toggle small.team-warn { color: var(--warning-600); }
+.team-toggle small.team-warn,
+.team-note.team-warn { color: var(--warning-600); }
 .team-form-actions { display: flex; justify-content: flex-end; }
 
 .team-links { padding: 12px 20px 16px; display: grid; gap: 8px; }

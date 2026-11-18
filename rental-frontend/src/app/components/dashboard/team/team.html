@@ -134,11 +134,35 @@
             <header class="team-card-head">
               <span class="team-icon"><i class="fas fa-mobile-screen"></i></span>
               <div>
-                <h3>M-Pesa paybill links</h3>
-                <p>Register these with Safaricom (Daraja C2B) so payments to your paybill are recorded here.</p>
+                <h3>M-Pesa paybill</h3>
+                <p>Your own paybill or till: "pay now" prompts and SMS reminders send tenants' money here.</p>
               </div>
             </header>
+            <form [formGroup]="mpesaForm" class="team-form" (ngSubmit)="saveMpesa()">
+              <div class="dialog-grid">
+                <mat-form-field appearance="outline">
+                  <mat-label>Paybill or till number</mat-label>
+                  <input matInput inputmode="numeric" autocomplete="off" formControlName="mpesa_shortcode" />
+                  @if (mpesaForm.get('mpesa_shortcode')?.hasError('pattern')) {
+                    <mat-error>5 to 7 digits</mat-error>
+                  }
+                </mat-form-field>
+                <mat-form-field appearance="outline">
+                  <mat-label>Lipa na M-Pesa passkey</mat-label>
+                  <input matInput type="password" autocomplete="new-password" formControlName="mpesa_passkey"
+                         [placeholder]="account.mpesa_passkey_set ? 'Saved. Leave blank to keep it' : ''" />
+                  <mat-hint>From Safaricom when your paybill goes live on Daraja</mat-hint>
+                </mat-form-field>
+              </div>
+              @if (!account.stk_configured) {
+                <p class="team-note team-warn">"Pay now" prompts are off until a paybill number and passkey are saved.</p>
+              }
+              <div class="team-form-actions">
+                <button mat-flat-button color="primary" type="submit" [disabled]="mpesaForm.invalid || mpesaForm.pristine">Save</button>
+              </div>
+            </form>
             <div class="team-links">
+              <p class="team-note">Register these links with Safaricom (Daraja C2B) so payments to your paybill are recorded here.</p>
               @for (link of [{ label: 'Confirmation URL', url: account.paybill_confirmation_url }, { label: 'Validation URL', url: account.paybill_validation_url }]; track link.label) {
                 <div class="team-link">
                   <span>{{ link.label }}</span>

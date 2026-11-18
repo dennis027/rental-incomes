@@ -310,6 +310,10 @@ class SecurityTests(TestCase):
             os.makedirs(os.path.join(media, "customer_ids"))
             with open(os.path.join(media, "customer_ids", "id.png"), "wb") as handle:
                 handle.write(b"png-bytes")
+            with open(os.path.join(media, "customer_ids", "stray.png"), "wb") as handle:
+                handle.write(b"not anyone's photo")
+            Customer.objects.create(first_name="A", last_name="B", phone_number="0700000001", id_number="9",
+                                    account=self.user.account, id_photo_front="customer_ids/id.png")
             self.assertEqual(APIClient().get("/media/customer_ids/id.png").status_code, 401)
             client = APIClient(); client.force_authenticate(self.user)
             response = client.get("/media/customer_ids/id.png")
@@ -317,6 +321,8 @@ class SecurityTests(TestCase):
             self.assertEqual(b"".join(response.streaming_content), b"png-bytes")
             self.assertEqual(client.get("/media/../projects/settings.py").status_code, 404)
             self.assertEqual(client.get("/media/customer_ids/missing.png").status_code, 404)
+            # A file that is no tenant's photo is not served, even though it exists
+            self.assertEqual(client.get("/media/customer_ids/stray.png").status_code, 404)
 
 
 @override_settings(SECURE_SSL_REDIRECT=False)
@@ -741,3 +747,273 @@ class LoginResponseTests(TestCase):
         self.assertEqual(data["role"], "caretaker")
         self.assertEqual(data["full_name"], "John Kamau")
         self.assertEqual(data["account"], user.account.name)
+
+
+@override_settings(MPESA_CALLBACK_TOKEN="secret-token", SECURE_SSL_REDIRECT=False, MPESA_SHORTCODE="174379",
+                   MPESA_CONSUMER_KEY="key", MPESA_CONSUMER_SECRET="secret", MPESA_PASSKEY="passkey",
+                   MPESA_CALLBACK_BASE_URL="https://api.example.com")
+class ReviewFixTests(TestCase):
+    """Account isolation, roles and M-Pesa fixes from the code review."""
+
+    def setUp(self):
+        from django.core.cache import cache
+        cache.clear()
+        AccountIsolationTests.setUp(self)  # landlord A (first account, self.client) and landlord B (self.other_client)
+
+    member = AccountIsolationTests.member
+
+    # 1. ID photos
+    def test_id_photos_are_served_only_to_their_own_account(self):
+        import os, tempfile
+        with tempfile.TemporaryDirectory() as media, self.settings(MEDIA_ROOT=media):
+            from django.core.files.uploadedfile import SimpleUploadedFile
+            self.customer.id_photo_front = SimpleUploadedFile("front.png", b"png-bytes")
+            self.customer.save()
+            name = self.customer.id_photo_front.name
+            # ID numbers repeat across accounts, so the folder names the account
+            self.assertTrue(name.startswith(f"customer_ids/{self.user.account_id}/1/"), name)
+            self.assertEqual(self.client.get(f"/media/{name}").status_code, 200)
+            self.assertEqual(self.other_client.get(f"/media/{name}").status_code, 404)
+
+    # 2. Paybill callback token
+    def test_only_owners_and_managers_see_the_paybill_callback_urls(self):
+        owner = self.client.get("/api/account/").json()
+        self.assertIn(self.user.account.mpesa_callback_token, owner["paybill_confirmation_url"])
+        self.assertIn("/api/paybill/", self.member("manager").get("/api/account/").json()["paybill_validation_url"])
+        for role in ("accountant", "caretaker"):
+            data = self.member(role).get("/api/account/").json()
+            self.assertIsNone(data["paybill_confirmation_url"], role)
+            self.assertIsNone(data["paybill_validation_url"], role)
+            self.assertNotIn(self.user.account.mpesa_callback_token, str(data), role)
+
+    def test_passkey_is_write_only(self):
+        response = self.client.patch("/api/account/", {"mpesa_shortcode": "600100", "mpesa_passkey": "pk-secret"},
+                                     format="json")
+        self.assertEqual(response.status_code, 200, response.data)
+        self.assertEqual(response.data["mpesa_shortcode"], "600100")
+        self.assertTrue(response.data["mpesa_passkey_set"])
+        self.assertNotIn("pk-secret", str(response.data))
+        self.assertEqual(self.client.patch("/api/account/", {"mpesa_shortcode": "12ab"}, format="json").status_code, 400)
+        # Nor can an accountant change where money goes
+        self.assertEqual(self.member("accountant").patch("/api/account/", {"mpesa_shortcode": "999999"},
+                                                         format="json").status_code, 403)
+
+    # 3. Each account is paid into its own shortcode
+    def landlord_b_invoice(self):
+        prop = Property.objects.create(name="Hillside", address="Thika Road", account=self.other.account)
+        unit = Unit.objects.create(property=prop, unit_number="C1", rent_amount=8000)
+        tenant = Customer.objects.create(first_name="Otieno", last_name="Achieng", phone_number="0722000111",
+                                         id_number="1", account=self.other.account)
+        response = self.other_client.post("/api/contracts/", {
+            "customer": tenant.id, "unit": unit.id, "start_date": "2026-01-01",
+            "rent_amount": "8000", "deposit_amount": "8000",
+            "end_date": (timezone.localdate() + timedelta(days=200)).isoformat(),
+        }, format="json")
+        self.assertEqual(response.status_code, 201, response.data)
+        return Receipt.objects.get(contract_id=response.data["id"])
+
+    def test_stk_push_uses_the_accounts_own_shortcode(self):
+        invoice = self.landlord_b_invoice()
+        get, post = StkPushTests.daraja(self)
+        # Landlord B has not added a paybill: the server's belongs to the first account
+        self.assertFalse(self.other_client.get("/api/mpesa/stk/").json()["configured"])
+        with get, post as sent:
+            response = self.other_client.post("/api/mpesa/stk/", {"receipt": invoice.id}, format="json")
+        self.assertEqual(response.status_code, 400)
+        sent.assert_not_called()
+
+        self.other.account.mpesa_shortcode, self.other.account.mpesa_passkey = "600200", "b-passkey"
+        self.other.account.save()
+        get, post = StkPushTests.daraja(self)
+        with get, post as sent:
+            response = self.other_client.post("/api/mpesa/stk/", {"receipt": invoice.id}, format="json")
+        self.assertEqual(response.status_code, 201, response.data)
+        payload = sent.call_args.kwargs["json"]
+        self.assertEqual(payload["BusinessShortCode"], "600200")
+        self.assertEqual(payload["PartyB"], "600200")
+
+        # The first account still uses the server's settings, as before accounts existed
+        from .models import MpesaStkRequest
+        MpesaStkRequest.all_objects.all().delete()  # the mock reuses one CheckoutRequestID
+        get, post = StkPushTests.daraja(self)
+        with get, post as sent:
+            response = self.client.post("/api/mpesa/stk/", {"receipt": self.first_invoice.id}, format="json")
+        self.assertEqual(response.status_code, 201, response.data)
+        self.assertEqual(sent.call_args.kwargs["json"]["BusinessShortCode"], "174379")
+
+    def test_sms_pay_line_names_the_accounts_own_paybill(self):
+        from .sms import reminder_text
+        row = {"customer_name": "Otieno Achieng", "unit": "C1", "property": "Hillside", "outstanding": Decimal("8000"),
+               "due_date": timezone.localdate(), "days_overdue": 0}
+        self.assertNotIn("paybill", reminder_text(row, "due", self.other.account))
+        self.assertIn("paybill 174379", reminder_text(row, "due", self.user.account))
+        self.other.account.mpesa_shortcode = "600200"
+        self.assertIn("paybill 600200", reminder_text(row, "due", self.other.account))
+
+    # 4. Caretakers see no money
+    def test_caretaker_cannot_open_money_pages_under_tenants_and_contracts(self):
+        caretaker = self.member("caretaker")
+        for url in (f"/api/customers/{self.customer.id}/statement/", f"/api/customers/{self.customer.id}/detail/",
+                    f"/api/contracts/{self.contract.id}/move-out/", "/api/contracts/ending-soon/",
+                    "/api/contracts/expiring/"):
+            self.assertEqual(caretaker.get(url).status_code, 403, url)
+        for url in ("/api/customers/", f"/api/customers/{self.customer.id}/", "/api/contracts/", "/api/units/"):
+            self.assertEqual(caretaker.get(url).status_code, 200, url)
+        self.assertEqual(self.client.get(f"/api/customers/{self.customer.id}/statement/").status_code, 200)
+
+    def test_caretaker_reads_are_an_allow_list(self):
+        caretaker = self.member("caretaker")
+        for url in ("/api/units/performance/", "/api/properties/comparison/", "/api/contracts/search/",
+                    "/api/tenants/directory/", f"/api/units/{self.unit.id}/detail/",
+                    f"/api/tenants/{self.customer.id}/payment-history/", "/api/units/utilization/"):
+            self.assertEqual(caretaker.get(url).status_code, 403, url)
+        # What the caretaker pages load
+        for url in ("/api/properties/", f"/api/properties/{self.property.id}/", "/api/units/",
+                    f"/api/units/{self.unit.id}/", "/api/contracts/", f"/api/contracts/{self.contract.id}/",
+                    f"/api/properties/{self.property.id}/system-parameters/", "/api/maintenance-requests/",
+                    "/api/expenses/", "/api/account/", "/api/me/"):
+            self.assertEqual(caretaker.get(url).status_code, 200, url)
+
+    # 5. Rows made outside a request
+    def test_rows_made_outside_a_request_get_an_account_or_are_refused(self):
+        with self.assertRaises(ValueError):
+            Property.objects.create(name="Orphan", address="Nowhere")
+        # A tenant placed in a unit takes the unit's account
+        unit = Unit.objects.create(property=self.property, unit_number="B13", rent_amount=9000)
+        tenant = Customer.objects.create(first_name="Njeri", last_name="M", phone_number="0733000000",
+                                         id_number="77", unit=unit)
+        self.assertEqual(tenant.account_id, self.user.account_id)
+
+    def test_admin_adds_rows_to_the_admin_users_account(self):
+        admin_user = get_user_model().objects.create_superuser("ops", "ops@example.com", "pw")
+        admin_user.account = self.user.account
+        admin_user.save()
+        client = APIClient()
+        client.force_login(admin_user)
+        response = client.post("/admin/app/property/add/", {"name": "From admin", "address": "Westlands", "is_active": "on"})
+        self.assertEqual(response.status_code, 302, response.content[:500])
+        self.assertEqual(Property.all_objects.get(name="From admin").account_id, self.user.account_id)
+
+    def test_admin_asks_an_accountless_superuser_to_pick_an_account(self):
+        ops = get_user_model().objects.create_superuser("ops", "ops@example.com", "pw")
+        self.assertIsNone(ops.account_id)  # several accounts exist
+        client = APIClient()
+        client.force_login(ops)
+        response = client.post("/admin/app/property/add/", {"name": "From admin", "address": "Westlands"})
+        self.assertEqual(response.status_code, 200)  # the form again, with an error; not a 500
+        self.assertIn("account", response.context["adminform"].form.errors)
+        self.assertFalse(Property.all_objects.filter(name="From admin").exists())
+
+    def test_users_made_without_an_account_get_their_own(self):
+        user = get_user_model()(username="walkin", email="walkin@example.com")
+        user.set_password("pw")
+        user.save()
+        self.assertIsNotNone(user.account_id)
+        self.assertNotIn(user.account_id, (self.user.account_id, self.other.account_id))
+        self.assertEqual(user.role, "owner")
+
+    # 6. createsuperuser
+    def test_superuser_joins_the_only_account_instead_of_an_empty_one(self):
+        from .models import Account
+        Account.objects.exclude(pk=self.user.account_id).delete()
+        ops = get_user_model().objects.create_superuser("ops", "ops@example.com", "pw")
+        self.assertEqual(ops.account_id, self.user.account_id)
+        self.assertEqual(Account.objects.count(), 1)
+
+    def test_superuser_with_several_accounts_is_left_for_the_admin_to_place(self):
+        from .models import Account
+        before = Account.objects.count()
+        ops = get_user_model().objects.create_superuser("ops", "ops@example.com", "pw")
+        self.assertIsNone(ops.account_id)
+        self.assertEqual(Account.objects.count(), before)
+
+    def test_first_superuser_on_an_empty_server_starts_an_account(self):
+        from .models import Account
+        get_user_model().objects.all().delete()
+        Account.objects.all().delete()
+        ops = get_user_model().objects.create_superuser("ops", "ops@example.com", "pw")
+        self.assertIsNotNone(ops.account_id)
+        self.assertEqual(ops.role, "owner")
+
+    # 7. MRI band on the landlord's total rent
+    def test_mri_regime_is_decided_on_all_properties_together(self):
+        from unittest import mock
+        second = Property.objects.create(name="Second", address="Kilimani", account=self.user.account)
+        unit = Unit.objects.create(property=second, unit_number="D1", rent_amount=10000)
+        tenant = Customer.objects.create(first_name="Mwangi", last_name="K", phone_number="0744000000",
+                                         id_number="2", account=self.user.account)
+        response = self.client.post("/api/contracts/", {
+            "customer": tenant.id, "unit": unit.id, "start_date": "2026-01-01", "rent_amount": "10000",
+            "deposit_amount": "10000", "end_date": (timezone.localdate() + timedelta(days=200)).isoformat(),
+        }, format="json")
+        self.assertEqual(response.status_code, 201, response.data)
+        for invoice, ref in ((self.first_invoice, "T1"), (Receipt.objects.get(contract_id=response.data["id"]), "T2")):
+            self.client.post("/api/payments/", {"receipt": invoice.id, "amount": "8000", "method": "mpesa",
+                                                "reference": ref}, format="json")
+        month = f"{timezone.localdate():%Y-%m}"
+        # Each property alone (4,000 of rent) is under the band; together (8,000) they are in it
+        with mock.patch("app.tax_views.MRI_MIN_YEARLY", Decimal("5000")):
+            one = self.client.get(f"/api/reports/rental-income-tax/?month={month}&property_id={self.property.id}").json()
+        self.assertEqual(one["totals"]["rent"], 4000)
+        self.assertEqual(one["twelve_month_rent"], 8000)
+        self.assertEqual(one["regime"], "mri")
+
+    # 8. Removed members can come back
+    def test_removed_member_can_be_added_again(self):
+        body = {"username": "kamau", "email": "kamau@example.com", "role": "caretaker"}
+        member_id = self.client.post("/api/team/", body, format="json").data["id"]
+        self.assertEqual(self.client.delete(f"/api/team/{member_id}/").status_code, 204)
+        response = self.client.post("/api/team/", {**body, "role": "accountant"}, format="json")
+        self.assertEqual(response.status_code, 201, response.data)
+        self.assertEqual(response.data["id"], member_id)
+        self.assertEqual(response.data["role"], "accountant")
+        self.assertTrue(response.data["is_active"])
+        # Sign-ins from before the removal stay dead
+        from rest_framework_simplejwt.tokens import RefreshToken
+        member = get_user_model().objects.get(pk=member_id)
+        self.client.delete(f"/api/team/{member_id}/")
+        old_refresh = str(RefreshToken.for_user(member))
+        self.client.post("/api/team/", {**body, "role": "caretaker"}, format="json")
+        self.assertEqual(APIClient().post("/api/token/refresh/", {"refresh": old_refresh}, format="json").status_code, 401)
+        # Another account's users are still taken
+        response = self.other_client.post("/api/team/", {**body, "username": "kamau2"}, format="json")
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("email", response.data)
+
+    # 9. STK amounts
+    def test_stk_amount_rounds_up_and_is_capped_at_the_balance(self):
+        self.client.post("/api/payments/", {"receipt": self.first_invoice.id, "amount": "0.50", "method": "cash"},
+                         format="json")
+        get, post = StkPushTests.daraja(self)
+        with get, post as sent:
+            response = self.client.post("/api/mpesa/stk/", {"receipt": self.first_invoice.id}, format="json")
+        self.assertEqual(response.status_code, 201, response.data)
+        self.assertEqual(sent.call_args.kwargs["json"]["Amount"], 20000)  # 19,999.50 owed, rounded up
+        get, post = StkPushTests.daraja(self)
+        with get, post as sent:
+            response = self.client.post("/api/mpesa/stk/", {"receipt": self.first_invoice.id, "amount": "25000"},
+                                        format="json")
+        self.assertEqual(response.status_code, 400)
+        sent.assert_not_called()
+
+    # 10. Payments carry their account
+    def test_payments_carry_their_account(self):
+        response = self.client.post("/api/payments/", {"receipt": self.first_invoice.id, "amount": "100",
+                                                       "method": "cash", "account": self.other.account_id},
+                                    format="json")
+        self.assertEqual(response.status_code, 201, response.data)
+        payment = Payment.all_objects.get(pk=response.data["id"])
+        self.assertEqual(payment.account_id, self.user.account_id)
+        self.assertEqual(self.other_client.get("/api/payments/").json(), [])
+        self.assertNotIn("account", response.data)
+
+    def test_migration_backfills_payment_accounts(self):
+        import importlib
+        from django.apps import apps
+        self.client.post("/api/payments/", {"receipt": self.first_invoice.id, "amount": "100", "method": "cash"},
+                         format="json")
+        Payment.all_objects.update(account=None)
+        migration = importlib.import_module("app.migrations.0008_mpesa_per_account_and_payment_account")
+        migration.payments_to_accounts(apps, None)
+        self.assertEqual(set(Payment.all_objects.values_list("account_id", flat=True)), {self.user.account_id})
+

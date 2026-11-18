@@ -1,8 +1,10 @@
 """
 Safaricom Daraja: the "pay now" prompt on a tenant's phone (Lipa na M-Pesa Online / STK push).
 
-Needs MPESA_SHORTCODE, MPESA_CONSUMER_KEY, MPESA_CONSUMER_SECRET, MPESA_PASSKEY and
-MPESA_CALLBACK_BASE_URL (the public address of this API). MPESA_ENV picks sandbox or production.
+The server needs MPESA_CONSUMER_KEY, MPESA_CONSUMER_SECRET and MPESA_CALLBACK_BASE_URL (the
+public address of this API); MPESA_ENV picks sandbox or production. Each account is paid into its
+own shortcode with its own passkey (Account.mpesa_shortcode / mpesa_passkey). Only the first
+account may fall back to the server's MPESA_SHORTCODE and MPESA_PASSKEY, which predate accounts.
 """
 import base64
 import logging
@@ -14,15 +16,20 @@ from django.utils import timezone
 
 logger = logging.getLogger(__name__)
 
-REQUIRED = ("MPESA_SHORTCODE", "MPESA_CONSUMER_KEY", "MPESA_CONSUMER_SECRET", "MPESA_PASSKEY", "MPESA_CALLBACK_BASE_URL")
+REQUIRED = ("MPESA_CONSUMER_KEY", "MPESA_CONSUMER_SECRET", "MPESA_CALLBACK_BASE_URL")
 
 
 class DarajaError(Exception):
     pass
 
 
-def stk_configured():
+def server_configured():
     return all(getattr(settings, name, "") for name in REQUIRED)
+
+
+def stk_configured(account):
+    """Whether prompts can be sent for `account`: the server keys plus its own shortcode and passkey."""
+    return server_configured() and all(account.mpesa_credentials())
 
 
 def _host():
@@ -50,21 +57,24 @@ def access_token():
     return token
 
 
-def stk_push(phone, amount, reference, description, callback_url):
+def stk_push(account, phone, amount, reference, description, callback_url):
     """
-    Ask Safaricom to show a payment prompt on `phone` (2547XXXXXXXX).
+    Ask Safaricom to show a prompt on `phone` (2547XXXXXXXX) to pay `account`'s shortcode.
     Returns (merchant_request_id, checkout_request_id); raises DarajaError when it is refused.
     """
+    shortcode, passkey = account.mpesa_credentials()
+    if not (shortcode and passkey):
+        raise DarajaError("Add your M-Pesa shortcode and passkey in Team & account first.")
     timestamp = timezone.localtime().strftime("%Y%m%d%H%M%S")
-    password = base64.b64encode(f"{settings.MPESA_SHORTCODE}{settings.MPESA_PASSKEY}{timestamp}".encode()).decode()
+    password = base64.b64encode(f"{shortcode}{passkey}{timestamp}".encode()).decode()
     payload = {
-        "BusinessShortCode": settings.MPESA_SHORTCODE,
+        "BusinessShortCode": shortcode,
         "Password": password,
         "Timestamp": timestamp,
         "TransactionType": getattr(settings, "MPESA_TRANSACTION_TYPE", "") or "CustomerPayBillOnline",
         "Amount": int(amount),
         "PartyA": phone,
-        "PartyB": settings.MPESA_SHORTCODE,
+        "PartyB": shortcode,
         "PhoneNumber": phone,
         "CallBackURL": callback_url,
         # Shown on the tenant's prompt and statement; Safaricom limits the lengths

@@ -3,7 +3,7 @@ import hmac
 import logging
 import re
 from datetime import datetime, timedelta
-from decimal import Decimal, InvalidOperation
+from decimal import ROUND_CEILING, Decimal, InvalidOperation
 
 from django.conf import settings
 from django.db import IntegrityError, transaction
@@ -357,7 +357,7 @@ def _callback_account(token):
     if account is None:
         expected = getattr(settings, "MPESA_CALLBACK_TOKEN", "")
         if expected and hmac.compare_digest(token, str(expected)):
-            account = Account.objects.order_by("id").first()
+            account = Account.objects.filter(pk=Account.first_account_id()).first()
     if account is None:
         raise Http404()
     return account
@@ -545,33 +545,42 @@ class StkPushView(APIView):
     permission_classes = [IsAccountMember]
 
     def get(self, request):
-        return Response({"configured": daraja.stk_configured()})
+        return Response({"configured": daraja.stk_configured(request.user.account)})
 
     def post(self, request):
-        if not daraja.stk_configured():
+        account = request.user.account
+        if not daraja.server_configured():
             return Response({"error": "M-Pesa prompts are not set up on the server yet."},
+                            status=status.HTTP_400_BAD_REQUEST)
+        if not daraja.stk_configured(account):
+            return Response({"error": "Add your M-Pesa shortcode and passkey in Team & account first."},
                             status=status.HTTP_400_BAD_REQUEST)
         invoice = get_object_or_404(Receipt.objects.select_related("contract__customer", "contract__unit"),
                                     pk=request.data.get("receipt"))
         contract = invoice.contract
-        owed = billing.outstanding(billing.contract_invoices(contract))
+        # Safaricom only takes whole shillings. Round up, so a balance of
+        # 1000.50 is cleared in one prompt rather than left 50 cents short.
+        owed = billing.outstanding(billing.contract_invoices(contract)).quantize(Decimal("1"), rounding=ROUND_CEILING)
+        if owed < 1:
+            return Response({"error": "Nothing is owed on this invoice."}, status=status.HTTP_400_BAD_REQUEST)
         amount = _decimal(request.data.get("amount"), owed)
         if amount is None or amount < 1:
             return Response({"amount": ["Enter at least KES 1."]}, status=status.HTTP_400_BAD_REQUEST)
-        # Safaricom only takes whole shillings
-        amount = amount.quantize(Decimal("1"))
+        amount = amount.quantize(Decimal("1"), rounding=ROUND_CEILING)
+        if amount > owed:
+            return Response({"amount": [f"The tenant owes KES {owed:,}; ask for that or less."]},
+                            status=status.HTTP_400_BAD_REQUEST)
 
         phone = sms.kenyan_number(request.data.get("phone") or contract.customer.phone_number)
         if phone is None:
             return Response({"phone": ["Enter a Safaricom number such as 0712 345 678."]},
                             status=status.HTTP_400_BAD_REQUEST)
 
-        account = request.user.account
         callback = (f"{settings.MPESA_CALLBACK_BASE_URL.rstrip('/')}"
                     f"/api/mpesa/stk/{account.mpesa_callback_token}/callback/")
         try:
             merchant_id, checkout_id = daraja.stk_push(
-                phone.lstrip("+"), amount, contract.unit.unit_number, "Rent", callback,
+                account, phone.lstrip("+"), amount, contract.unit.unit_number, "Rent", callback,
             )
         except daraja.DarajaError as error:
             return Response({"error": str(error)}, status=status.HTTP_502_BAD_GATEWAY)

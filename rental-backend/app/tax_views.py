@@ -101,10 +101,11 @@ class RentalIncomeTaxView(APIView):
         rent = sum((entry["rent"] for entry in properties.values()), Decimal("0"))
         collected = sum((entry["collected"] for entry in properties.values()), Decimal("0"))
 
-        # Which regime applies is decided on the year's rent, so look at the
-        # twelve months up to and including this one
+        # Which regime applies is decided on the landlord's rent for the year, so
+        # look at the twelve months up to and including this one across every
+        # property, even when the report is for one of them
         year_start = date(*_shift(year, month, -11), 1)
-        yearly_rent = sum((rent_share(p) for p in _rent_received(year_start, end, property_id)), Decimal("0"))
+        yearly_rent = sum((rent_share(p) for p in _rent_received(year_start, end)), Decimal("0"))
         if yearly_rent < MRI_MIN_YEARLY:
             regime = "below_threshold"
         elif yearly_rent > MRI_MAX_YEARLY:

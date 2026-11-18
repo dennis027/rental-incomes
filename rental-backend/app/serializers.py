@@ -316,7 +316,8 @@ class PaymentSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Payment
-        fields = "__all__"
+        # Set from the invoice, expense or repair it pays, never from the request body
+        exclude = ("account",)
 
     def get_customer_name(self, obj):
         if obj.receipt and obj.receipt.contract.customer:

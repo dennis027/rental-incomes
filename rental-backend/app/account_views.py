@@ -2,22 +2,26 @@
 The signed-in user, their account and its team.
 
   GET   api/me/                  who is signed in, their role and account
-  GET   api/account/             account name, paybill callback URLs, SMS reminder settings
+  GET   api/account/             account name, SMS reminder and M-Pesa settings; the secret
+                                 paybill callback URLs only for owners and managers
   PATCH api/account/             change them (owner and manager)
   GET   api/team/                members of the account
-  POST  api/team/                add a member {username, email, first_name, last_name, role} (owner)
+  POST  api/team/                add a member {username, email, first_name, last_name, role} (owner);
+                                 someone removed earlier is brought back with the new role
   PATCH api/team/<id>/           change a member's role {role} (owner)
   DELETE api/team/<id>/          remove a member (owner)
 """
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.db import transaction
+from django.db.models import Q
 from django.shortcuts import get_object_or_404
 from rest_framework import serializers, status
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from rest_framework_simplejwt.token_blacklist.models import BlacklistedToken, OutstandingToken
 
-from . import sms, tasks
+from . import daraja, sms, tasks
 from .models import Account
 from .permissions import IsAccountMember
 
@@ -45,10 +49,19 @@ class MeView(APIView):
         return Response({**user_summary(user), "account": {"id": user.account_id, "name": user.account.name}})
 
 
+# Who may see the paybill callback URLs. The token in them is the only thing
+# that authenticates Safaricom's payment reports, so it is a secret.
+CALLBACK_ROLES = {User.OWNER, User.MANAGER}
+
+
 class AccountSerializer(serializers.ModelSerializer):
     paybill_validation_url = serializers.SerializerMethodField()
     paybill_confirmation_url = serializers.SerializerMethodField()
     sms_configured = serializers.SerializerMethodField()
+    # Write-only: never sent back, only whether one is saved
+    mpesa_passkey = serializers.CharField(write_only=True, required=False, allow_blank=True, max_length=128)
+    mpesa_passkey_set = serializers.SerializerMethodField()
+    stk_configured = serializers.SerializerMethodField()
 
     class Meta:
         model = Account
@@ -56,15 +69,30 @@ class AccountSerializer(serializers.ModelSerializer):
             "id", "name",
             "sms_reminders_enabled", "sms_days_before_due", "sms_overdue_every_days",
             "paybill_validation_url", "paybill_confirmation_url", "sms_configured",
+            "mpesa_shortcode", "mpesa_passkey", "mpesa_passkey_set", "stk_configured",
         )
         read_only_fields = ("id",)
 
     def _callback(self, obj, kind):
+        if self.context["request"].user.role not in CALLBACK_ROLES:
+            return None
         base = getattr(settings, "MPESA_CALLBACK_BASE_URL", "") or self.context["request"].build_absolute_uri("/")
         return f"{base.rstrip('/')}/api/paybill/{obj.mpesa_callback_token}/{kind}/"
 
     def get_sms_configured(self, obj):
         return sms.configured()
+
+    def get_mpesa_passkey_set(self, obj):
+        return bool(obj.mpesa_passkey)
+
+    def get_stk_configured(self, obj):
+        return daraja.stk_configured(obj)
+
+    def validate_mpesa_shortcode(self, value):
+        value = value.strip()
+        if value and not (value.isdigit() and 5 <= len(value) <= 7):
+            raise serializers.ValidationError("Enter the 5 to 7 digit paybill or till number.")
+        return value
 
     def get_paybill_validation_url(self, obj):
         return self._callback(obj, "validation")
@@ -103,15 +131,40 @@ class TeamMemberSerializer(serializers.Serializer):
     last_name = serializers.CharField(max_length=150, required=False, allow_blank=True)
     role = serializers.ChoiceField(choices=User.ROLES)
 
-    def validate_username(self, value):
-        if User.objects.filter(username__iexact=value).exists():
-            raise serializers.ValidationError("This username is taken.")
-        return value
+    def _taken(self, field, value):
+        """
+        Another user with this username or email blocks it, unless it is someone
+        removed from this same account: then adding them again brings them back.
+        """
+        others = User.objects.filter(**{f"{field}__iexact": value})
+        returning = self.context.get("returning")
+        if returning is not None:
+            others = others.exclude(pk=returning.pk)
+        return others.exists()
 
-    def validate_email(self, value):
-        if User.objects.filter(email__iexact=value).exists():
-            raise serializers.ValidationError("This email already has an account.")
-        return value
+    def validate(self, data):
+        matches = list(User.objects.filter(
+            Q(username__iexact=data["username"]) | Q(email__iexact=data["email"]),
+            account_id=self.context["account"].id, is_active=False,
+        )[:2])
+        # Two different removed members match: leave it to the checks below
+        returning = matches[0] if len(matches) == 1 else None
+        self.context["returning"] = returning
+        errors = {}
+        if self._taken("username", data["username"]):
+            errors["username"] = ["This username is taken."]
+        if self._taken("email", data["email"]):
+            errors["email"] = ["This email already has an account."]
+        if errors:
+            raise serializers.ValidationError(errors)
+        data["returning"] = returning
+        return data
+
+
+def end_sessions(user):
+    """Blacklist every refresh token the user holds, so no earlier sign-in can be renewed."""
+    for token in OutstandingToken.objects.filter(user=user).exclude(blacklistedtoken__isnull=False):
+        BlacklistedToken.objects.get_or_create(token=token)
 
 
 def _owners_left(account, without):
@@ -126,24 +179,27 @@ class TeamView(APIView):
         return Response([user_summary(member) for member in members])
 
     def post(self, request):
-        serializer = TeamMemberSerializer(data=request.data)
+        account = request.user.account
+        serializer = TeamMemberSerializer(data=request.data, context={"account": account})
         serializer.is_valid(raise_exception=True)
         data = serializer.validated_data
-        account = request.user.account
 
         with transaction.atomic():
-            member = User(
-                username=data["username"],
-                email=data["email"],
-                first_name=data.get("first_name", ""),
-                last_name=data.get("last_name", ""),
-                account=account,
-                role=data["role"],
-                is_active=True,
-            )
+            # Someone removed earlier keeps their history (the invoices and
+            # payments they recorded) and comes back with the new role
+            member = data["returning"] or User(account=account)
+            member.username = data["username"]
+            member.email = data["email"]
+            member.first_name = data.get("first_name", "")
+            member.last_name = data.get("last_name", "")
+            member.role = data["role"]
+            member.is_active = True
             # They choose their own password through "Forgot password"
             member.set_unusable_password()
             member.save()
+            if data["returning"] is not None:
+                # Sign-ins from before they were removed must not come back to life
+                end_sessions(member)
 
             login_url = getattr(settings, "FRONTEND_URL", "")
             where = f" at {login_url.rstrip('/')}/login" if login_url else ""
@@ -186,4 +242,5 @@ class TeamMemberView(APIView):
         # Kept, not deleted, so the invoices and payments they recorded still name them
         member.is_active = False
         member.save(update_fields=["is_active"])
+        end_sessions(member)
         return Response(status=status.HTTP_204_NO_CONTENT)

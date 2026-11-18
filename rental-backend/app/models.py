@@ -1,4 +1,4 @@
-from django.contrib.auth.models import AbstractUser
+from django.contrib.auth.models import AbstractUser, UserManager
 from django.db import models, IntegrityError, DatabaseError
 import uuid
 from decimal import Decimal
@@ -22,10 +22,49 @@ class Account(models.Model):
     sms_reminders_enabled = models.BooleanField(default=False)
     sms_days_before_due = models.PositiveSmallIntegerField(default=3)
     sms_overdue_every_days = models.PositiveSmallIntegerField(default=7)
+    # The account's own paybill/till for "pay now" prompts and SMS pay lines.
+    # Blank: only the first account may fall back to the server's MPESA_* settings.
+    mpesa_shortcode = models.CharField(max_length=20, blank=True, default="")
+    mpesa_passkey = models.CharField(max_length=128, blank=True, default="")
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
         return self.name
+
+    @classmethod
+    def first_account_id(cls):
+        return cls.objects.order_by("id").values_list("id", flat=True).first()
+
+    def owns_server_mpesa_settings(self):
+        """
+        The server-wide MPESA_SHORTCODE/PASSKEY and MPESA_CALLBACK_TOKEN date from
+        before there were several accounts, when all the data was the first account's.
+        """
+        return self.pk is not None and self.pk == Account.first_account_id()
+
+    def mpesa_credentials(self):
+        """(shortcode, passkey) this account is paid into; blanks when it has none."""
+        if self.mpesa_shortcode:
+            return self.mpesa_shortcode, self.mpesa_passkey
+        if self.owns_server_mpesa_settings():
+            return getattr(settings, "MPESA_SHORTCODE", ""), getattr(settings, "MPESA_PASSKEY", "")
+        return "", ""
+
+
+class CustomUserManager(UserManager):
+    def create_superuser(self, username, email=None, password=None, **extra_fields):
+        # An operator made with createsuperuser joins the data that is already
+        # there when there is only one account; with none, they start one. With
+        # several it is ambiguous, so they are left without one (Django admin
+        # still works) until an account is picked for them in the admin.
+        if extra_fields.get("account") is None and extra_fields.get("account_id") is None:
+            accounts = list(Account.objects.order_by("id")[:2])
+            if len(accounts) == 1:
+                extra_fields["account"] = accounts[0]
+            elif not accounts:
+                extra_fields["account"] = Account.objects.create(name=username or "My properties")
+            extra_fields.setdefault("role", CustomUser.OWNER)
+        return super().create_superuser(username, email, password, **extra_fields)
 
 
 class CustomUser(AbstractUser):
@@ -47,10 +86,15 @@ class CustomUser(AbstractUser):
     account = models.ForeignKey(Account, on_delete=models.CASCADE, null=True, blank=True, related_name="members")
     role = models.CharField(max_length=20, choices=ROLES, default=OWNER)
 
+    objects = CustomUserManager()
+
     def save(self, *args, **kwargs):
-        # Someone who signs up (or is made in the admin) gets an account of their own;
-        # team members are given their owner's account before they are saved
-        if self.account_id is None:
+        # Someone new (signing up, or added in the admin or a shell) gets an
+        # account of their own; team members are created with their owner's.
+        # Superusers are the exception: create_superuser places them, and one
+        # left without an account is picked an account in the admin, rather
+        # than being handed an empty one.
+        if self._state.adding and self.account_id is None and not self.is_superuser:
             self.account = Account.objects.create(name=self.get_full_name() or self.username or "My properties")
             self.role = self.OWNER
         super().save(*args, **kwargs)
@@ -60,13 +104,26 @@ class CustomUser(AbstractUser):
 
 
 class AccountOwnedMixin(models.Model):
-    """Rows created during a request belong to the signed-in user's account."""
+    """
+    Every row belongs to an account. During a request it is the signed-in
+    user's; elsewhere (admin, Celery, shell) it comes from the row it hangs off,
+    or must be set by hand. A row saved without one would be invisible to every
+    account, so that is refused instead.
+    """
     class Meta:
         abstract = True
 
+    def account_from_related(self):
+        """The account of the row this one belongs to, if any; models override it."""
+        return None
+
     def save(self, *args, **kwargs):
         if self.account_id is None:
-            self.account_id = current_account_id()
+            self.account_id = current_account_id() or self.account_from_related()
+        if self.account_id is None:
+            raise ValueError(
+                f"{type(self).__name__} needs an account: set .account when creating it outside an API request."
+            )
         super().save(*args, **kwargs)
     
 
@@ -175,7 +232,9 @@ class Unit(models.Model):
 
 # Customer ID upload path
 def customer_id_upload_path(instance, filename):
-    return f"customer_ids/{instance.id_number}/{filename}"
+    # ID numbers are unique only within an account, so the account keeps two
+    # landlords' tenants out of each other's folders
+    return f"customer_ids/{instance.account_id or 'none'}/{instance.id_number}/{filename}"
 
 
 class Customer(AccountOwnedMixin):
@@ -198,6 +257,9 @@ class Customer(AccountOwnedMixin):
 
     objects = scoped_manager("account_id")
     all_objects = models.Manager()
+
+    def account_from_related(self):
+        return self.unit.property.account_id if self.unit_id else None
 
     class Meta:
         constraints = [
@@ -385,12 +447,11 @@ class Receipt(models.Model):
         return self.total_amount - Decimal(str(self.amount_paid or 0))
 
 class Payment(models.Model):
-    objects = scoped_manager((
-        "receipt__contract__unit__property__account_id",
-        "expense__property__account_id",
-        "maintenance_request__unit__property__account_id",
-    ))
+    objects = scoped_manager("account_id")
     all_objects = models.Manager()
+
+    # Copied from what it pays, so scoping a query is one indexed column
+    account = models.ForeignKey(Account, on_delete=models.CASCADE, null=True, blank=True, related_name="payments")
 
     INCOME = "IN"
     EXPENSE = "OUT"
@@ -447,6 +508,17 @@ class Payment(models.Model):
                 self.maintenance_request.amount_paid += amount
                 self.maintenance_request.save(update_fields=["amount_paid", "balance", "payment_status"])
 
+    def account_from_related(self):
+        """The account of the invoice, expense or repair this pays (one query)."""
+        for model, pk, path in (
+            (Receipt, self.receipt_id, "contract__unit__property__account_id"),
+            (Expense, self.expense_id, "property__account_id"),
+            (MaintenanceRequest, self.maintenance_request_id, "unit__property__account_id"),
+        ):
+            if pk:
+                return model.all_objects.filter(pk=pk).values_list(path, flat=True).first()
+        return None
+
     def save(self, *args, **kwargs):
         # Editing a payment only moves the difference; it must not be counted a second time
         previous = None if self._state.adding else Payment.objects.filter(pk=self.pk).first()
@@ -456,6 +528,11 @@ class Payment(models.Model):
             latest = Receipt.objects.filter(contract_id=self.receipt.contract_id).order_by("issue_date", "id").last()
             if latest is not None and latest.pk != self.receipt_id:
                 self.receipt = latest
+        self.account_id = self.account_from_related() or self.account_id or current_account_id()
+        if self.account_id is None:
+            raise ValueError("Payment needs an account: link it to an invoice, expense or repair, or set .account.")
+        if kwargs.get("update_fields") is not None:
+            kwargs["update_fields"] = {*kwargs["update_fields"], "account"}
         super().save(*args, **kwargs)
         if previous is None:
             self._apply(self.amount)
@@ -690,6 +767,9 @@ class SmsMessage(AccountOwnedMixin):
     objects = scoped_manager("account_id")
     all_objects = models.Manager()
 
+    def account_from_related(self):
+        return self.contract.unit.property.account_id if self.contract_id else None
+
     class Meta:
         ordering = ["-created_at"]
 
@@ -719,6 +799,9 @@ class MpesaStkRequest(AccountOwnedMixin):
 
     objects = scoped_manager("account_id")
     all_objects = models.Manager()
+
+    def account_from_related(self):
+        return self.receipt.contract.unit.property.account_id if self.receipt_id else None
 
     class Meta:
         ordering = ["-created_at"]

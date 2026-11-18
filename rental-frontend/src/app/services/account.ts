@@ -29,9 +29,16 @@ export interface AccountSettings {
   sms_reminders_enabled: boolean;
   sms_days_before_due: number;
   sms_overdue_every_days: number;
-  paybill_validation_url: string;
-  paybill_confirmation_url: string;
+  /** Only sent to owners and managers: the token in them authenticates Safaricom */
+  paybill_validation_url: string | null;
+  paybill_confirmation_url: string | null;
   sms_configured: boolean;
+  /** The account's own paybill/till number for "pay now" prompts and SMS pay lines */
+  mpesa_shortcode: string;
+  /** Write-only; reads only say whether one is saved */
+  mpesa_passkey?: string;
+  mpesa_passkey_set: boolean;
+  stk_configured: boolean;
 }
 
 /** The signed-in user's account and its team */

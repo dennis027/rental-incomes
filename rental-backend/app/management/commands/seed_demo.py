@@ -170,13 +170,18 @@ class Command(BaseCommand):
 
     def seed(self):
         today = timezone.localdate()
-        user = get_user_model().objects.filter(is_active=True).order_by("id").first()
+        user = get_user_model().objects.filter(is_active=True, account__isnull=False).order_by("id").first()
+        if user is None:
+            raise CommandError("Sign up first: the demo data goes into the first user's account.")
+        # Rows without an account are visible to nobody; bulk_create skips the
+        # save() that would otherwise fill it in
+        account = user.account
 
         # ---- properties and their settings
         properties = {}
         for spec in PROPERTIES:
             prop = Property.objects.create(
-                name=PROPERTY_PREFIX + spec["name"], address=spec["address"], description=spec["description"]
+                account=account, name=PROPERTY_PREFIX + spec["name"], address=spec["address"], description=spec["description"]
             )
             SystemParameter.objects.update_or_create(property=prop, defaults=spec["params"])
             properties[spec["key"]] = prop
@@ -192,7 +197,7 @@ class Command(BaseCommand):
         # ---- tenants
         tenants = Customer.objects.bulk_create([
             Customer(
-                first_name=first, last_name=last,
+                account=account, first_name=first, last_name=last,
                 phone_number=f"07990001{i:02d}",
                 email=f"demo.{first.lower()}.{last.lower()}@example.com",
                 id_number=f"{TENANT_PREFIX}{30000000 + i}",
@@ -352,6 +357,8 @@ class Command(BaseCommand):
 
         # bulk_create skips Payment.save(), which is what would otherwise add each
         # amount to its receipt a second time
+        for payment in payments:
+            payment.account = account
         Payment.objects.bulk_create(payments)
 
         # ---- dates that Django fills in with "now" on creation

@@ -83,15 +83,19 @@ def scoped_manager(lookup):
 
 
 class AccountMiddleware:
-    """API requests start with nothing visible until a member signs in."""
+    """
+    API requests (and uploaded files, served by an API view) start with nothing
+    visible until a member signs in. Every request, scoped or not, puts the
+    context back afterwards: a worker thread serves many requests, and an
+    account left set by one must never filter the next one.
+    """
+    SCOPED = ("/api/", "/media/")
 
     def __init__(self, get_response):
         self.get_response = get_response
 
     def __call__(self, request):
-        if not request.path.startswith("/api/"):
-            return self.get_response(request)
-        token = _current.set(NO_ACCOUNT)
+        token = _current.set(NO_ACCOUNT if request.path.startswith(self.SCOPED) else None)
         try:
             return self.get_response(request)
         finally:

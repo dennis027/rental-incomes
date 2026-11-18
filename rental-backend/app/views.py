@@ -4562,10 +4562,16 @@ class ProtectedMediaView(APIView):
     """
     Uploaded files (tenant ID photos) for signed-in users only. The files used
     to be public links in development and were not served at all in production.
+
+    A file is served only when it is the ID photo of a tenant in the signed-in
+    user's account (Customer.objects is scoped to it). Paths are guessable
+    (customer_ids/<id number>/...), so being signed in is not enough.
     """
     permission_classes = [IsAccountMember]
 
     def get(self, request, path):
+        if not Customer.objects.filter(Q(id_photo_front=path) | Q(id_photo_back=path)).exists():
+            raise Http404()
         try:
             full_path = safe_join(str(django_settings.MEDIA_ROOT), path)
             return FileResponse(open(full_path, "rb"))

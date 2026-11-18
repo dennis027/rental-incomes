@@ -52,6 +52,12 @@ export class Team implements OnInit {
     sms_overdue_every_days: [7, [Validators.required, Validators.min(1), Validators.max(30)]],
   });
 
+  mpesaForm = this.fb.group({
+    mpesa_shortcode: ['', [Validators.pattern(/^\d{5,7}$/)]],
+    // Never sent back by the server; left blank keeps the saved one
+    mpesa_passkey: [''],
+  });
+
   ngOnInit(): void {
     if (isPlatformBrowser(this.platformId)) {
       this.myUsername = localStorage.getItem('user_name') || '';
@@ -67,6 +73,7 @@ export class Team implements OnInit {
         this.account = account;
         this.members = team;
         this.accountForm.patchValue(account, { emitEvent: false });
+        this.mpesaForm.reset({ mpesa_shortcode: account.mpesa_shortcode, mpesa_passkey: '' }, { emitEvent: false });
         this.loading = false;
         this.cdr.markForCheck();
       },
@@ -109,7 +116,31 @@ export class Team implements OnInit {
     });
   }
 
-  copy(text: string): void {
+  saveMpesa(): void {
+    if (this.mpesaForm.invalid) {
+      this.mpesaForm.markAllAsTouched();
+      return;
+    }
+    const { mpesa_shortcode, mpesa_passkey } = this.mpesaForm.getRawValue();
+    const changes: Partial<AccountSettings> = { mpesa_shortcode: (mpesa_shortcode || '').trim() };
+    if (mpesa_passkey) {
+      changes.mpesa_passkey = mpesa_passkey;
+    }
+    this.accountService.updateAccount(changes).subscribe({
+      next: account => {
+        this.account = account;
+        this.mpesaForm.reset({ mpesa_shortcode: account.mpesa_shortcode, mpesa_passkey: '' });
+        this.notify('Saved');
+        this.cdr.markForCheck();
+      },
+      error: err => this.notify(this.firstError(err) || 'The changes could not be saved.')
+    });
+  }
+
+  copy(text: string | null): void {
+    if (!text) {
+      return;
+    }
     navigator.clipboard?.writeText(text).then(() => this.notify('Copied'));
   }
 
@@ -127,7 +158,8 @@ export class Team implements OnInit {
     this.accountService.addMember(this.memberForm.getRawValue() as any).subscribe({
       next: member => {
         this.saving = false;
-        this.members = [...this.members, member];
+        // Someone removed earlier comes back as the same member
+        this.members = [...this.members.filter(existing => existing.id !== member.id), member];
         this.dialog.closeAll();
         this.notify(`${this.displayName(member)} added. They have been emailed how to sign in.`);
       },

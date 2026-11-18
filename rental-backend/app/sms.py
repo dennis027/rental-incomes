@@ -73,12 +73,13 @@ def _money(value):
     return f"KES {value:,.0f}"
 
 
-def _pay_line(row):
-    shortcode = getattr(settings, "MPESA_SHORTCODE", "")
+def _pay_line(row, account):
+    # The account's own paybill, never another landlord's
+    shortcode, _ = account.mpesa_credentials()
     return f" Pay via M-Pesa paybill {shortcode}, account {row['unit']}." if shortcode else ""
 
 
-def reminder_text(row, kind, account_name, today=None):
+def reminder_text(row, kind, account, today=None):
     today = today or timezone.localdate()
     first = row["customer_name"].split(" ")[0]
     place = f"{row['unit']}, {row['property']}"
@@ -91,12 +92,12 @@ def reminder_text(row, kind, account_name, today=None):
                 f"is {days} day{'s' if days != 1 else ''} overdue. Please pay as soon as you can.")
     else:
         text = f"Hi {first}, you have a rent balance of {_money(row['outstanding'])} for {place}."
-    return f"{text}{_pay_line(row)} - {account_name}"
+    return f"{text}{_pay_line(row, account)} - {account.name}"
 
 
 def send_reminder(row, kind, account):
     """Text one arrears row and keep a record of it."""
-    message = reminder_text(row, kind, account.name)
+    message = reminder_text(row, kind, account)
     error = send_sms(row["customer_phone"], message)
     SmsMessage.objects.create(
         account=account, contract_id=row["contract_id"], invoice_number=row["invoice_number"],
