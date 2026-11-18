@@ -60,6 +60,8 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    # Keeps each landlord's data apart (see app/tenancy.py)
+    'app.tenancy.AccountMiddleware',
 ]
 
 
@@ -92,6 +94,9 @@ DATABASES = {
     "default": dj_database_url.parse(
         os.getenv("DATABASE_URL"),
         conn_max_age=600,
+        # The hosted Postgres closes idle connections; check one before reusing it
+        # instead of failing the request with "SSL connection has been closed"
+        conn_health_checks=True,
         ssl_require=True,
     )
 }
@@ -156,6 +161,10 @@ CELERY_BEAT_SCHEDULE = {
         "task": "app.tasks.flush_expired_tokens",
         "schedule": crontab(hour=2, minute=30),
     },
+    "send-rent-reminders": {
+        "task": "app.tasks.send_rent_reminders",
+        "schedule": crontab(hour=8, minute=0),
+    },
 }
 
 # ---------------------------------------------------------------------------
@@ -195,9 +204,10 @@ REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": (
         "rest_framework_simplejwt.authentication.JWTAuthentication",
     ),
-    # Public endpoints (login, register, password reset...) opt out with AllowAny
+    # Public endpoints (login, register, password reset...) opt out with AllowAny.
+    # IsAccountMember scopes the request to the user's account and checks their role.
     "DEFAULT_PERMISSION_CLASSES": (
-        "rest_framework.permissions.IsAuthenticated",
+        "app.permissions.IsAccountMember",
     ),
     # No default pagination: the frontend expects plain lists and pages them itself
     "DEFAULT_RENDERER_CLASSES": (
@@ -273,8 +283,11 @@ GITHUB_USERNAME = os.getenv("GITHUB_USERNAME", "dennis027")
 GITHUB_TOKEN = os.getenv("GITHUB_TOKEN", "")
 
 # Accounts are created by the administrator (admin site or createsuperuser).
-# Set to True only if strangers signing up should see the data.
+# Each sign-up gets an account of its own and sees only its own data (app/tenancy.py),
+# so this can be switched on once the product is open to the public.
 ALLOW_PUBLIC_SIGNUP = env_bool("ALLOW_PUBLIC_SIGNUP", False)
+# Where the web app is served, for links in emails (e.g. https://dennis027.github.io/rental-incomes)
+FRONTEND_URL = os.getenv("FRONTEND_URL", "")
 
 # M-Pesa paybill/till (Daraja C2B). Leave MPESA_CALLBACK_TOKEN empty to keep the callbacks switched off.
 MPESA_CALLBACK_TOKEN = os.getenv("MPESA_CALLBACK_TOKEN", "")
@@ -284,6 +297,16 @@ MPESA_CONSUMER_KEY = os.getenv("MPESA_CONSUMER_KEY", "")
 MPESA_CONSUMER_SECRET = os.getenv("MPESA_CONSUMER_SECRET", "")
 # Public https address of this backend, e.g. https://api.example.com
 MPESA_CALLBACK_BASE_URL = os.getenv("MPESA_CALLBACK_BASE_URL", "")
+# "Pay now" prompts on the tenant's phone (STK push) also need the Lipa na M-Pesa Online passkey.
+# Use CustomerBuyGoodsOnline as the transaction type for a till number.
+MPESA_PASSKEY = os.getenv("MPESA_PASSKEY", "")
+MPESA_TRANSACTION_TYPE = os.getenv("MPESA_TRANSACTION_TYPE", "CustomerPayBillOnline")
+
+# SMS rent reminders (Africa's Talking). Leave AT_API_KEY empty to keep SMS off.
+# AT_USERNAME=sandbox sends to the Africa's Talking simulator instead of real phones.
+AT_USERNAME = os.getenv("AT_USERNAME", "")
+AT_API_KEY = os.getenv("AT_API_KEY", "")
+AT_SENDER_ID = os.getenv("AT_SENDER_ID", "")
 
 # ---------------------------------------------------------------------------
 # Logging

@@ -50,6 +50,11 @@
                 }
               ],
               "outputHashing": "all",
+              "optimization": {
+                "scripts": true,
+                "styles": { "minify": true, "inlineCritical": true },
+                "fonts": false
+              },
                 "fileReplacements": [
                   {
                     "replace": "src/environments/environment.ts",
@@ -98,7 +103,10 @@
           }
         },
         "deploy": {
-          "builder": "angular-cli-ghpages:deploy"
+          "builder": "angular-cli-ghpages:deploy",
+          "options": {
+            "baseHref": "/rental-incomes/"
+          }
         }
       }
     }

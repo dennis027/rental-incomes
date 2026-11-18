@@ -6,7 +6,7 @@ from .views import ActivateAccountView, ContractSearchView, CustomerDetail, Cust
 from django.conf import settings
 from django.conf.urls.static import static
 
-from app import views, billing_views, public_views
+from app import views, billing_views, public_views, account_views, tax_views, reminder_views
 
 urlpatterns = [
     path("api/register/", RegisterView.as_view(), name="register"),  
@@ -143,6 +143,17 @@ urlpatterns = [
     path('api/paybill/<str:token>/validation/', billing_views.MpesaValidationView.as_view(), name='paybill-validation'),
     path('api/paybill/<str:token>/confirmation/', billing_views.MpesaConfirmationView.as_view(), name='paybill-confirmation'),
     path('api/paybill-transactions/', billing_views.MpesaTransactionListView.as_view(), name='paybill-transactions'),
+    # Signed-in user, account settings and team
+    path('api/me/', account_views.MeView.as_view(), name='me'),
+    path('api/account/', account_views.AccountView.as_view(), name='account'),
+    path('api/team/', account_views.TeamView.as_view(), name='team'),
+    path('api/team/<int:pk>/', account_views.TeamMemberView.as_view(), name='team-member'),
+    path('api/mpesa/stk/', billing_views.StkPushView.as_view(), name='mpesa-stk'),
+    path('api/mpesa/stk/<int:pk>/', billing_views.StkPushStatusView.as_view(), name='mpesa-stk-status'),
+    path('api/mpesa/stk/<str:token>/callback/', billing_views.StkCallbackView.as_view(), name='mpesa-stk-callback'),
+    path('api/reminders/', reminder_views.ReminderListView.as_view(), name='reminders'),
+    path('api/reminders/send/', reminder_views.ReminderSendView.as_view(), name='reminders-send'),
+    path('api/reports/rental-income-tax/', tax_views.RentalIncomeTaxView.as_view(), name='rental-income-tax'),
     path('api/paybill-transactions/<int:pk>/match/', billing_views.MpesaTransactionMatchView.as_view(), name='paybill-transaction-match'),
 
     # Uploaded files need a login; see ProtectedMediaView
