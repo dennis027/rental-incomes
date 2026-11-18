@@ -4,7 +4,12 @@
       <h2>Arrears</h2>
       <p>Tenants with unpaid rent. A balance is overdue once the grace period in the property's Settings has passed.</p>
     </div>
-  </div>
+  <div class="ui-header-actions">
+      <button mat-stroked-button (click)="exportCsv()" matTooltip="Download what is on screen as a spreadsheet">
+        <mat-icon>download</mat-icon>
+        Export
+      </button>
+    </div></div>
 
   <div class="ui-summary">
     <div class="ui-summary-card tone-pink">
@@ -54,6 +59,9 @@
         <span><strong>{{ selected.size }}</strong> tenant{{ selected.size === 1 ? '' : 's' }} selected · KES {{ selectedTotal | number:'1.2-2' }} owed</span>
         <div class="ui-bulk-actions">
           <button mat-button (click)="clearSelection()">Clear</button>
+          @if (smsReady) {
+            <button mat-flat-button (click)="smsSelected()" [disabled]="texting"><mat-icon>sms</mat-icon> {{ texting ? 'Sending…' : 'Send SMS' }}</button>
+          }
           <button mat-flat-button (click)="startQueue()"><i class="fab fa-whatsapp"></i>&nbsp; Send reminders</button>
         </div>
       </div>
@@ -143,6 +151,16 @@
                 <mat-icon>payments</mat-icon>
                 Pay
               </button>
+              @if (stkReady) {
+                <button mat-icon-button (click)="requestMpesa(row)" matTooltip="Ask for payment on M-Pesa" aria-label="Ask for payment on M-Pesa">
+                  <mat-icon>phone_iphone</mat-icon>
+                </button>
+              }
+              @if (smsReady) {
+                <button mat-icon-button (click)="sms([row])" [disabled]="texting" matTooltip="Send a reminder by SMS" aria-label="Send a reminder by SMS">
+                  <mat-icon>sms</mat-icon>
+                </button>
+              }
               <button mat-icon-button class="whatsapp-btn" (click)="remind(row)" matTooltip="Send a reminder on WhatsApp" aria-label="Send a reminder on WhatsApp">
                 <i class="fab fa-whatsapp"></i>
               </button>

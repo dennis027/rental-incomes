@@ -3,6 +3,7 @@ import { ApplicationConfig, provideBrowserGlobalErrorListeners, provideZonelessC
 import { provideRouter, withInMemoryScrolling } from '@angular/router';
 import { provideHttpClient, withInterceptors, withFetch } from '@angular/common/http';
 import { MAT_PAGINATOR_DEFAULT_OPTIONS } from '@angular/material/paginator';
+import { MAT_DIALOG_DEFAULT_OPTIONS } from '@angular/material/dialog';
 import { routes } from './app.routes';
 import { provideClientHydration, withEventReplay } from '@angular/platform-browser';
 import { sessionInterceptor } from './interceptors/session-interceptor';
@@ -18,6 +19,11 @@ export const appConfig: ApplicationConfig = {
       withFetch(),
       withInterceptors([sessionInterceptor])
     ),
+    // Same size and behaviour for every dialog; a call can still pass its own width
+    {
+      provide: MAT_DIALOG_DEFAULT_OPTIONS,
+      useValue: { width: '560px', maxWidth: 'calc(100vw - 32px)', hasBackdrop: true, autoFocus: 'first-tabbable', restoreFocus: true }
+    },
     // Same table paging on every page
     {
       provide: MAT_PAGINATOR_DEFAULT_OPTIONS,

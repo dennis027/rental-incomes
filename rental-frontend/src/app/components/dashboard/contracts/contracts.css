@@ -508,7 +508,7 @@ ol.legal-covenants li {
   mat-paginator, 
   mat-dialog-actions,
   button,
-  .dialog-header-clean,
+  .dialog-head,
   .contract-preview-container {
     display: none !important;
   }

@@ -8,11 +8,12 @@ import { TenantscustomersReports } from './tenantscustomers-reports/tenantscusto
 import { UtilitymaintanaceReports } from './utilitymaintanace-reports/utilitymaintanace-reports';
 import { ExecutiveReports } from './executive-reports/executive-reports';
 import { ReportViewer } from './report-viewer/report-viewer';
+import { TaxReport } from './tax-report/tax-report';
 import { FINANCIAL_REPORTS } from './report-viewer/report-definitions';
 
 @Component({
   selector: 'app-reports',
-  imports: [SharedImports,FinancialReports,OccupancyReports,TenantscustomersReports,UtilitymaintanaceReports,ExecutiveReports,ReportViewer],
+  imports: [SharedImports,FinancialReports,OccupancyReports,TenantscustomersReports,UtilitymaintanaceReports,ExecutiveReports,ReportViewer,TaxReport],
   templateUrl: './reports.html',
   styleUrl: './reports.css',
 })

@@ -1,3 +1,4 @@
+import { DialogSize } from '../../../shared/dialog-sizes';
 import { PropertyContext } from '../../../services/property-context';
 import { MoveOutDialog } from '../move-out/move-out-dialog';
 import { Component, inject, OnInit, AfterViewInit, TemplateRef, ViewChild, ChangeDetectorRef, ElementRef, PLATFORM_ID, effect, untracked } from '@angular/core';
@@ -75,10 +76,6 @@ export class Contracts implements OnInit, AfterViewInit {
 
   apiUrl = environment.apiUrl;
 
-  @ViewChild('openAddDialog') openAddDialog!: TemplateRef<any>;
-  @ViewChild('editDialog') editDialog!: TemplateRef<any>;
-  @ViewChild('deleteDialog') deleteDialog!: TemplateRef<any>;
-  @ViewChild('cancelDialog') cancelDialog!: TemplateRef<any>;
   @ViewChild('contractPreviewDialog') contractPreviewDialog!: TemplateRef<any>;
   @ViewChild('contractPreview', { static: false }) contractPreview!: ElementRef;
   @ViewChild('activePaginator') activePaginator!: MatPaginator;
@@ -445,194 +442,13 @@ export class Contracts implements OnInit, AfterViewInit {
     this.cdr.detectChanges();
   }
 
-  openAddDialogForm() {
-    this.isEditMode = false;
-    this.contractForm.reset();
-    this.dialog.open(this.openAddDialog, {
-      maxWidth: '700px',
-      disableClose: true
-    });
-  }
-
-  openEditDialog(contract: ContractObject) {
-    this.isEditMode = true;
-    this.selectedContractId = contract.id;
-
-    this.updateContractForm.patchValue({
-      customer: contract.customer,
-      unit: contract.unit,
-      start_date: contract.start_date,
-      rent_amount: contract.rent_amount,
-      deposit_amount: contract.deposit_amount,
-      payment_frequency: contract.payment_frequency,
-    });
-
-    this.dialog.open(this.editDialog, {
-      maxWidth: '700px',
-      disableClose: true
-    });
-  }
-
-  testData() {
-  }
-
-  addContract() {
-    if (this.contractForm.invalid) {
-      this.contractForm.markAllAsTouched();
-      return;
-    }
-
-    this.loadAdding = true;
-    const formValues = this.contractForm.value;
-
-    const payload = {
-      customer: formValues.customer,
-      unit: formValues.unit,
-      start_date: this.formatToYMD(formValues.start_date),
-      rent_amount: formValues.rent_amount,
-      deposit_amount: formValues.deposit_amount,
-      payment_frequency: formValues.payment_frequency,
-    };
-
-    this.contractsService.addContract(payload).subscribe({
-      next: () => {
-        this.loadAdding = false;
-        this.showSuccess('Contract added successfully!');
-        this.dialog.closeAll();
-        this.contractForm.reset();
-        this.loadContracts();
-        this.cdr.detectChanges();
-      },
-      error: (err) => {
-        console.error('❌ Error adding contract:', err);
-        this.loadAdding = false;
-        this.showError('Failed to add contract.');
-        this.cdr.detectChanges();
-        if (err.status === 401) {
-          this.router.navigate(['/login']);
-          this.dialog.closeAll();
-        }
-      },
-    });
-  }
-
-  updateContract() {
-    if (this.updateContractForm.invalid) {
-      this.updateContractForm.markAllAsTouched();
-      return;
-    }
-
-    if (!this.selectedContractId) return;
-
-    this.loadUpdating = true;
-    const formValues = this.updateContractForm.value;
-
-    const payload = {
-      customer: formValues.customer,
-      unit: formValues.unit,
-      start_date: formValues.start_date,
-      end_date: formValues.end_date,
-      rent_amount: formValues.rent_amount,
-      deposit_amount: formValues.deposit_amount,
-      payment_frequency: formValues.payment_frequency,
-    };
-
-    this.contractsService.updateContract(this.selectedContractId, payload).subscribe({
-      next: () => {
-        this.loadUpdating = false;
-        this.showSuccess('Contract updated successfully!');
-        this.dialog.closeAll();
-        this.updateContractForm.reset();
-        this.loadContracts();
-        this.cdr.detectChanges();
-      },
-      error: (err) => {
-        console.error('❌ Error updating contract:', err);
-        this.loadUpdating = false;
-        this.showError('Failed to update contract.');
-        this.cdr.detectChanges();
-        if (err.status === 401) {
-          this.router.navigate(['/login']);
-          this.dialog.closeAll();
-        }
-      },
-    });
-  }
-
-  openDeleteDialog(contract: ContractObject) {
-    this.selectedContractId = contract.id;
-    this.dialog.open(this.deleteDialog);
-  }
-
-  confirmDelete() {
-    if (!this.selectedContractId) return;
-    this.loadDeleting = true;
-
-    this.contractsService.deleteContract(this.selectedContractId).subscribe({
-      next: () => {
-        this.loadDeleting = false;
-        this.showSuccess('Contract deleted successfully!');
-        this.dialog.closeAll();
-        this.loadContracts();
-        this.cdr.detectChanges();
-      },
-      error: (err) => {
-        console.error('❌ Error deleting contract:', err);
-        this.loadDeleting = false;
-        this.showError('Failed to delete contract.');
-        if (err.status === 401) {
-          this.router.navigate(['/login']);
-        }
-        this.cdr.detectChanges();
-      },
-    });
-  }
-
-  openCancelDialog(contract: ContractObject) {
-    this.selectedContractId = contract.id;
-    this.dialog.open(this.cancelDialog, {
-      width: '500px',
-      disableClose: true
-    });
-  }
-
-  confirmCancel() {
-    if (!this.selectedContractId) return;
-    this.loadCancelling = true;
-
-    const payload = {
-      is_active: false,
-      cancellation_date: new Date().toISOString().split('T')[0]
-    };
-
-    this.contractsService.cancelContract(this.selectedContractId, payload).subscribe({
-      next: () => {
-        this.showSuccess('Contract cancelled successfully!');
-        this.dialog.closeAll();
-        setTimeout(() => {
-          this.loadContracts();
-        });
-        this.cdr.detectChanges();
-      },
-      error: (err) => {
-        console.error('❌ Error cancelling contract:', err);
-        this.loadCancelling = false;
-        this.showError('Failed to cancel contract.');
-        if (err.status === 401) {
-          this.router.navigate(['/login']);
-        }
-        this.cdr.detectChanges();
-      },
-    });
-  }
-
   openStatement(contract: ContractObject) {
     this.router.navigate(['/dashboard/statement'], { queryParams: { tenant: contract.customer, contract: contract.id } });
   }
 
   /** The deposit settlement recorded when the tenant moved out */
   openSettlement(contract: ContractObject) {
-    this.dialog.open(MoveOutDialog, { width: '640px', maxWidth: '95vw', data: { contractId: contract.id } });
+    this.dialog.open(MoveOutDialog, { ...DialogSize.wide, data: { contractId: contract.id } });
   }
 
   applyFilter() {
@@ -689,8 +505,7 @@ export class Contracts implements OnInit, AfterViewInit {
 
   openContractPreview() {
     const dialogRef = this.dialog.open(this.contractPreviewDialog, {
-      width: '900px',
-      maxHeight: '90vh',
+      ...DialogSize.document,
       panelClass: 'contract-preview-dialog'
     });
 

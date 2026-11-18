@@ -255,11 +255,167 @@ app-dashboard .main-content h5 { font-weight: 600; color: var(--gray-800); }
 .mat-mdc-icon-button.mat-warn { --mat-icon-button-icon-color: var(--error-500); }
 
 .mat-mdc-form-field { --mat-form-field-container-text-size: 14px; }
+/* ===========================
+   DIALOGS
+   Every dialog is built from the same three parts:
+     <div class="dialog-head"> title (+ optional .dialog-sub line) and close button </div>
+     <mat-dialog-content> ... </mat-dialog-content>
+     <mat-dialog-actions align="end"> Cancel, then the main action </mat-dialog-actions>
+   =========================== */
 .mat-mdc-dialog-container {
   --mat-dialog-container-shape: 16px;
   --mat-dialog-container-color: var(--surface);
+  --mat-dialog-subhead-font: var(--font-sans);
+  --mat-dialog-subhead-color: var(--gray-900);
+  --mat-dialog-supporting-text-font: var(--font-sans);
+  --mat-dialog-supporting-text-color: var(--gray-700);
+  --mat-dialog-supporting-text-size: 14px;
+  --mat-dialog-supporting-text-line-height: 1.55;
+  --mat-dialog-content-padding: 20px 24px;
+  --mat-dialog-actions-padding: 14px 24px;
+  --mat-dialog-with-actions-content-padding: 20px 24px;
 }
-.mat-mdc-dialog-title { font-weight: 600 !important; color: var(--gray-800) !important; }
+.mat-mdc-dialog-surface {
+  border: 1px solid var(--gray-200);
+  box-shadow: 0 24px 48px -12px rgba(16, 24, 40, 0.22) !important;
+}
+.mat-mdc-dialog-title { font-weight: 600 !important; color: var(--gray-900) !important; }
+
+.dialog-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 18px 14px 14px 24px;
+  border-bottom: 1px solid var(--gray-100);
+}
+.dialog-head .mat-mdc-dialog-title {
+  margin: 0;
+  padding: 0;
+  font-size: 18px;
+  line-height: 28px;
+  letter-spacing: -0.01em;
+}
+.dialog-head .mat-mdc-dialog-title::before { display: none; }
+.dialog-head .dialog-sub {
+  margin: 2px 0 0;
+  font-size: 13px;
+  color: var(--gray-500);
+}
+.dialog-head .mat-mdc-icon-button {
+  flex-shrink: 0;
+  margin-top: -4px;
+  color: var(--gray-500);
+}
+.dialog-head .mat-mdc-icon-button:hover { color: var(--gray-800); }
+
+.mat-mdc-dialog-container .mat-mdc-dialog-content { max-height: 70vh; }
+/* Old bootstrap grids inside dialogs: no extra side padding */
+.mat-mdc-dialog-content .container-fluid { padding-left: 0; padding-right: 0; }
+.mat-mdc-dialog-content .mat-mdc-form-field { width: 100%; }
+
+.mat-mdc-dialog-container .mat-mdc-dialog-actions {
+  gap: 8px;
+  border-top: 1px solid var(--gray-100);
+  flex-wrap: wrap;
+}
+.mat-mdc-dialog-actions .mat-mdc-button-base + .mat-mdc-button-base { margin-left: 0 !important; }
+/* Secondary actions (Cancel, Close, Download...) share one quiet bordered look */
+.mat-mdc-dialog-actions .mat-mdc-button:not(.mat-warn) {
+  --mat-button-text-label-text-color: var(--gray-700);
+  border: 1px solid var(--gray-300);
+}
+.mat-mdc-dialog-actions .mat-mdc-outlined-button:not(.mat-warn) {
+  --mat-button-outlined-label-text-color: var(--gray-700);
+  --mat-button-outlined-outline-color: var(--gray-300);
+}
+.mat-mdc-dialog-actions .mat-mdc-raised-button { box-shadow: none; }
+.mat-mdc-dialog-actions .mat-mdc-button-base {
+  border-radius: 10px;
+  --mat-button-text-container-shape: 10px;
+  --mat-button-outlined-container-shape: 10px;
+  --mat-button-filled-container-shape: 10px;
+  --mat-button-protected-container-shape: 10px;
+}
+.mat-mdc-dialog-actions .mat-mdc-button-base .mat-icon,
+.mat-mdc-dialog-actions .mat-mdc-button-base i { margin-right: 2px; }
+
+/* Two-column form layout; .span-2 takes the full width. One column on phones. */
+.dialog-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  column-gap: 16px;
+  row-gap: 4px;
+}
+.dialog-grid > .span-2 { grid-column: 1 / -1; }
+@media (max-width: 600px) {
+  .dialog-grid { grid-template-columns: 1fr; }
+}
+
+/* Short explanation under the header */
+.dialog-lead {
+  margin: 0 0 16px;
+  font-size: 14px;
+  color: var(--gray-500);
+}
+
+/* Highlighted tip inside a dialog */
+.dialog-note {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  margin-bottom: 16px;
+  padding: 12px 14px;
+  font-size: 13px;
+  color: var(--gray-700);
+  background: var(--brand-25);
+  border: 1px solid var(--brand-100);
+  border-radius: var(--radius-md);
+}
+.dialog-note .mat-icon { flex-shrink: 0; font-size: 20px; width: 20px; height: 20px; color: var(--brand-500); }
+
+/* "Are you sure?" body of delete dialogs */
+.dialog-confirm {
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+}
+.dialog-confirm p { margin: 8px 0 0; color: var(--gray-700); }
+.dialog-confirm strong { color: var(--gray-900); }
+.dialog-confirm-icon {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  color: var(--error-600);
+  background: var(--error-50);
+}
+
+/* A list of big buttons to pick one option */
+.dialog-choices { display: grid; gap: 10px; }
+.dialog-choice {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  width: 100%;
+  padding: 14px 16px;
+  text-align: left;
+  font: inherit;
+  color: var(--gray-700);
+  background: var(--surface);
+  border: 1px solid var(--gray-200);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+.dialog-choice:hover,
+.dialog-choice:focus-visible { border-color: var(--brand-300); background: var(--brand-25); outline: none; }
+.dialog-choice .mat-icon { color: var(--brand-500); }
+.dialog-choice strong { display: block; color: var(--gray-900); font-weight: 600; }
+.dialog-choice small { display: block; color: var(--gray-500); font-size: 13px; }
 .mat-mdc-card {
   --mat-card-elevated-container-shape: 16px;
   --mat-card-outlined-container-shape: 16px;
@@ -354,6 +510,17 @@ app-dashboard .main-content h5 { font-weight: 600; color: var(--gray-800); }
   .mat-mdc-table .mat-mdc-header-row {
     display: none !important;
   }
+
+  /* The row groups stay tables otherwise, which shrinks each card to its content */
+  .mat-mdc-table > tbody,
+  .mat-mdc-table > thead,
+  .mat-mdc-table > tfoot {
+    display: block !important;
+    width: 100% !important;
+  }
+  .mat-mdc-table .mat-mdc-row { width: 100% !important; box-sizing: border-box; }
+  /* Status pills keep their own width instead of stretching across the card */
+  .mat-mdc-table .mat-mdc-cell > .ui-chip { flex: 0 0 auto; }
 
   /* 3. CARD STYLE ROW - CENTERED */
   .mat-mdc-table .mat-mdc-row {
@@ -542,16 +709,15 @@ app-dashboard .main-content h5 { font-weight: 600; color: var(--gray-800); }
     font-size: 13px;
   }
 
-  /* Stack action buttons on tiny screens */
+  /* Tiny screens: the main action fills the row, the "more" menu stays at the end */
   .mat-mdc-table .mat-mdc-cell.actions-cell > * {
-    flex-direction: column;
-    align-items: stretch;
+    flex-wrap: nowrap;
+    align-items: center;
   }
 
-  .actions-cell button {
-    width: 100%;
-    max-width: 200px;
-    margin-bottom: 6px !important;
+  .actions-cell .mat-mdc-outlined-button,
+  .actions-cell .mat-mdc-unelevated-button {
+    flex: 1;
   }
 }
 /* Table wrapper used across dashboard pages */
@@ -597,11 +763,13 @@ app-dashboard .main-content h5 { font-weight: 600; color: var(--gray-800); }
   margin-bottom: 20px;
 }
 .ui-header h2 { margin: 0 0 4px; }
+.ui-header-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; flex-shrink: 0; }
 .ui-header p { margin: 0; font-size: 14px; color: var(--gray-500); }
 
 .ui-summary {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  /* Three or four cards in one row; four drop to two-by-two before they get cramped */
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 16px;
   margin-bottom: 20px;
 }
@@ -698,6 +866,11 @@ app-dashboard .main-content h5 { font-weight: 600; color: var(--gray-800); }
 .ui-stack { display: flex; flex-direction: column; }
 .ui-stack strong { font-weight: 500; color: var(--gray-800); }
 .ui-stack small { color: var(--gray-500); }
+/* Row "more" menus: secondary actions, with destructive ones last and set apart */
+.row-menu .mat-mdc-menu-item .mat-icon { color: var(--gray-500); }
+.row-menu .menu-danger { border-top: 1px solid var(--gray-100); color: var(--error-600); }
+.row-menu .menu-danger .mat-icon { color: var(--error-600); }
+.row-menu .menu-danger .mat-mdc-menu-item-text { color: var(--error-600); }
 .ui-row-actions { display: flex; align-items: center; justify-content: flex-end; flex-wrap: nowrap; gap: 4px; }
 .ui-row-actions .mat-mdc-outlined-button { white-space: nowrap; flex-shrink: 0; }
 .ui-pay-btn.mat-mdc-outlined-button {
@@ -717,7 +890,25 @@ app-dashboard .main-content h5 { font-weight: 600; color: var(--gray-800); }
 
 @media (max-width: 768px) {
   .ui-header { flex-direction: column; }
+  .ui-header-actions { width: 100%; }
+  .ui-header-actions > .mat-mdc-button-base { flex: 1 1 auto; }
   .ui-toolbar-filters, .ui-toolbar-filters mat-form-field { width: 100%; }
+}
+
+.ui-summary:has(> :nth-child(4)) { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+@media (max-width: 1280px) {
+  .ui-summary:has(> :nth-child(4)) { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 900px) {
+  .ui-summary { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+/* Phones: totals two to a row, so the table is reachable without a long scroll */
+@media (max-width: 600px) {
+  .ui-summary { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  .ui-summary-card { flex-direction: column; align-items: flex-start; gap: 10px; padding: 14px; }
+  .ui-summary-icon { width: 36px; height: 36px; font-size: 15px; border-radius: 10px; }
+  .ui-summary-card strong { font-size: 17px; }
 }
 
 
@@ -800,6 +991,39 @@ app-dashboard .main-content h5 { font-weight: 600; color: var(--gray-800); }
 .profile-id { display: flex; flex-direction: column; min-width: 0; line-height: 1.35; }
 .profile-id strong { font-size: 14px; font-weight: 600; color: var(--gray-900); }
 .profile-id small { font-size: 12px; color: var(--gray-500); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.profile-account {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 12px 8px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: var(--gray-50);
+  font-size: 13px;
+  color: var(--gray-700);
+}
+.profile-account > i { color: var(--gray-400); }
+.profile-account > span:first-of-type { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 500; }
+.profile-role {
+  flex-shrink: 0;
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: var(--brand-50);
+  color: var(--brand-600);
+  font-size: 11px;
+  font-weight: 600;
+}
+.profile-kbd {
+  margin-left: auto;
+  padding: 0 6px;
+  background: transparent;
+  box-shadow: none;
+  border: 1px solid var(--gray-200);
+  border-radius: 4px;
+  font-family: inherit;
+  font-size: 11px;
+  color: var(--gray-500);
+}
 .profile-theme {
   padding: 12px 16px;
   border-top: 1px solid var(--gray-200);

@@ -135,161 +135,13 @@
   }
 </div>
 
-<!-- Add Contract Dialog -->
-<ng-template #openAddDialog>
-  <div class="dialog-wrapper">
-    <div class="dialog-header-clean">
-      <h2 mat-dialog-title>Add New Contract</h2>
-      <button mat-icon-button mat-dialog-close><mat-icon>close</mat-icon></button>
-    </div>
-    <mat-dialog-content>
-      <form [formGroup]="contractForm" class="clean-form">
-        <div class="row">
-          <div class="col-md-4">
-            <mat-form-field appearance="outline" style="width:100%">
-              <mat-label>Customer</mat-label>
-              <mat-select formControlName="customer">
-                @for (customer of customers; track customer.id) {
-                  <mat-option [value]="customer.id">{{ customer.first_name }} {{ customer.last_name }}</mat-option>
-                }
-              </mat-select>
-            </mat-form-field>
-          </div>
-          <div class="col-md-4">
-            <mat-form-field appearance="outline" style="width:100%">
-              <mat-label>Unit</mat-label>
-              <mat-select formControlName="unit">
-                @for (unit of filteredUnits; track unit.id) {
-                  <mat-option [value]="unit.id" (click)="onUnitChange(unit.id)">{{ unit.unit_number }}</mat-option>
-                }
-              </mat-select>
-            </mat-form-field>
-          </div>
-          <div class="col-md-4">
-            <mat-form-field appearance="outline" style="width: 100%;">
-              <mat-label>Start Date</mat-label>
-              <input matInput formControlName="start_date" [matDatepicker]="pickerStart">
-              <mat-datepicker-toggle matIconSuffix [for]="pickerStart"></mat-datepicker-toggle>
-              <mat-datepicker #pickerStart></mat-datepicker>
-            </mat-form-field>
-          </div>
-        </div>
-        <div class="row">
-          <div class="col-md-4">
-            <mat-form-field appearance="outline" style="width:100%">
-              <mat-label>Rent Amount (KES)</mat-label>
-              <input matInput type="number" formControlName="rent_amount" />
-            </mat-form-field>
-          </div>
-          <div class="col-md-4">
-            <mat-form-field appearance="outline" style="width:100%">
-              <mat-label>Deposit Amount (KES)</mat-label>
-              <input matInput type="number" formControlName="deposit_amount" (change)="testData()" />
-            </mat-form-field>
-          </div>
-          <div class="col-md-4">
-            <mat-form-field appearance="outline" style="width:100%">
-              <mat-label>Payment Frequency</mat-label>
-              <mat-select formControlName="payment_frequency">
-                <mat-option value="monthly">Monthly</mat-option>
-                <mat-option value="quarterly">Quarterly</mat-option>
-                <mat-option value="yearly">Yearly</mat-option>
-              </mat-select>
-            </mat-form-field>
-          </div>
-        </div>
-      </form>
-    </mat-dialog-content>
-    <mat-dialog-actions align="end">
-      <button mat-button mat-dialog-close [disabled]="loadAdding">Cancel</button>
-      <button mat-flat-button class="btn-black" (click)="addContract()" [disabled]="loadAdding">Save Contract</button>
-    </mat-dialog-actions>
-  </div>
-</ng-template>
-
-<!-- Edit Contract Dialog -->
-<ng-template #editDialog>
-  <div class="dialog-wrapper">
-    <div class="dialog-header-clean">
-      <h2 mat-dialog-title>Edit Contract</h2>
-      <button mat-icon-button mat-dialog-close><mat-icon>close</mat-icon></button>
-    </div>
-    <mat-dialog-content>
-      <form [formGroup]="updateContractForm" class="clean-form">
-        <div class="row">
-          <div class="col-md-4">
-            <mat-form-field appearance="outline" style="width:100%">
-              <mat-label>Customer</mat-label>
-              <mat-select formControlName="customer">
-                @for (customer of customers; track customer.id) {
-                  <mat-option [value]="customer.id">{{ customer.first_name }} {{ customer.last_name }}</mat-option>
-                }
-              </mat-select>
-            </mat-form-field>
-          </div>
-          <div class="col-md-4">
-            <mat-form-field appearance="outline" style="width:100%">
-              <mat-label>Unit</mat-label>
-              <mat-select formControlName="unit">
-                @for (unit of units; track unit.id) {
-                  <mat-option [value]="unit.id">{{ unit.unit_number }}</mat-option>
-                }
-              </mat-select>
-            </mat-form-field>
-          </div>
-          <div class="col-md-4">
-            <mat-form-field appearance="outline" style="width:100%">
-              <mat-label>Start Date</mat-label>
-              <input matInput type="date" formControlName="start_date" />
-            </mat-form-field>
-          </div>
-        </div>
-        <div class="row">
-          <div class="col-md-4">
-            <mat-form-field appearance="outline" style="width:100%">
-              <mat-label>Rent Amount (KES)</mat-label>
-              <input matInput type="number" formControlName="rent_amount" />
-            </mat-form-field>
-          </div>
-          <div class="col-md-4">
-            <mat-form-field appearance="outline" style="width:100%">
-              <mat-label>Deposit Amount (KES)</mat-label>
-              <input matInput type="number" formControlName="deposit_amount" />
-            </mat-form-field>
-          </div>
-          <div class="col-md-4">
-            <mat-form-field appearance="outline" style="width:100%">
-              <mat-label>Payment Frequency</mat-label>
-              <mat-select formControlName="payment_frequency">
-                <mat-option value="monthly">Monthly</mat-option>
-                <mat-option value="quarterly">Quarterly</mat-option>
-                <mat-option value="yearly">Yearly</mat-option>
-              </mat-select>
-            </mat-form-field>
-          </div>
-        </div>
-      </form>
-    </mat-dialog-content>
-    <mat-dialog-actions align="end">
-      <button mat-button mat-dialog-close [disabled]="loadUpdating">Cancel</button>
-      <button mat-flat-button class="btn-black" (click)="updateContract()" [disabled]="loadUpdating">Update</button>
-    </mat-dialog-actions>
-  </div>
-</ng-template>
-
 <!-- Contract Preview Dialog -->
 
-<ng-template #contractPreviewDialog> <br>
-
-  <div class="container-fluid dialog-header">
-
-  <h2 style="display: inline;" mat-dialog-title>Contract Agreement</h2>
-
-  <button style="display: inline;float: right;" mat-icon-button mat-dialog-close aria-label="Close dialog">
-
-  <mat-icon>close</mat-icon>
-
-  </button> <br>
+<ng-template #contractPreviewDialog>
+  <div class="dialog-head">
+    <h2 mat-dialog-title>Contract Agreement</h2>
+    <button mat-icon-button mat-dialog-close aria-label="Close dialog"><mat-icon>close</mat-icon></button>
+  </div>
 
     <mat-dialog-content>
       <div #contractPreview class="contract-print-sheet">
@@ -411,15 +263,16 @@
         <!-- Clean Legal Footer -->
         <div class="legal-footer">
           <div class="footer-border"></div>
-          <p>Document generated electronically via Property Management System.</p>
+          <p>Document generated electronically via KodiDesk.</p>
           <p class="system-id">System Ref ID: {{ selectedContract?.contract_number || 'N/A' }}</p>
         </div>
       </div>
     </mat-dialog-content>
-    <mat-dialog-actions align="center" class="no-print">
+    <mat-dialog-actions align="end" class="no-print">
+      <button mat-button mat-dialog-close>Close</button>
       <button
         mat-flat-button
-        class="btn-black"
+        color="primary"
         (click)="generateContractPDF()"
         [disabled]="isGeneratingPDF"
       >
@@ -435,5 +288,5 @@
         {{ isGeneratingPDF ? 'Generating...' : 'Download PDF / Print' }}
       </button>
     </mat-dialog-actions>
-  </div>
+  
 </ng-template>

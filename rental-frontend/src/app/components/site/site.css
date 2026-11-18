@@ -2,27 +2,32 @@
 
 
 .homepage {
-  /* ---- Design tokens ---- */
-  --primary: #465FFF;        /* app blue */
-  --primary-dark: #3641F5;
-  --secondary: #7E33E0;      /* Figma kit purple */
-  --accent: #FB2E86;         /* Figma kit pink */
-  --accent-dark: #E0126F;
-  --lavender: #F2F0FF;       /* Figma kit section tint */
-  --lavender-soft: #F6F5FF;
-  --bg: #F9FAFB;
-  --card: #FFFFFF;
-  --border: #E4E7EC;
-  --text-dark: #151875;      /* Figma kit navy */
-  --text-light: #667085;
-  --gradient: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
-  --shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.06);
-  --shadow-md: 0 8px 24px rgba(15, 23, 42, 0.08);
-  --shadow-lg: 0 20px 45px rgba(70, 95, 255, 0.16);
-  --radius-md: 16px;
-  --radius-lg: 16px;
-  --font-display: 'Outfit', sans-serif;
-  --font-body: 'Outfit', sans-serif;
+  /* ---- Design tokens ----
+     Aliases of the app tokens in styles.css, so the public site uses the
+     dashboard's exact palette and follows its dark theme automatically. */
+  --primary: var(--brand-500);          /* links, accents, brand-blue text */
+  --primary-dark: var(--brand-600);
+  --secondary: var(--brand-solid);      /* fills that carry white text */
+  --accent: var(--brand-solid);
+  --accent-dark: var(--brand-solid-hover);
+  --lavender: var(--brand-25);          /* tinted band */
+  --lavender-soft: var(--gray-25);
+  --bg: var(--gray-50);
+  --card: var(--surface);
+  --border: var(--gray-200);
+  --text-dark: var(--gray-800);
+  --text-light: var(--gray-500);
+  --gradient: var(--brand-solid);
+  --shadow-md: var(--shadow-sm);
+  --danger: var(--error-600);
+  --success: var(--success-600);
+  /* Icon tile tones: the set the dashboard stat cards use */
+  --tone-1: var(--brand-solid);
+  --tone-2: #fb2e86;
+  --tone-3: #7e33e0;
+  --tone-4: #151875;
+  --font-display: var(--font-sans);
+  --font-body: var(--font-sans);
 
   font-family: var(--font-body);
   color: var(--text-dark);
@@ -349,7 +354,7 @@
   height: 360px;
   bottom: -140px;
   left: -80px;
-  background: radial-gradient(circle, rgba(139, 92, 246, 0.28), transparent 70%);
+  background: radial-gradient(circle, rgba(70, 95, 255, 0.2), transparent 70%);
   animation: float 11s ease-in-out infinite reverse;
 }
 
@@ -374,12 +379,12 @@
   align-items: center;
   padding: 0.4rem 0.85rem;
   border-radius: 999px;
-  background: #EEF2FF;
+  background: var(--brand-50);
   color: var(--primary-dark);
   font-size: 0.8rem;
   font-weight: 600;
   margin-bottom: 1.25rem;
-  border: 1px solid #E0E7FF;
+  border: 1px solid var(--brand-100);
 }
 
 .homepage .hero-title {
@@ -440,7 +445,7 @@
   background: rgba(255, 255, 255, 0.75);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(226, 232, 240, 0.8);
+  border: 1px solid var(--border);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-lg);
   padding: 1.25rem;
@@ -511,7 +516,7 @@
   display: inline-flex;
   align-items: center;
   gap: 0.25rem;
-  color: #16A34A;
+  color: var(--success-600);
   font-size: 0.8rem;
   font-weight: 600;
 }
@@ -523,8 +528,8 @@
 
 .homepage .mock-card--revenue {
   grid-column: span 2;
-  background: linear-gradient(135deg, #EEF2FF, #F5F3FF);
-  border-color: #E0E7FF;
+  background: linear-gradient(135deg, var(--brand-50), var(--brand-25));
+  border-color: var(--brand-100);
 }
 
 .homepage .occupancy-ring {
@@ -532,7 +537,7 @@
   width: 64px;
   height: 64px;
   border-radius: 50%;
-  background: conic-gradient(var(--primary) calc(var(--value) * 1%), #EEF2FF 0);
+  background: conic-gradient(var(--primary) calc(var(--value) * 1%), var(--brand-50) 0);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -621,7 +626,7 @@
 .homepage .mock-list-amount {
   font-size: 0.8rem;
   font-weight: 700;
-  color: #16A34A;
+  color: var(--success-600);
 }
 
 .homepage .mock-notification {
@@ -833,7 +838,7 @@
   width: 46px;
   height: 46px;
   border-radius: 12px;
-  background: #EEF2FF;
+  background: var(--brand-50);
   color: var(--primary);
   display: flex;
   align-items: center;
@@ -935,7 +940,7 @@
   display: inline-flex;
   align-items: center;
   gap: 0.3rem;
-  color: #16A34A;
+  color: var(--success-600);
   font-size: 0.8rem;
   font-weight: 700;
   margin-top: 0.25rem;
@@ -1235,12 +1240,12 @@
 }
 
 /* =====================================================================
-   App look + Figma kit colours
-   Same flat, bordered cards as the dashboard; blue from the app mixed
-   with the kit's pink, purple, navy and lavender.
+   App look
+   Same flat, bordered cards, blue buttons and gray surfaces as the
+   dashboard. Icon tiles rotate through the dashboard's stat-card tones.
    ===================================================================== */
 
-/* ---- Buttons: app shape, kit pink for the main call to action ---- */
+/* ---- Buttons: the app's shape and brand blue ---- */
 .homepage .btn {
   height: 44px;
   border-radius: 8px;
@@ -1279,7 +1284,7 @@
 }
 
 .homepage .btn-white {
-  color: var(--secondary);
+  color: var(--primary);
 }
 
 .homepage .btn-white:hover,
@@ -1314,34 +1319,32 @@
 
 .homepage .brand-text {
   font-weight: 600;
-  color: #101828;
+  color: var(--gray-900);
 }
 
 .homepage .nav-link:hover {
-  color: var(--accent);
+  color: var(--primary);
 }
 
-/* ---- Hero: kit lavender band ---- */
+/* ---- Hero: the app page background ---- */
 .homepage .hero {
-  background: var(--lavender);
+  background: var(--bg);
 }
 
 .homepage .hero-grid {
   display: none;
 }
 
-.homepage .glow--one {
-  background: radial-gradient(circle, rgba(126, 51, 224, 0.28), transparent 70%);
-}
-
+/* The app has no decorative glows */
+.homepage .glow--one,
 .homepage .glow--two {
-  background: radial-gradient(circle, rgba(251, 46, 134, 0.2), transparent 70%);
+  display: none;
 }
 
 .homepage .eyebrow {
   background: var(--card);
-  border-color: #E0D9FF;
-  color: var(--accent);
+  border-color: var(--brand-100);
+  color: var(--primary);
 }
 
 .homepage .hero-title {
@@ -1349,7 +1352,7 @@
 }
 
 .homepage .hero-trust-number {
-  color: var(--secondary);
+  color: var(--primary);
 }
 
 /* The preview card is drawn like a real dashboard card */
@@ -1358,7 +1361,7 @@
   backdrop-filter: none;
   -webkit-backdrop-filter: none;
   border: 1px solid var(--border);
-  box-shadow: 0 12px 16px -4px rgba(21, 24, 117, 0.08), 0 4px 6px -2px rgba(21, 24, 117, 0.03);
+  box-shadow: var(--shadow-lg);
   animation: none;
 }
 
@@ -1368,7 +1371,7 @@
 
 .homepage .mock-card--revenue {
   background: var(--lavender-soft);
-  border-color: #E0D9FF;
+  border-color: var(--brand-100);
 }
 
 .homepage .mock-notification {
@@ -1380,12 +1383,12 @@
 }
 
 .homepage .occupancy-ring {
-  background: conic-gradient(var(--secondary) calc(var(--value) * 1%), var(--lavender) 0);
+  background: conic-gradient(var(--primary) calc(var(--value) * 1%), var(--gray-100) 0);
 }
 
 /* ---- Sections ---- */
 .homepage .section-eyebrow {
-  color: var(--accent);
+  color: var(--primary);
 }
 
 .homepage .section-title {
@@ -1393,7 +1396,7 @@
 }
 
 .homepage .features-section {
-  background: var(--lavender-soft);
+  background: var(--bg);
 }
 
 .homepage .stats-section {
@@ -1416,33 +1419,34 @@
 .homepage .stat-card:hover {
   transform: none;
   box-shadow: none;
-  border-color: var(--secondary);
+  border-color: var(--brand-300);
 }
 
 .homepage .role-card.selected {
-  background: var(--lavender-soft);
+  background: var(--brand-25);
+  border-color: var(--primary);
 }
 
-/* Icon tiles take turns through the mixed palette */
+/* Icon tiles take turns through the dashboard stat-card tones */
 .homepage .role-icon,
 .homepage .stat-card__icon {
   border-radius: 12px;
-  background: var(--primary);
+  background: var(--tone-1);
 }
 
 .homepage .roles-grid > :nth-child(4n + 2) .role-icon,
 .homepage .stats-cards-grid > :nth-child(4n + 2) .stat-card__icon {
-  background: var(--accent);
+  background: var(--tone-2);
 }
 
 .homepage .roles-grid > :nth-child(4n + 3) .role-icon,
 .homepage .stats-cards-grid > :nth-child(4n + 3) .stat-card__icon {
-  background: var(--secondary);
+  background: var(--tone-3);
 }
 
 .homepage .roles-grid > :nth-child(4n + 4) .role-icon,
 .homepage .stats-cards-grid > :nth-child(4n + 4) .stat-card__icon {
-  background: var(--text-dark);
+  background: var(--tone-4);
 }
 
 .homepage .role-card:hover .role-icon {
@@ -1450,110 +1454,78 @@
 }
 
 .homepage .role-features svg {
-  color: var(--secondary);
-}
-
-.homepage .role-cta {
-  color: var(--accent);
-}
-
-.homepage .feature-icon {
-  background: #ECF3FF;
   color: var(--primary);
 }
 
-.homepage .features-grid > :nth-child(4n + 2) .feature-icon {
-  background: #FFEAF3;
-  color: var(--accent);
+.homepage .role-cta {
+  color: var(--primary);
 }
 
-.homepage .features-grid > :nth-child(4n + 3) .feature-icon {
-  background: var(--lavender);
-  color: var(--secondary);
+/* Soft tiles, drawn the way the dashboard draws --tone-soft */
+.homepage .feature-icon {
+  --tone: var(--tone-1);
+  background: color-mix(in srgb, var(--tone) 12%, var(--surface));
+  color: var(--tone);
 }
 
-.homepage .features-grid > :nth-child(4n + 4) .feature-icon {
-  background: #E8E9F8;
-  color: var(--text-dark);
-}
+.homepage .features-grid > :nth-child(4n + 2) .feature-icon { --tone: var(--tone-2); }
+.homepage .features-grid > :nth-child(4n + 3) .feature-icon { --tone: var(--tone-3); }
+.homepage .features-grid > :nth-child(4n + 4) .feature-icon { --tone: var(--tone-4); }
 
 .homepage .feature-accent {
   background: var(--accent);
 }
 
-/* ---- Call to action: kit purple with pink shapes ---- */
+/* ---- Call to action: a brand-blue band ---- */
 .homepage .cta-section {
   background: var(--secondary);
   border-radius: 16px;
 }
 
 .homepage .cta-shape--two {
-  background: rgba(251, 46, 134, 0.35);
+  background: rgba(255, 255, 255, 0.1);
 }
 
-/* ---- Footer: kit navy ---- */
+/* ---- Footer: a light surface, like the dashboard sidebar ---- */
 .homepage .footer {
-  background: #0D0E43;
+  background: var(--surface);
+  border-top: 1px solid var(--border);
+}
+
+.homepage .footer-title {
+  color: var(--gray-800);
+}
+
+.homepage .footer-text,
+.homepage .footer-bottom,
+.homepage .footer-link,
+.homepage .footer-social {
+  color: var(--gray-500);
+}
+
+.homepage .footer-link:hover {
+  color: var(--primary);
+}
+
+.homepage .footer-social {
+  background: var(--gray-100);
 }
 
 .homepage .footer-social:hover {
   background: var(--accent);
+  color: #fff;
 }
 
-/* ---- Dark theme ---- */
+.homepage .footer-bottom {
+  border-top-color: var(--border);
+}
+
+/* ---- Dark theme ----
+   The tokens above alias the app's, which already switch with data-theme.
+   Only the two darkest tones are lifted to read on the dark surface. */
 [data-theme="dark"] .homepage {
-  --primary: #6079FF;
-  --primary-dark: #8195FF;
-  --secondary: #A877F0;
-  --lavender: #1D1A3A;
-  --lavender-soft: #141829;
-  --bg: #0C111D;
-  --card: #161B26;
-  --border: #2A303C;
-  --text-dark: #ECECED;
-  --text-light: #94969C;
-  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
-  --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.4);
-  --shadow-lg: 0 20px 45px rgba(0, 0, 0, 0.5);
-}
-
-[data-theme="dark"] .homepage .brand-text {
-  color: var(--text-dark);
-}
-
-[data-theme="dark"] .homepage .eyebrow,
-[data-theme="dark"] .homepage .mock-card--revenue {
-  border-color: var(--border);
-}
-
-[data-theme="dark"] .homepage .feature-icon {
-  background: rgba(96, 121, 255, 0.16);
-}
-
-[data-theme="dark"] .homepage .features-grid > :nth-child(4n + 2) .feature-icon {
-  background: rgba(251, 46, 134, 0.16);
-}
-
-[data-theme="dark"] .homepage .features-grid > :nth-child(4n + 3) .feature-icon {
-  background: var(--lavender);
-}
-
-[data-theme="dark"] .homepage .features-grid > :nth-child(4n + 4) .feature-icon {
-  background: rgba(236, 236, 237, 0.1);
-}
-
-[data-theme="dark"] .homepage .roles-grid > :nth-child(4n + 4) .role-icon,
-[data-theme="dark"] .homepage .stats-cards-grid > :nth-child(4n + 4) .stat-card__icon {
-  background: #2B2F8F;
-}
-
-/* These stay solid purple with white text, as in the light theme */
-[data-theme="dark"] .homepage .cta-section {
-  background: #7E33E0;
-}
-
-[data-theme="dark"] .homepage .btn-white {
-  color: #7E33E0;
+  --tone-3: #a877f0;
+  --tone-4: #8d92ec;
 }
 
 
@@ -1562,16 +1534,6 @@
    Public pages (features, pricing, about, contact, FAQ, security, legal)
    Built only from the tokens above, so dark mode follows automatically.
    ===================================================================== */
-
-.homepage {
-  --danger: #D92D20;
-  --success: #039855;
-}
-
-[data-theme="dark"] .homepage {
-  --danger: #F97066;
-  --success: #32D583;
-}
 
 .homepage .skip-link {
   position: absolute;
@@ -1589,17 +1551,12 @@
   top: 0.75rem;
 }
 
-/* The kit colours the brand name dark; on the navy footer it must stay white */
-.homepage .footer .brand-text {
-  color: #fff;
-}
-
 .homepage .nav-link--active {
-  color: var(--accent);
+  color: var(--primary);
 }
 
 .homepage .mobile-nav-link.nav-link--active {
-  color: var(--accent);
+  color: var(--primary);
 }
 
 /* Section targets clear the sticky navbar */
@@ -1734,11 +1691,9 @@
   height: 22px;
 }
 
-.homepage .tile-icon[data-tone="1"] { background: var(--accent); }
-.homepage .tile-icon[data-tone="2"] { background: var(--secondary); }
-.homepage .tile-icon[data-tone="3"] { background: #151875; }
-
-[data-theme="dark"] .homepage .tile-icon[data-tone="3"] { background: #2B2F8F; }
+.homepage .tile-icon[data-tone="1"] { background: var(--tone-2); }
+.homepage .tile-icon[data-tone="2"] { background: var(--tone-3); }
+.homepage .tile-icon[data-tone="3"] { background: var(--tone-4); }
 
 /* Tick lists */
 .homepage .check-list {
@@ -1762,7 +1717,7 @@
   height: 20px;
   flex-shrink: 0;
   margin-top: 1px;
-  color: var(--secondary);
+  color: var(--primary);
 }
 
 .homepage .check-list--compact {
@@ -1808,6 +1763,75 @@
   line-height: 1.6;
 }
 
+/* "Coming soon" cards on the features page */
+.homepage .roadmap-title {
+  margin-bottom: 0.75rem;
+}
+
+.homepage .roadmap-intro {
+  max-width: 640px;
+  margin: 0 auto 2.5rem;
+  text-align: center;
+  color: var(--text-light);
+  line-height: 1.6;
+}
+
+.homepage .roadmap-intro--after {
+  margin: 2rem auto 0;
+}
+
+.homepage .roadmap-intro a {
+  color: var(--primary);
+  font-weight: 600;
+}
+
+.homepage .roadmap-grid {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+  gap: 1.25rem;
+}
+
+.homepage .roadmap-card {
+  padding: 1.5rem;
+  background: var(--card);
+  border: 1px dashed var(--border);
+  border-radius: 16px;
+}
+
+.homepage .roadmap-card__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+}
+
+.homepage .roadmap-badge {
+  padding: 0.2rem 0.65rem;
+  border-radius: 999px;
+  background: var(--lavender);
+  color: var(--primary);
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.homepage .roadmap-card h3 {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--text-dark);
+  margin: 0 0 0.4rem;
+}
+
+.homepage .roadmap-card p {
+  margin: 0;
+  color: var(--text-light);
+  line-height: 1.55;
+  font-size: 0.95rem;
+}
+
 /* ---- Closing call to action ---- */
 .homepage .page-cta {
   padding: 0 2rem;
@@ -1821,10 +1845,6 @@
   background: var(--secondary);
   color: #fff;
   text-align: center;
-}
-
-[data-theme="dark"] .homepage .page-cta__inner {
-  background: #7E33E0;
 }
 
 .homepage .page-cta__inner h2 {
@@ -1886,7 +1906,7 @@
 }
 
 .homepage .plan-units {
-  color: var(--secondary);
+  color: var(--primary);
   font-weight: 600;
   font-size: 0.92rem;
   margin-top: 0.25rem;
@@ -2205,7 +2225,7 @@
   width: 20px;
   height: 20px;
   flex-shrink: 0;
-  color: var(--secondary);
+  color: var(--primary);
 }
 
 .homepage .contact-list a {

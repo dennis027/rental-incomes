@@ -1,8 +1,9 @@
+import { Logo } from '../../shared/logo';
 
 // dashboard.component.ts
 import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { rememberPath } from '../../services/return-path';
-import { Component, OnInit, HostListener, Inject, PLATFORM_ID, effect, inject, untracked } from '@angular/core';
+import { Component, OnInit, OnDestroy, HostListener, Inject, PLATFORM_ID, effect, inject, untracked } from '@angular/core';
 import { Router, RouterModule } from '@angular/router';
 import { AuthService } from '../../services/auth';
 import { MatMenuModule } from '@angular/material/menu';
@@ -11,14 +12,21 @@ import { ThemeService, ThemePreference } from '../../services/theme';
 import { MatDialog } from '@angular/material/dialog';
 import { NotificationsService } from '../../services/notifications';
 import { openSearchPalette } from './search-palette/search-palette';
+import { Shortcut, openShortcuts as showShortcuts } from './shortcuts/shortcuts-dialog';
+import { openIdleDialog } from './idle/idle-dialog';
+import { ROLE_OPTIONS, currentRole, roleCanOpen } from '../../services/account';
+
+// Last activity in any tab, and how long the dashboard may sit unused
+const ACTIVITY_KEY = 'last_activity';
+const IDLE_LIMIT_MS = 30 * 60 * 1000;
 
 @Component({
   selector: 'app-dashboard',
-  imports: [CommonModule, RouterModule, MatMenuModule],
+  imports: [CommonModule, RouterModule, MatMenuModule, Logo],
   templateUrl: './dashboard.html',
   styleUrl: './dashboard.css'
 })
-export class Dashboard {
+export class Dashboard implements OnInit, OnDestroy {
 // Listed in the order a landlord works through them
 links = [
   { name: 'Dashboard',  route: '/dashboard/home',              icon: 'fas fa-chart-pie',      group: 'Overview',
@@ -43,16 +51,21 @@ links = [
     hint: 'Income, occupancy and tenant reports you can export to PDF or Excel.' },
   { name: 'Settings',   route: '/dashboard/settings',          icon: 'fas fa-sliders-h',      group: 'Manage',
     hint: 'Billing rules for a property: deposits, penalties and which charges appear on receipts.' },
+  { name: 'Team & account', route: '/dashboard/team',          icon: 'fas fa-user-group',     group: 'Manage',
+    hint: 'Who can sign in to your account and what each person may do, plus SMS reminders and your paybill link.' },
   // Opened from Tenants and Arrears, so it has a title and tip but no sidebar entry
   { name: 'Tenant statement', route: '/dashboard/statement',   icon: 'fas fa-file-lines',     group: '',
     hint: 'Every invoice and payment of one tenant in date order. Print it or send the balance on WhatsApp.' },
 ];
 
-  // Sidebar sections, in display order
+  // What the signed-in user's role may open
+  role = currentRole();
+
+  // Sidebar sections, in display order, with only the pages this role can open
   groups = ['Overview', 'Set up', 'Rent', 'Manage'].map(name => ({
     name,
-    links: this.links.filter(link => link.group === name)
-  }));
+    links: this.links.filter(link => link.group === name && roleCanOpen(this.role, link.route))
+  })).filter(group => group.links.length > 0);
 
   // The set-up and rent pages form one chain; this is what the "Next" link follows
   private flow = ['Properties', 'Units', 'Tenants', 'Contracts', 'Invoices', 'Payments'];
@@ -87,6 +100,15 @@ links = [
 
   userName = 'Account';
   userEmail = '';
+  accountName = '';
+
+  get roleLabel(): string {
+    return ROLE_OPTIONS.find(option => option.value === this.role)?.label ?? '';
+  }
+
+  get canOpenTeam(): boolean {
+    return roleCanOpen(this.role, '/dashboard/team');
+  }
 
   get userInitials(): string {
     return this.userName.replace(/[^A-Za-z0-9 ]/g, ' ').trim().split(/\s+/).slice(0, 2).map(part => part[0]).join('').toUpperCase() || 'A';
@@ -96,11 +118,70 @@ links = [
     if (isPlatformBrowser(this.platformId)) {
       this.showTips = localStorage.getItem('page_tips_hidden') !== '1';
       this.collapsed = localStorage.getItem('sidebar_collapsed') === '1';
-      this.userName = localStorage.getItem('user_name') || 'Account';
+      this.userName = localStorage.getItem('user_full_name') || localStorage.getItem('user_name') || 'Account';
+      this.accountName = localStorage.getItem('account_name') || '';
       this.userEmail = localStorage.getItem('user_email') || '';
       this.propertyContext.load();
+      // The guard only runs on navigation, so a tab left open would keep
+      // showing data after the session ran out
+      this.noteActivity(true);
+      this.sessionTimer = setInterval(() => this.checkSession(), 30_000);
     }
   }
+
+  ngOnDestroy(): void {
+    clearInterval(this.sessionTimer);
+  }
+
+  private sessionTimer?: ReturnType<typeof setInterval>;
+
+  /** Back to the login page once neither token can be used any more */
+  @HostListener('window:focus')
+  @HostListener('document:visibilitychange')
+  checkSession(): void {
+    if (!isPlatformBrowser(this.platformId)) {
+      return;
+    }
+    if (!this.authService.hasSession()) {
+      this.authService.expireSession();
+      return;
+    }
+    // Signed out after a stretch without activity in any tab, so an
+    // unattended office computer does not stay open on tenants' details
+    const idleFor = Date.now() - Number(localStorage.getItem(ACTIVITY_KEY) || Date.now());
+    if (idleFor > IDLE_LIMIT_MS && !this.dialog.getDialogById('idle')) {
+      this.dialog.closeAll();
+      openIdleDialog(this.dialog).subscribe(stay => {
+        if (stay) {
+          this.noteActivity(true);
+        } else {
+          this.authService.expireSession();
+        }
+      });
+    }
+  }
+
+  /** Remembers the last mouse, key or touch use; shared by every open tab */
+  @HostListener('document:mousemove')
+  @HostListener('document:keydown')
+  @HostListener('document:click')
+  @HostListener('document:wheel')
+  @HostListener('document:touchstart')
+  noteActivity(force = false): void {
+    const now = Date.now();
+    // Writing on every mouse move would be wasteful; once every few seconds is plenty
+    if (!force && now - this.lastActivityWrite < 5_000) {
+      return;
+    }
+    this.lastActivityWrite = now;
+    try {
+      localStorage.setItem(ACTIVITY_KEY, String(now));
+    } catch {
+      // Storage blocked: the idle check simply never fires
+    }
+  }
+
+  private lastActivityWrite = 0;
 
   /**
    * Name of the section currently open, shown in the top bar
@@ -150,7 +231,30 @@ links = [
   }
 
   openSearch(): void {
-    openSearchPalette(this.dialog, this.links.filter(link => link.group));
+    openSearchPalette(this.dialog, this.links.filter(link => link.group && roleCanOpen(this.role, link.route)));
+  }
+
+  // "g" then a letter opens a page, like many web apps
+  private goKeys: Record<string, string> = {
+    d: '/dashboard/home', p: '/dashboard/properties', u: '/dashboard/units', t: '/dashboard/rental-customers',
+    c: '/dashboard/contracts', i: '/dashboard/receipts', m: '/dashboard/payments', a: '/dashboard/arrears',
+    e: '/dashboard/expensesmaintain', r: '/dashboard/reports', s: '/dashboard/settings',
+  };
+  private goPressedAt = 0;
+
+  get shortcuts(): Shortcut[] {
+    const pages = Object.entries(this.goKeys)
+      .filter(([, route]) => roleCanOpen(this.role, route))
+      .map(([key, route]) => ({ keys: ['G', key.toUpperCase()], label: `Go to ${this.links.find(l => l.route === route)?.name ?? route}` }));
+    return [
+      { keys: ['Ctrl', 'K'], label: 'Search tenants, units and invoices', together: true },
+      { keys: ['?'], label: 'Show these shortcuts' },
+      ...pages,
+    ];
+  }
+
+  openShortcuts(): void {
+    showShortcuts(this.dialog, this.shortcuts);
   }
 
   @HostListener('document:keydown', ['$event'])
@@ -158,6 +262,27 @@ links = [
     if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'k') {
       event.preventDefault();
       this.openSearch();
+      return;
+    }
+    // Leave typing alone: fields, editable text and open dialogs keep their keys
+    const target = event.target as HTMLElement | null;
+    if (event.ctrlKey || event.metaKey || event.altKey || this.dialog.openDialogs.length ||
+        (target && (target.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(target.tagName)))) {
+      return;
+    }
+    const key = event.key.toLowerCase();
+    if (key === '?') {
+      event.preventDefault();
+      this.openShortcuts();
+    } else if (key === 'g') {
+      this.goPressedAt = Date.now();
+    } else if (Date.now() - this.goPressedAt < 1500 && this.goKeys[key]) {
+      this.goPressedAt = 0;
+      const route = this.goKeys[key];
+      if (roleCanOpen(this.role, route)) {
+        event.preventDefault();
+        this.router.navigateByUrl(route);
+      }
     }
   }
 

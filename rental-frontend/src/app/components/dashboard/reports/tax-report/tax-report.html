@@ -1,0 +1,113 @@
+<div class="tax">
+  <div class="ui-toolbar tax-toolbar">
+    <div class="ui-toolbar-filters">
+      <mat-form-field appearance="outline" subscriptSizing="dynamic">
+        <mat-label>Month</mat-label>
+        <input matInput type="month" [(ngModel)]="month" (change)="load()" />
+      </mat-form-field>
+      <div class="ui-segmented" role="tablist">
+        <button role="tab" [class.active]="wholeAccount" (click)="setScope(true)">All properties</button>
+        <button role="tab" [class.active]="!wholeAccount" (click)="setScope(false)" [disabled]="!propertyName">
+          {{ propertyName || 'This property' }}
+        </button>
+      </div>
+    </div>
+    <button mat-stroked-button (click)="downloadCsv()" [disabled]="!report">
+      <mat-icon>download</mat-icon>
+      Download CSV
+    </button>
+  </div>
+
+  @if (loading && !report) {
+    <div class="tax-state"><mat-spinner diameter="36"></mat-spinner><p>Working out the tax…</p></div>
+  } @else if (failed) {
+    <div class="tax-state">
+      <p>The tax report could not be loaded.</p>
+      <button mat-stroked-button (click)="load()">Try again</button>
+    </div>
+  } @else if (report) {
+    <div class="ui-summary tax-summary">
+      <div class="ui-summary-card">
+        <span class="ui-summary-icon"><i class="fas fa-house-circle-check"></i></span>
+        <div><span>Gross rent received, {{ monthLabel }}</span><strong>KES {{ report.totals.rent | number:'1.2-2' }}</strong></div>
+      </div>
+      <div class="ui-summary-card tone-purple">
+        <span class="ui-summary-icon"><i class="fas fa-percent"></i></span>
+        <div><span>MRI tax at {{ report.rate }}%</span><strong>KES {{ report.totals.tax | number:'1.2-2' }}</strong></div>
+      </div>
+      <div class="ui-summary-card tone-navy">
+        <span class="ui-summary-icon"><i class="fas fa-calendar-day"></i></span>
+        <div><span>File and pay on eRITS by</span><strong>{{ report.due_date | date:'d MMM y' }}</strong></div>
+      </div>
+    </div>
+
+    @switch (report.regime) {
+      @case ('below_threshold') {
+        <div class="dialog-note tax-note">
+          <mat-icon>info</mat-icon>
+          <span>Rent received in the last 12 months (KES {{ report.twelve_month_rent | number:'1.0-0' }}) is under KES {{ report.thresholds.min_yearly | number }} a year, so MRI may not apply yet. Check with KRA before filing.</span>
+        </div>
+      }
+      @case ('above_threshold') {
+        <div class="dialog-note tax-note tax-note--warning">
+          <mat-icon>warning</mat-icon>
+          <span>Rent received in the last 12 months (KES {{ report.twelve_month_rent | number:'1.0-0' }}) is over KES {{ report.thresholds.max_yearly | number }}. Above that, rental income goes on the annual income tax return instead of MRI.</span>
+        </div>
+      }
+      @default {
+        <div class="dialog-note tax-note">
+          <mat-icon>info</mat-icon>
+          <span>MRI is a flat {{ report.rate }}% of gross residential rent, with no deductions. File a nil return for months with no rent.</span>
+        </div>
+      }
+    }
+
+    <div class="ui-card">
+      <div class="ui-table-scroll">
+        <table class="tax-table">
+          <thead>
+            <tr><th>Property</th><th class="ui-num">Collected</th><th class="ui-num">Of which rent</th><th class="ui-num">Tax</th></tr>
+          </thead>
+          <tbody>
+            @for (row of report.properties; track row.id) {
+              <tr><td>{{ row.name }}</td><td class="ui-num">{{ row.collected | number:'1.2-2' }}</td><td class="ui-num">{{ row.rent | number:'1.2-2' }}</td><td class="ui-num">{{ row.tax | number:'1.2-2' }}</td></tr>
+            } @empty {
+              <tr><td colspan="4" class="tax-empty">No rent was received in {{ monthLabel }}. File a nil return.</td></tr>
+            }
+          </tbody>
+          @if (report.properties.length > 1) {
+            <tfoot>
+              <tr><td>Total</td><td class="ui-num">{{ report.totals.collected | number:'1.2-2' }}</td><td class="ui-num">{{ report.totals.rent | number:'1.2-2' }}</td><td class="ui-num">{{ report.totals.tax | number:'1.2-2' }}</td></tr>
+            </tfoot>
+          }
+        </table>
+      </div>
+    </div>
+
+    @if (report.payments.length) {
+      <details class="ui-card tax-payments">
+        <summary>{{ report.payments.length }} payments received in {{ monthLabel }}</summary>
+        <div class="ui-table-scroll">
+          <table class="tax-table">
+            <thead>
+              <tr><th>Date</th><th>Tenant</th><th>Unit</th><th>Invoice</th><th class="ui-num">Received</th><th class="ui-num">Rent</th></tr>
+            </thead>
+            <tbody>
+              @for (p of report.payments; track $index) {
+                <tr>
+                  <td>{{ p.date | date:'d MMM' }}</td><td>{{ p.tenant }}</td><td>{{ p.property }} · {{ p.unit }}</td>
+                  <td class="ui-mono">{{ p.invoice }}</td><td class="ui-num">{{ p.amount | number:'1.2-2' }}</td><td class="ui-num">{{ p.rent | number:'1.2-2' }}</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      </details>
+    }
+
+    <p class="tax-footnote">
+      The rent in each payment is its share of the invoice it paid, so water, service charges and deposits are left out.
+      This is an estimate to help you file; confirm the figures on eRITS.
+    </p>
+  }
+</div>

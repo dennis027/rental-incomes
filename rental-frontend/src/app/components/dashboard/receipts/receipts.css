@@ -39,11 +39,6 @@ table {
   margin-bottom: 16px;
 }
 
-mat-dialog-content {
-  max-height: 600px;
-  overflow-y: auto;
-  padding: 20px;
-}
 
 @media (max-width: 768px) {
   .filter-section {
@@ -126,19 +121,56 @@ mat-dialog-content {
   background-color: color-mix(in srgb, var(--warning-500) 25%, var(--surface)) !important;
 }
 
-/* Invoice preview dialog */
-.doc-dialog-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 12px 16px 0 24px;
+
+/* Meter readings dialog: one card per unit */
+.reading-loading { text-align: center; padding: 40px; color: var(--gray-500); }
+.reading-loading mat-spinner { margin: 0 auto 12px; }
+.reading-card {
+  border: 1px solid var(--gray-200);
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 16px;
+  background: var(--gray-50);
+}
+.reading-header { margin-bottom: 12px; }
+.reading-header h3 { margin: 0; font-size: 16px; font-weight: 600; color: var(--gray-800); }
+.reading-tenant { margin: 4px 0 0; color: var(--gray-500); font-size: 14px; }
+.reading-arrears { margin: 4px 0 0; color: var(--error-600); font-size: 13px; font-weight: 500; display: flex; align-items: center; gap: 4px; }
+.reading-arrears mat-icon { font-size: 16px; width: 16px; height: 16px; }
+.readings-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.reading-title { margin: 0 0 8px; font-size: 14px; font-weight: 600; color: var(--gray-700); display: flex; align-items: center; gap: 6px; }
+.reading-title mat-icon { font-size: 18px; width: 18px; height: 18px; }
+.reading-title.water { color: var(--brand-500); }
+.reading-title.power { color: var(--warning-600); }
+.reading-total { padding: 8px 10px; border-radius: 8px; font-size: 13px; }
+.reading-total.water { background: var(--success-50); }
+.reading-total.power { background: var(--warning-50); }
+.additional-charges { margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--gray-200); }
+.additional-charges .reading-title { margin-bottom: 12px; }
+.charges-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; }
+@media (max-width: 640px) {
+  .readings-grid { grid-template-columns: 1fr; }
 }
 
-.doc-dialog-header h2 {
-  margin: 0;
-  padding: 0;
+/* ---------- Invoice list ---------- */
+.inv-summary-note { display: block; margin-top: 2px; font-size: 12px; color: var(--gray-500); }
+.inv-month { width: 190px; }
+.inv-search { width: 280px; }
+.inv-nowrap { white-space: nowrap; }
+.inv-number { font-size: 12.5px; font-weight: 500; }
+.inv-zero { color: var(--gray-400); }
+.inv-balance { display: inline-flex; flex-direction: column; align-items: flex-end; line-height: 1.3; }
+.inv-balance small { font-size: 11.5px; color: var(--gray-500); white-space: nowrap; cursor: help; }
+.inv-hint { border-bottom: 1px dotted var(--gray-400); cursor: help; }
+.inv-table .mat-mdc-header-cell { white-space: nowrap; }
+
+/* Mid-width screens: tighter cells so the actions stay in view */
+@media (min-width: 769px) and (max-width: 1400px) {
+  .inv-table .mat-mdc-header-cell,
+  .inv-table .mat-mdc-cell { padding-left: 8px; padding-right: 8px; }
+  .inv-table .ui-pay-btn { padding: 0 12px; }
 }
 
-.doc-dialog-header h2::before {
-  display: none;
+@media (max-width: 768px) {
+  .inv-month, .inv-search { width: 100%; }
 }

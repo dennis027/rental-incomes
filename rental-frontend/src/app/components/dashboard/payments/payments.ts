@@ -1,3 +1,4 @@
+import { DialogSize } from '../../../shared/dialog-sizes';
 import { PropertyContext } from '../../../services/property-context';
 import { openRecordPayment } from '../record-payment/record-payment-dialog';
 import { PaybillInbox } from '../paybill-inbox/paybill-inbox';
@@ -14,6 +15,7 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { PropertiesService } from '../../../services/properties';
 import { ReceiptService } from '../../../services/receipts';
 import { RentDocument, RentDocumentData, invoiceNumber, receiptDocument } from '../rent-document/rent-document';
+import { downloadCsv, fileDate } from '../../../shared/export';
 
 export interface Payment {
   id: number;
@@ -135,7 +137,7 @@ export class Payments implements OnInit, AfterViewInit {
           this.payments.filter((p: any) => p.type === 'IN' && p.receipt === payment.receipt && p.id <= payment.id)
         );
         this.documentData = receiptDocument(payment, invoice, paidToDate);
-        this.dialog.open(this.receiptDocDialog, { width: '800px', maxWidth: '95vw' });
+        this.dialog.open(this.receiptDocDialog, DialogSize.document);
         this.cdr.detectChanges();
       },
       error: (err) => {
@@ -437,5 +439,15 @@ export class Payments implements OnInit, AfterViewInit {
       horizontalPosition: 'right',
       verticalPosition: 'top'
     });
+  }
+
+  /** The payments on screen (tab and month applied) as a spreadsheet */
+  exportCsv(): void {
+    downloadCsv(`payments-${fileDate()}`,
+      ['Date', 'Tenant', 'Unit', 'Amount (KES)', 'Method', 'Reference', 'Invoice', 'Notes'],
+      this.dataSource.filteredData.map((p: any) => [
+        p.payment_date, p.customer_name ?? '', p.unit_name ?? '', p.amount, this.methodLabel(p.method),
+        p.reference ?? '', p.receipt_number ? this.inv(p.receipt_number) : '', p.notes ?? '',
+      ]));
   }
 }

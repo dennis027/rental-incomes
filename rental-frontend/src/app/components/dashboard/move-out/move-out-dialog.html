@@ -1,9 +1,9 @@
 <div class="move-out">
-  <header class="move-out-header">
+  <header class="dialog-head">
     <div>
-      <h2 mat-dialog-title>{{ settlement ? 'Move-out statement' : 'Move out and settle deposit' }}</h2>
+      <h2 mat-dialog-title>{{ settlement ? 'Move-out Statement' : 'Move Out and Settle Deposit' }}</h2>
       @if (preview || settlement; as info) {
-        <p>{{ info.tenant.name }} · Unit {{ info.unit }} · {{ info.contract_number }}</p>
+        <p class="dialog-sub">{{ info.tenant.name }} · Unit {{ info.unit }} · {{ info.contract_number }}</p>
       }
     </div>
     <button mat-icon-button (click)="close()" aria-label="Close dialog" [disabled]="saving"><mat-icon>close</mat-icon></button>

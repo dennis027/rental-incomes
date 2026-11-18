@@ -4,10 +4,16 @@
       <h2>Payments</h2>
       <p>Money received from tenants and money paid out for expenses and repairs. Every payment received has a receipt you can print here.</p>
     </div>
-    <button mat-flat-button color="primary" (click)="recordPayment()">
-      <mat-icon>payments</mat-icon>
-      Record payment
-    </button>
+    <div class="ui-header-actions">
+      <button mat-stroked-button (click)="exportCsv()" matTooltip="Download what is on screen as a spreadsheet">
+        <mat-icon>download</mat-icon>
+        Export
+      </button>
+      <button mat-flat-button color="primary" (click)="recordPayment()">
+        <mat-icon>payments</mat-icon>
+        Record payment
+      </button>
+    </div>
   </div>
 
   <div class="ui-summary">
@@ -176,7 +182,7 @@
 <!-- Receipt for one payment -->
 <ng-template #receiptDocDialog>
   <div class="doc-dialog">
-    <header class="doc-dialog-header">
+    <header class="dialog-head">
       <h2 mat-dialog-title>Receipt {{ documentData?.number }}</h2>
       <button mat-icon-button mat-dialog-close aria-label="Close dialog">
         <mat-icon>close</mat-icon>
@@ -207,7 +213,10 @@
 
 <!-- Add Payment Dialog -->
 <ng-template #addPaymentDialog>
-  <h2 mat-dialog-title>Add Payment</h2>
+  <div class="dialog-head">
+    <h2 mat-dialog-title>Add Payment</h2>
+    <button mat-icon-button mat-dialog-close aria-label="Close dialog"><mat-icon>close</mat-icon></button>
+  </div>
   <mat-dialog-content>
     <form [formGroup]="addPaymentForm" class="payment-form">
       <mat-form-field appearance="outline" class="full-width">
@@ -267,7 +276,7 @@
   </mat-dialog-content>
   <mat-dialog-actions align="end">
     <button mat-button mat-dialog-close>Cancel</button>
-    <button mat-raised-button color="primary" (click)="addPayment()" [disabled]="addPaymentForm.invalid || loadAdding">
+    <button mat-flat-button color="primary" (click)="addPayment()" [disabled]="addPaymentForm.invalid || loadAdding">
       @if (loadAdding) {
         <mat-spinner diameter="20"></mat-spinner>
       }

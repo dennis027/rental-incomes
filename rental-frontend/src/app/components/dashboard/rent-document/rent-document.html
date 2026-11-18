@@ -154,7 +154,10 @@
       }
 
       <footer class="sheet-foot">
-        <span>{{ d.property.name }}</span>
+        <span>
+          {{ d.property.name }}
+          @if (issuer && issuer !== d.property.name) { · Managed by {{ issuer }} }
+        </span>
         <span>{{ d.kind === 'invoice' ? 'This is a request for payment, not a receipt.' : 'This receipt confirms payment and is not a request for payment.' }}</span>
       </footer>
     </div>

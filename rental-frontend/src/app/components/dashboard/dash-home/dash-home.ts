@@ -56,6 +56,11 @@ export class DashHome implements OnInit, AfterViewInit, OnDestroy {
 
   greeting = 'Welcome back';
   today = new Date();
+  // Shown in the banner: the business and the person signed in
+  accountName = '';
+  firstName = '';
+  // When the figures were last fetched
+  updatedAt: Date | null = null;
   collectedThisMonth = 0;
   collectedShown = 0;
   occupancyRate = 0;
@@ -84,6 +89,9 @@ export class DashHome implements OnInit, AfterViewInit, OnDestroy {
       Chart.defaults.font.family = "'Outfit', sans-serif";
       const hour = new Date().getHours();
       this.greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
+      this.accountName = localStorage.getItem('account_name') || '';
+      const name = localStorage.getItem('user_full_name') || '';
+      this.firstName = name.split(' ')[0];
       this.loadProperties();
     } else {
     }
@@ -149,6 +157,8 @@ export class DashHome implements OnInit, AfterViewInit, OnDestroy {
         this.setStat('pending', data.pending_rent);
         this.setStat('expiring', data.contracts_expiring);
         this.collectedThisMonth = Number(data.monthly_collection ?? 0);
+        this.updatedAt = new Date();
+        this.today = this.updatedAt;
         this.occupancyRate = Math.round(Number(data.occupancy_rate ?? 0));
         this.countUp();
         this.cdr.detectChanges();
@@ -256,7 +266,7 @@ export class DashHome implements OnInit, AfterViewInit, OnDestroy {
   }
 
   private money(value: any): string {
-    return `KSh ${Number(value ?? 0).toLocaleString()}`;
+    return `KES ${Number(value ?? 0).toLocaleString()}`;
   }
 
   renderRentChart(data: MonthlyCollection[]): void {

@@ -156,5 +156,5 @@ export class RecordPaymentDialog implements OnInit {
 
 /** Open the payment dialog. The result is `true` when a payment was recorded. */
 export function openRecordPayment(dialog: MatDialog, data: RecordPaymentData = {}) {
-  return dialog.open(RecordPaymentDialog, { width: '520px', maxWidth: '95vw', disableClose: true, data }).afterClosed();
+  return dialog.open(RecordPaymentDialog, { disableClose: true, data }).afterClosed();
 }

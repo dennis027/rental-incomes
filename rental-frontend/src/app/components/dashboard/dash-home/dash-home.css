@@ -77,11 +77,28 @@
   color: #fff;
 }
 
-.wave {
-  display: inline-block;
-  transform-origin: 70% 70%;
-  animation: wave 2.4s ease-in-out 0.4s 2;
+.hero-account {
+  font-weight: 600;
+  opacity: 1;
 }
+
+.hero-refresh {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: 8px;
+  padding: 2px 10px;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  vertical-align: middle;
+}
+.hero-refresh:hover:not(:disabled) { background: rgba(255, 255, 255, 0.22); }
+.hero-refresh:disabled { cursor: default; opacity: 0.8; }
 
 .hero-sub {
   margin: 0 0 20px;
@@ -492,14 +509,6 @@
   50%      { transform: translate(-18px, 16px); }
 }
 
-@keyframes wave {
-  0%, 100% { transform: rotate(0); }
-  20%      { transform: rotate(18deg); }
-  40%      { transform: rotate(-10deg); }
-  60%      { transform: rotate(14deg); }
-  80%      { transform: rotate(-6deg); }
-}
-
 @keyframes bob {
   0%, 100% { transform: translateY(0); }
   50%      { transform: translateY(-6px); }
@@ -508,7 +517,6 @@
 @media (prefers-reduced-motion: reduce) {
   .hero,
   .hero-blob,
-  .wave,
   .stat-card,
   .chart-card,
   .chart-empty i {

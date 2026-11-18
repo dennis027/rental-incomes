@@ -56,13 +56,16 @@
 }
 
 <ng-template #matchDialog>
-  <h2 mat-dialog-title>Match payment {{ matching?.trans_id }}</h2>
+  <div class="dialog-head">
+    <h2 mat-dialog-title>Match Payment {{ matching?.trans_id }}</h2>
+    <button mat-icon-button mat-dialog-close aria-label="Close dialog"><mat-icon>close</mat-icon></button>
+  </div>
   <mat-dialog-content>
     <p class="match-for">
       KES {{ matching?.amount | number:'1.2-2' }} from {{ matching?.payer_name || 'unknown payer' }},
       account typed: "{{ matching?.bill_ref || 'none' }}". Choose the invoice this payment is for.
     </p>
-    <mat-form-field appearance="outline" style="width: 100%">
+    <mat-form-field appearance="outline">
       <mat-label>Invoice</mat-label>
       <mat-select [(ngModel)]="invoiceId">
         @for (invoice of owingInvoices; track invoice.id) {

@@ -1,0 +1,231 @@
+<div class="ui-page team">
+  <div class="ui-header">
+    <div>
+      <h2>Team &amp; account</h2>
+      <p>Who can sign in to {{ account?.name || 'your account' }}, what each person may do, and settings that apply to every property.</p>
+    </div>
+    @if (isOwner) {
+      <button mat-flat-button color="primary" (click)="openAddMember()">
+        <mat-icon>person_add</mat-icon>
+        Add member
+      </button>
+    }
+  </div>
+
+  @if (loading) {
+    <div class="ui-card team-state">
+      <mat-spinner diameter="36"></mat-spinner>
+      <p>Loading your team…</p>
+    </div>
+  } @else if (failed) {
+    <div class="ui-card team-state">
+      <i class="fas fa-circle-exclamation"></i>
+      <p>Your team could not be loaded.</p>
+      <button mat-stroked-button (click)="load()">Try again</button>
+    </div>
+  } @else {
+    <div class="team-grid">
+      <!-- Members -->
+      <section class="ui-card team-members">
+        <header class="team-card-head">
+          <span class="team-icon"><i class="fas fa-user-group"></i></span>
+          <div>
+            <h3>Members</h3>
+            <p>{{ activeMembers.length }} {{ activeMembers.length === 1 ? 'person' : 'people' }} can sign in.</p>
+          </div>
+        </header>
+
+        <ul class="member-list">
+          @for (member of members; track member.id) {
+            <li class="member" [class.member--removed]="!member.is_active">
+              <span class="member-avatar">{{ initials(member) }}</span>
+              <div class="member-text">
+                <strong>{{ displayName(member) }}
+                  @if (member.username === myUsername) { <span class="ui-chip ui-chip--brand">You</span> }
+                  @if (!member.is_active) { <span class="ui-chip">Removed</span> }
+                </strong>
+                <small>{{ member.email || member.username }}</small>
+              </div>
+              @if (isOwner && member.is_active && member.username !== myUsername) {
+                <mat-form-field appearance="outline" subscriptSizing="dynamic" class="member-role">
+                  <mat-select [value]="member.role" (selectionChange)="changeRole(member, $event.value)" [aria-label]="'Role of ' + displayName(member)">
+                    @for (role of roles; track role.value) {
+                      <mat-option [value]="role.value">{{ role.label }}</mat-option>
+                    }
+                  </mat-select>
+                </mat-form-field>
+                <button mat-icon-button color="warn" (click)="confirmRemove(member)" matTooltip="Remove from the team" [attr.aria-label]="'Remove ' + displayName(member)">
+                  <mat-icon>person_remove</mat-icon>
+                </button>
+              } @else {
+                <span class="ui-chip">{{ member.role_label }}</span>
+              }
+            </li>
+          }
+        </ul>
+
+        <dl class="role-guide">
+          @for (role of roles; track role.value) {
+            <div><dt>{{ role.label }}</dt><dd>{{ role.hint }}</dd></div>
+          }
+        </dl>
+      </section>
+
+      <div class="team-side">
+        <!-- Account and SMS reminders -->
+        <section class="ui-card">
+          <header class="team-card-head">
+            <span class="team-icon"><i class="fas fa-comment-sms"></i></span>
+            <div>
+              <h3>Account &amp; SMS reminders</h3>
+              <p>Tenants get a text before rent is due and while it is overdue.</p>
+            </div>
+          </header>
+          <form [formGroup]="accountForm" class="team-form" (ngSubmit)="saveAccount()">
+            <mat-form-field appearance="outline">
+              <mat-label>Account name</mat-label>
+              <input matInput formControlName="name" />
+              <mat-hint>Shown on SMS reminders and team emails</mat-hint>
+              @if (accountForm.get('name')?.hasError('required')) {
+                <mat-error>Account name is required</mat-error>
+              }
+            </mat-form-field>
+
+            <div class="team-toggle">
+              <div>
+                <label for="sms-toggle">Send SMS rent reminders</label>
+                @if (account?.sms_configured) {
+                  <small>Sent at 8am to tenants due soon or overdue.</small>
+                } @else {
+                  <small class="team-warn">SMS is not set up on the server yet (Africa's Talking keys), so nothing will be sent.</small>
+                }
+              </div>
+              <mat-slide-toggle id="sms-toggle" formControlName="sms_reminders_enabled" aria-label="Send SMS rent reminders"></mat-slide-toggle>
+            </div>
+
+            <div class="dialog-grid">
+              <mat-form-field appearance="outline">
+                <mat-label>Days before rent is due</mat-label>
+                <input matInput type="number" min="0" max="15" formControlName="sms_days_before_due" />
+                <mat-hint>0 sends it on the due day</mat-hint>
+                @if (accountForm.get('sms_days_before_due')?.invalid) {
+                  <mat-error>Between 0 and 15</mat-error>
+                }
+              </mat-form-field>
+              <mat-form-field appearance="outline">
+                <mat-label>Repeat while overdue, every</mat-label>
+                <input matInput type="number" min="1" max="30" formControlName="sms_overdue_every_days" />
+                <span matTextSuffix>days</span>
+                @if (accountForm.get('sms_overdue_every_days')?.invalid) {
+                  <mat-error>Between 1 and 30</mat-error>
+                }
+              </mat-form-field>
+            </div>
+
+            <div class="team-form-actions">
+              <button mat-flat-button color="primary" type="submit" [disabled]="accountForm.invalid || accountForm.pristine">Save</button>
+            </div>
+          </form>
+        </section>
+
+        <!-- M-Pesa paybill links -->
+        @if (account) {
+          <section class="ui-card">
+            <header class="team-card-head">
+              <span class="team-icon"><i class="fas fa-mobile-screen"></i></span>
+              <div>
+                <h3>M-Pesa paybill links</h3>
+                <p>Register these with Safaricom (Daraja C2B) so payments to your paybill are recorded here.</p>
+              </div>
+            </header>
+            <div class="team-links">
+              @for (link of [{ label: 'Confirmation URL', url: account.paybill_confirmation_url }, { label: 'Validation URL', url: account.paybill_validation_url }]; track link.label) {
+                <div class="team-link">
+                  <span>{{ link.label }}</span>
+                  <code class="ui-mono">{{ link.url }}</code>
+                  <button mat-icon-button (click)="copy(link.url)" matTooltip="Copy" [attr.aria-label]="'Copy ' + link.label">
+                    <mat-icon>content_copy</mat-icon>
+                  </button>
+                </div>
+              }
+              <p class="team-note">Keep these private: anyone with the link could post fake payments.</p>
+            </div>
+          </section>
+        }
+      </div>
+    </div>
+  }
+</div>
+
+<!-- Add Member Dialog -->
+<ng-template #addMemberDialog>
+  <div class="dialog-head">
+    <div>
+      <h2 mat-dialog-title>Add Team Member</h2>
+      <p class="dialog-sub">They get an email explaining how to set their password.</p>
+    </div>
+    <button mat-icon-button mat-dialog-close aria-label="Close dialog"><mat-icon>close</mat-icon></button>
+  </div>
+  <mat-dialog-content>
+    <form [formGroup]="memberForm" class="dialog-grid">
+      <mat-form-field appearance="outline">
+        <mat-label>First name</mat-label>
+        <input matInput formControlName="first_name" />
+      </mat-form-field>
+      <mat-form-field appearance="outline">
+        <mat-label>Last name</mat-label>
+        <input matInput formControlName="last_name" />
+      </mat-form-field>
+      <mat-form-field appearance="outline">
+        <mat-label>Username</mat-label>
+        <input matInput formControlName="username" autocomplete="off" />
+        @if (memberForm.get('username')?.hasError('required')) {
+          <mat-error>Username is required</mat-error>
+        }
+      </mat-form-field>
+      <mat-form-field appearance="outline">
+        <mat-label>Email</mat-label>
+        <input matInput type="email" formControlName="email" autocomplete="off" />
+        @if (memberForm.get('email')?.hasError('required')) {
+          <mat-error>Email is required</mat-error>
+        }
+        @if (memberForm.get('email')?.hasError('email')) {
+          <mat-error>Enter a valid email</mat-error>
+        }
+      </mat-form-field>
+      <mat-form-field appearance="outline" class="span-2">
+        <mat-label>Role</mat-label>
+        <mat-select formControlName="role">
+          @for (role of roles; track role.value) {
+            <mat-option [value]="role.value">{{ role.label }}</mat-option>
+          }
+        </mat-select>
+        <mat-hint>{{ roleHint(memberForm.get('role')?.value) }}</mat-hint>
+      </mat-form-field>
+    </form>
+  </mat-dialog-content>
+  <mat-dialog-actions align="end">
+    <button mat-button mat-dialog-close>Cancel</button>
+    <button mat-flat-button color="primary" (click)="addMember()" [disabled]="saving || memberForm.invalid">
+      {{ saving ? 'Adding…' : 'Add member' }}
+    </button>
+  </mat-dialog-actions>
+</ng-template>
+
+<!-- Remove Member Dialog -->
+<ng-template #removeMemberDialog>
+  <div class="dialog-head">
+    <h2 mat-dialog-title>Remove Team Member</h2>
+    <button mat-icon-button mat-dialog-close aria-label="Close dialog"><mat-icon>close</mat-icon></button>
+  </div>
+  <mat-dialog-content>
+    <div class="dialog-confirm">
+      <span class="dialog-confirm-icon"><mat-icon>person_remove</mat-icon></span>
+      <p>Remove <strong>{{ removing ? displayName(removing) : '' }}</strong>? They will no longer be able to sign in. Invoices and payments they recorded keep their name.</p>
+    </div>
+  </mat-dialog-content>
+  <mat-dialog-actions align="end">
+    <button mat-button mat-dialog-close>Cancel</button>
+    <button mat-flat-button color="warn" (click)="removeMember()">Remove</button>
+  </mat-dialog-actions>
+</ng-template>

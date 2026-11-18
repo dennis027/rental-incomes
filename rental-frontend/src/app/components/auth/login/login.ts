@@ -1,3 +1,4 @@
+import { Logo } from '../../../shared/logo';
 import { Component, signal, inject, ChangeDetectorRef, PLATFORM_ID } from '@angular/core';
 import { takeReturnPath } from '../../../services/return-path';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
@@ -11,7 +12,7 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 @Component({
   selector: 'app-login',
   standalone: true,
-  imports: [ReactiveFormsModule, CommonModule, RouterLink],
+  imports: [ReactiveFormsModule, CommonModule, RouterLink, Logo],
   templateUrl: './login.html',
   styleUrl: './login.css'
 })
@@ -29,7 +30,7 @@ private fb = inject(FormBuilder);
 
   ngOnInit() {
     // Already signed in: skip the form
-    if (this.authService.getAccessToken()) {
+    if (this.authService.hasSession()) {
       this.route.navigateByUrl(takeReturnPath());
       return;
     }

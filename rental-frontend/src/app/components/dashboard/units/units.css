@@ -174,15 +174,6 @@
   width: 100%;
 }
 
-mat-dialog-content {
-  max-height: 70vh;
-  overflow-y: auto;
-}
-
-mat-dialog-actions {
-  padding: 16px 24px;
-  gap: 8px;
-}
 
 /* ===========================
    BUTTON STYLES
@@ -220,15 +211,6 @@ button mat-spinner {
    MATERIAL OVERRIDES
    =========================== */
 
-::ng-deep .mat-mdc-dialog-container {
-  border-radius: 8px;
-}
-
-::ng-deep .mat-mdc-dialog-title {
-  font-size: 20px;
-  font-weight: 600;
-  margin-bottom: 16px;
-}
 
 ::ng-deep .mat-mdc-header-row {
   background-color: var(--gray-100);
@@ -353,29 +335,6 @@ button mat-spinner {
   --mat-button-outlined-outline-color: #fecdca;
 }
 
-.contract-dialog-header {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 20px 24px 0;
-}
-
-.contract-dialog-header h2 {
-  margin: 0;
-  padding: 0;
-  font-size: 20px;
-}
-
-.contract-dialog-header h2::before {
-  display: none;
-}
-
-.contract-dialog-header p {
-  margin: 4px 0 0;
-  font-size: 14px;
-  color: var(--gray-500);
-}
 
 .contract-form h5 {
   display: flex;

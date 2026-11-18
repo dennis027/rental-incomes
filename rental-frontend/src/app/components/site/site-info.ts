@@ -18,8 +18,8 @@ export interface Plan {
 }
 
 export const SITE = {
-  name: 'Rental System',
-  tagline: 'Making rental management simple and efficient for everyone.',
+  name: 'KodiDesk',
+  tagline: 'Every unit, every shilling, accounted for.',
   // Public contact details; leave empty to hide
   email: '',
   phone: '',

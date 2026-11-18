@@ -1,3 +1,4 @@
+import { DialogSize } from '../../../shared/dialog-sizes';
 import { ChangeDetectorRef, Component, PLATFORM_ID, TemplateRef, ViewChild, effect, inject, untracked } from '@angular/core';
 import { isPlatformBrowser } from '@angular/common';
 import { MatDialog } from '@angular/material/dialog';
@@ -58,7 +59,7 @@ export class ContractsEndingSoon {
     const end = new Date(contract.end_date);
     end.setFullYear(end.getFullYear() + 1);
     this.newEndDate = end.toISOString().slice(0, 10);
-    this.dialog.open(this.renewDialog, { width: '440px', maxWidth: '95vw' });
+    this.dialog.open(this.renewDialog, DialogSize.confirm);
   }
 
   renew(): void {

@@ -185,7 +185,7 @@ export class ReportViewer implements OnInit {
         return `${this.round(value)}%`;
       }
       if (MONEY.test(name) && !NOT_MONEY.test(name)) {
-        return `KSh ${value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+        return `KES ${value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
       }
       return this.round(value).toLocaleString();
     }

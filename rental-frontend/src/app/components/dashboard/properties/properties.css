@@ -204,15 +204,6 @@ h2 {
   width: 100%;
 }
 
-mat-dialog-content {
-  max-height: 70vh;
-  overflow-y: auto;
-}
-
-mat-dialog-actions {
-  padding: 16px 24px;
-  gap: 8px;
-}
 
 /* Button with spinner */
 button mat-spinner {
@@ -279,15 +270,6 @@ button mat-spinner {
 }
 
 /* Material overrides */
-::ng-deep .mat-mdc-dialog-container {
-  border-radius: 8px;
-}
-
-::ng-deep .mat-mdc-dialog-title {
-  font-size: 20px;
-  font-weight: 600;
-  margin-bottom: 16px;
-}
 
 /* Success/Error snackbar styles */
 ::ng-deep .success-snackbar {

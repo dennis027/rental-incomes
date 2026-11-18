@@ -98,7 +98,7 @@
           <div class="setting-controls">
             @if (isOn(charge.toggle)) {
               <div class="setting-field">
-                <span>KSh</span>
+                <span>KES</span>
                 <input type="number" min="0" [formControlName]="charge.amount" [attr.aria-label]="charge.title + ' ' + charge.unit" (change)="onUpdateSystemParams()" />
                 <span>{{ charge.unit }}</span>
               </div>
@@ -128,7 +128,7 @@
           <div class="setting-controls">
             @if (isOn(deposit.toggle)) {
               <div class="setting-field">
-                <span>KSh</span>
+                <span>KES</span>
                 <input type="number" min="0" [formControlName]="deposit.amount" [attr.aria-label]="deposit.title + ' amount'" (change)="onUpdateSystemParams()" />
               </div>
             }

@@ -107,20 +107,8 @@ tr:hover {
   font-size: 16px;
 }
 
-/* Dialog Form Styles */
-.customer-form {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-  min-width: 500px;
-  padding: 20px 0;
-  max-height: 70vh;
-  overflow-y: auto;
-}
-
-.customer-form mat-form-field {
-  width: 100%;
-}
+/* Dialog form: laid out by the shared .dialog-grid */
+.customer-form .image-upload-section { margin: 4px 0 12px; }
 
 /* Image Upload Section */
 .image-upload-section {
@@ -301,16 +289,6 @@ tr:hover {
   border-color: var(--brand-500);
 }
 
-/* Dialog Styles */
-mat-dialog-content {
-  max-height: 70vh;
-  overflow-y: auto;
-}
-
-mat-dialog-actions {
-  padding: 16px 24px;
-  gap: 8px;
-}
 
 /* Button with spinner */
 button mat-spinner {
@@ -350,10 +328,6 @@ button mat-spinner {
     font-size: 20px;
   }
 
-  .customer-form {
-    min-width: 300px;
-  }
-
   .customer-details {
     min-width: 280px;
   }
@@ -385,10 +359,6 @@ button mat-spinner {
 
   .header h2 {
     font-size: 18px;
-  }
-
-  .customer-form {
-    min-width: 250px;
   }
 
   .image-preview,

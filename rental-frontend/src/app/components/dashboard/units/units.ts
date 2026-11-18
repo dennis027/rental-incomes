@@ -1,3 +1,4 @@
+import { DialogSize } from '../../../shared/dialog-sizes';
 import { PropertyContext } from '../../../services/property-context';
 import { MoveOutDialog } from '../move-out/move-out-dialog';
 import { Component, inject, ViewChild, AfterViewInit, OnInit, ChangeDetectorRef, TemplateRef, PLATFORM_ID, effect, untracked } from '@angular/core';
@@ -14,6 +15,7 @@ import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { SystemParametersServices } from '../../../services/system-parameters-services';
 import { ContractsService } from '../../../services/contract-service';
 import { CustomersService } from '../../../services/customer';
+import { downloadCsv, fileDate } from '../../../shared/export';
 
 export interface UnitsTable {
   id: string;
@@ -369,7 +371,6 @@ export class Units implements OnInit, AfterViewInit {
   openAddUnitDialog() {
     const isMobile = window.innerWidth < 600;
     let dialogRef = this.dialog.open(this.openAddDialog, {
-      maxWidth: '700px',
     });
     dialogRef.afterClosed().subscribe(result => {
       if (result !== undefined) {
@@ -487,7 +488,7 @@ export class Units implements OnInit, AfterViewInit {
 
   openDeleteDialog(unit: any) {
     this.selectedUnitId = unit.id;
-    this.dialog.open(this.deleteDialog);
+    this.dialog.open(this.deleteDialog, DialogSize.confirm);
   }
 
   /** Performs deletion after confirmation */
@@ -578,7 +579,7 @@ export class Units implements OnInit, AfterViewInit {
     // Pick up tenants registered since the page loaded
     this.loadCustomers();
 
-    this.dialog.open(this.newContractDialog, { width: '640px', maxWidth: '95vw' });
+    this.dialog.open(this.newContractDialog, DialogSize.wide);
   }
 
   onDepositInput() {
@@ -642,8 +643,7 @@ export class Units implements OnInit, AfterViewInit {
   openCancelDialog(unit: any) {
     if (!unit.contract_id) return;
     this.dialog.open(MoveOutDialog, {
-      width: '640px',
-      maxWidth: '95vw',
+      ...DialogSize.wide,
       disableClose: true,
       data: { contractId: unit.contract_id },
     }).afterClosed().subscribe(ended => {
@@ -654,5 +654,15 @@ export class Units implements OnInit, AfterViewInit {
         this.cdr.detectChanges();
       }
     });
+  }
+
+  /** The units on screen (tab and search applied) as a spreadsheet */
+  exportCsv(): void {
+    downloadCsv(`units-${fileDate()}`,
+      ['Unit', 'Type', 'Tenant', 'Rent (KES)', 'Deposit held (KES)', 'Balance (KES)', 'Status'],
+      this.dataSource.filteredData.map((u: any) => [
+        u.unit_number, u.unit_type_display || u.unit_type, u.tenant_name ?? '', u.rent_amount,
+        u.status === 'occupied' ? u.active_contract_deposit ?? '' : '', u.balance, u.status,
+      ]));
   }
 }

@@ -81,6 +81,15 @@ export function receiptDocument(payment: any, invoice: any, paidToDate: number):
 })
 export class RentDocument {
   @Input() doc: RentDocumentData | null = null;
+
+  /** The landlord or agency issuing the document (the account name) */
+  issuer = (() => {
+    try {
+      return localStorage.getItem('account_name') || '';
+    } catch {
+      return '';
+    }
+  })();
   @ViewChild('sheet') sheet!: ElementRef<HTMLElement>;
 
   get statusLabel(): string {

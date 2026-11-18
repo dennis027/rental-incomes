@@ -1,3 +1,4 @@
+import { Logo } from '../../../shared/logo';
 import { CommonModule } from '@angular/common';
 import { Component, computed, inject, signal } from '@angular/core';
 import { ThemeService } from '../../../services/theme';
@@ -7,7 +8,7 @@ import { SiteFormsService, formErrorMessage } from '../../../services/site-forms
 
 @Component({
   selector: 'app-request-demo-component',
-  imports: [CommonModule, ReactiveFormsModule, RouterModule],
+  imports: [CommonModule, ReactiveFormsModule, RouterModule, Logo],
   templateUrl: './request-demo-component.html',
   styleUrl: './request-demo-component.css',
 })

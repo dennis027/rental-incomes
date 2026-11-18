@@ -489,6 +489,38 @@
     max-width: 150px;
     padding: 0 10px;
   }
+}
+
+/* Mid-width screens: the search box would shrink to an empty sliver, so it becomes a button */
+@media (min-width: 993px) and (max-width: 1240px) {
+  .topbar-search {
+    flex: 0 0 44px;
+    justify-content: center;
+    margin: 0 0 0 auto;
+    padding: 0;
+  }
+
+  .topbar-search span,
+  .topbar-search kbd {
+    display: none;
+  }
+}
+
+/* Small phones: the property switcher shrinks to its icon so the top bar fits */
+@media (max-width: 600px) {
+  .property-switch-name,
+  .property-switch-caret {
+    display: none;
+  }
+
+  .property-switch-btn {
+    width: 44px;
+    padding: 0;
+    justify-content: center;
+  }
+}
+
+@media (max-width: 992px) {
 
   .brand {
     display: none;

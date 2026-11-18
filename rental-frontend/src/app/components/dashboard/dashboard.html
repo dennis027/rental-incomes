@@ -5,8 +5,8 @@
   <!-- Sidebar -->
   <aside class="sidebar" id="sidebar">
     <div class="sidebar-header">
-      <span class="brand-mark"><i class="fas fa-building"></i></span>
-      <h2>Rental System</h2>
+      <app-logo class="brand-mark" />
+      <h2>KodiDesk</h2>
     </div>
 
     <nav class="nav-groups">
@@ -129,6 +129,13 @@
             @if (userEmail) { <small>{{ userEmail }}</small> }
           </span>
         </div>
+        @if (accountName || roleLabel) {
+          <div class="profile-account" (click)="$event.stopPropagation()">
+            <i class="fas fa-briefcase"></i>
+            <span>{{ accountName || 'Your account' }}</span>
+            @if (roleLabel) { <span class="profile-role">{{ roleLabel }}</span> }
+          </div>
+        }
         <div class="profile-theme" (click)="$event.stopPropagation()">
           <span>Theme</span>
           <div class="ui-segmented" role="radiogroup" aria-label="Theme">
@@ -144,13 +151,26 @@
           <i class="fas fa-circle-question profile-item-icon"></i>
           <span>{{ showTips ? 'Hide page tips' : 'Show page tips' }}</span>
         </button>
-        <a mat-menu-item routerLink="/dashboard/settings">
-          <i class="fas fa-sliders-h profile-item-icon"></i>
-          <span>Settings</span>
-        </a>
+        @if (canOpenTeam) {
+          <a mat-menu-item routerLink="/dashboard/team">
+            <i class="fas fa-user-group profile-item-icon"></i>
+            <span>Team &amp; account</span>
+          </a>
+        }
+        @if (role !== 'caretaker') {
+          <a mat-menu-item routerLink="/dashboard/settings">
+            <i class="fas fa-sliders-h profile-item-icon"></i>
+            <span>Billing settings</span>
+          </a>
+        }
+        <button mat-menu-item (click)="openShortcuts()">
+          <i class="fas fa-keyboard profile-item-icon"></i>
+          <span>Keyboard shortcuts</span>
+          <kbd class="profile-kbd">?</kbd>
+        </button>
         <button mat-menu-item class="profile-logout" (click)="logOut()">
-          <i class="fas fa-sign-out-alt profile-item-icon"></i>
-          <span>Log out</span>
+          <i class="fas fa-arrow-right-from-bracket profile-item-icon"></i>
+          <span>Sign out</span>
         </button>
       </mat-menu>
     </header>

@@ -1,3 +1,4 @@
+import { Logo } from '../../shared/logo';
 import { Component, HostListener, Inject, PLATFORM_ID, inject } from '@angular/core';
 import { isPlatformBrowser } from '@angular/common';
 import { NavigationEnd, Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
@@ -10,7 +11,7 @@ import { SITE } from './site-info';
 @Component({
   selector: 'app-site-layout',
   standalone: true,
-  imports: [RouterOutlet, RouterLink, RouterLinkActive, SiteIcon],
+  imports: [RouterOutlet, RouterLink, RouterLinkActive, SiteIcon, Logo],
   templateUrl: './site-layout.html',
 })
 export class SiteLayout {

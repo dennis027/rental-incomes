@@ -1,0 +1,77 @@
+<div class="dialog-head">
+  <div>
+    <h2 mat-dialog-title>Request M-Pesa Payment</h2>
+    <p class="dialog-sub">{{ data.customerName }} · Unit {{ data.unit }}</p>
+  </div>
+  <button mat-icon-button (click)="close()" aria-label="Close dialog"><mat-icon>close</mat-icon></button>
+</div>
+
+<mat-dialog-content>
+  @switch (stage) {
+    @case ('form') {
+      <p class="dialog-lead">The tenant gets a prompt on their phone and pays by entering their M-Pesa PIN. The payment is recorded here on its own.</p>
+      <form [formGroup]="form" class="dialog-grid">
+        <mat-form-field appearance="outline">
+          <mat-label>Safaricom number</mat-label>
+          <input matInput formControlName="phone" inputmode="tel" />
+          @if (form.get('phone')?.invalid) {
+            <mat-error>Enter a number such as 0712 345 678</mat-error>
+          }
+        </mat-form-field>
+        <mat-form-field appearance="outline">
+          <mat-label>Amount</mat-label>
+          <span matTextPrefix>KES&nbsp;</span>
+          <input matInput type="number" min="1" step="1" formControlName="amount" />
+          @if (form.get('amount')?.invalid) {
+            <mat-error>At least KES 1</mat-error>
+          }
+        </mat-form-field>
+      </form>
+      @if (error) {
+        <p class="stk-error"><mat-icon>error_outline</mat-icon> {{ error }}</p>
+      }
+    }
+    @case ('waiting') {
+      <div class="stk-state">
+        <mat-spinner diameter="40"></mat-spinner>
+        <strong>Waiting for {{ data.customerName.split(' ')[0] }} to enter their PIN…</strong>
+        <span>A prompt for KES {{ request?.amount | number:'1.0-0' }} was sent to {{ request?.phone }}.</span>
+      </div>
+    }
+    @case ('paid') {
+      <div class="stk-state stk-state--paid">
+        <mat-icon>check_circle</mat-icon>
+        <strong>Paid KES {{ request?.amount | number:'1.0-0' }}</strong>
+        <span>M-Pesa receipt {{ request?.mpesa_receipt }}. The payment has been recorded on the invoice.</span>
+      </div>
+    }
+    @case ('failed') {
+      <div class="stk-state stk-state--failed">
+        <mat-icon>cancel</mat-icon>
+        <strong>Not paid</strong>
+        <span>{{ error }}</span>
+      </div>
+    }
+  }
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  @switch (stage) {
+    @case ('form') {
+      <button mat-button (click)="close()">Cancel</button>
+      <button mat-flat-button color="primary" (click)="send()" [disabled]="sending || form.invalid">
+        {{ sending ? 'Sending…' : 'Send prompt' }}
+      </button>
+    }
+    @case ('waiting') {
+      <button mat-button (click)="close()">Close</button>
+    }
+    @case ('failed') {
+      <button mat-button (click)="close()">Close</button>
+      <button mat-flat-button color="primary" (click)="tryAgain()">Try again</button>
+    }
+    @default {
+      <button mat-flat-button color="primary" (click)="close()">Done</button>
+    }
+  }
+</mat-dialog-actions>

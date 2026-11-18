@@ -10,6 +10,7 @@
       @for (group of groups; track group.id) {
         <a class="chip" routerLink="/features" [fragment]="group.id">{{ group.title }}</a>
       }
+      <a class="chip" routerLink="/features" fragment="coming-soon">Coming soon</a>
     </nav>
   </div>
 </section>
@@ -32,6 +33,26 @@
         </ul>
       </article>
     }
+  </div>
+</section>
+
+<section class="page-section page-section--tinted" id="coming-soon">
+  <div class="page-container">
+    <h2 class="block-title block-title--center roadmap-title">Coming soon</h2>
+    <p class="roadmap-intro">What landlords and agents ask for next. Tell us which matters most to you and it moves up the list.</p>
+    <ul class="roadmap-grid">
+      @for (item of roadmap; track item.title; let i = $index) {
+        <li class="roadmap-card">
+          <div class="roadmap-card__head">
+            <span class="tile-icon" [attr.data-tone]="i % 4"><app-site-icon [name]="item.icon" /></span>
+            <span class="roadmap-badge">Soon</span>
+          </div>
+          <h3>{{ item.title }}</h3>
+          <p>{{ item.summary }}</p>
+        </li>
+      }
+    </ul>
+    <p class="roadmap-intro roadmap-intro--after"><a routerLink="/contact">Suggest a feature</a></p>
   </div>
 </section>
 

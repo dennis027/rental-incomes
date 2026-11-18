@@ -1,3 +1,4 @@
+import { DialogSize } from '../../../shared/dialog-sizes';
 import { PropertyContext } from '../../../services/property-context';
 import { AfterViewInit, ChangeDetectorRef, Component, ViewChild, TemplateRef, OnInit, inject, PLATFORM_ID } from '@angular/core';
 import { isPlatformBrowser } from '@angular/common';
@@ -278,7 +279,7 @@ export class Properties implements OnInit, AfterViewInit { // Added OnInit inter
 
  openDeleteDialog(property: any) {
     this.selectedPropertyId = property.id;
-    this.dialog.open(this.deleteDialog);
+    this.dialog.open(this.deleteDialog, DialogSize.confirm);
   }
 
   /** Performs deletion after confirmation */

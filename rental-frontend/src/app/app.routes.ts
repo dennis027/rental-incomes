@@ -25,6 +25,7 @@ import { FaqPage } from './components/site/pages/faq/faq';
 import { SecurityPage } from './components/site/pages/security/security';
 import { PrivacyPage } from './components/site/pages/legal/privacy';
 import { TermsPage } from './components/site/pages/legal/terms';
+import { Team } from './components/dashboard/team/team';
 
 export const routes: Routes = [
   // 🌍 Public website: shared navigation bar and footer
@@ -32,19 +33,19 @@ export const routes: Routes = [
     path: '',
     component: SiteLayout,
     children: [
-      { path: '', component: Home, title: 'Rental System – Rental management for Kenyan landlords' },
-      { path: 'features', component: FeaturesPage, title: 'Features – Rental System' },
-      { path: 'pricing', component: PricingPage, title: 'Pricing – Rental System' },
-      { path: 'about', component: AboutPage, title: 'About us – Rental System' },
-      { path: 'contact', component: ContactPage, title: 'Contact us – Rental System' },
-      { path: 'faq', component: FaqPage, title: 'FAQ – Rental System' },
-      { path: 'security', component: SecurityPage, title: 'Security – Rental System' },
-      { path: 'privacy', component: PrivacyPage, title: 'Privacy Policy – Rental System' },
-      { path: 'terms', component: TermsPage, title: 'Terms of Service – Rental System' },
+      { path: '', component: Home, title: 'KodiDesk – Rent management for Kenyan landlords' },
+      { path: 'features', component: FeaturesPage, title: 'Features – KodiDesk' },
+      { path: 'pricing', component: PricingPage, title: 'Pricing – KodiDesk' },
+      { path: 'about', component: AboutPage, title: 'About us – KodiDesk' },
+      { path: 'contact', component: ContactPage, title: 'Contact us – KodiDesk' },
+      { path: 'faq', component: FaqPage, title: 'FAQ – KodiDesk' },
+      { path: 'security', component: SecurityPage, title: 'Security – KodiDesk' },
+      { path: 'privacy', component: PrivacyPage, title: 'Privacy Policy – KodiDesk' },
+      { path: 'terms', component: TermsPage, title: 'Terms of Service – KodiDesk' },
     ],
   },
-  { path: 'login', component: Login }, 
-  {path:'request-demo', component:RequestDemoComponent},
+  { path: 'login', component: Login, title: 'Sign in · KodiDesk' },
+  { path: 'request-demo', component: RequestDemoComponent, title: 'Request a demo · KodiDesk' },
 
   // 💼 Protected dashboard section
   {
@@ -53,18 +54,19 @@ export const routes: Routes = [
     canActivate: [AuthGuard],
     children: [
       { path: '', redirectTo: 'home', pathMatch: 'full' }, // ✅ redirect default /dashboard → /dashboard/home
-      { path: 'home', component: DashHome, canActivate: [AuthGuard] },
-      { path: 'rental-customers', component: RentalCustomers, canActivate: [AuthGuard] },
-      { path: 'receipts', component: Receipts, canActivate: [AuthGuard] },
-      { path: 'properties', component: Properties, canActivate: [AuthGuard] },
-      { path: 'payments', component: Payments, canActivate: [AuthGuard] },
-      { path: 'arrears', component: Arrears, canActivate: [AuthGuard] },
-      { path: 'statement', component: TenantStatement, canActivate: [AuthGuard] },
-      { path: 'contracts', component: Contracts, canActivate: [AuthGuard] },
-      { path: 'settings', component: Settings, canActivate: [AuthGuard] },
-      { path: 'units', component: Units, canActivate: [AuthGuard] },
-      {path:'reports',component:Reports, canActivate:[AuthGuard]},
-      {path:'expensesmaintain', component:Expensemaintanace, canActivate:[AuthGuard]}
+      { path: 'home', component: DashHome, canActivate: [AuthGuard], title: 'Dashboard · KodiDesk' },
+      { path: 'rental-customers', component: RentalCustomers, canActivate: [AuthGuard], title: 'Tenants · KodiDesk' },
+      { path: 'receipts', component: Receipts, canActivate: [AuthGuard], title: 'Invoices · KodiDesk' },
+      { path: 'properties', component: Properties, canActivate: [AuthGuard], title: 'Properties · KodiDesk' },
+      { path: 'payments', component: Payments, canActivate: [AuthGuard], title: 'Payments · KodiDesk' },
+      { path: 'arrears', component: Arrears, canActivate: [AuthGuard], title: 'Arrears · KodiDesk' },
+      { path: 'statement', component: TenantStatement, canActivate: [AuthGuard], title: 'Tenant statement · KodiDesk' },
+      { path: 'contracts', component: Contracts, canActivate: [AuthGuard], title: 'Contracts · KodiDesk' },
+      { path: 'settings', component: Settings, canActivate: [AuthGuard], title: 'Billing settings · KodiDesk' },
+      { path: 'units', component: Units, canActivate: [AuthGuard], title: 'Units · KodiDesk' },
+      {path:'reports',component:Reports, canActivate:[AuthGuard], title: 'Reports · KodiDesk' },
+      {path:'expensesmaintain', component:Expensemaintanace, canActivate:[AuthGuard], title: 'Expenses & maintenance · KodiDesk' },
+      { path: 'team', component: Team, canActivate: [AuthGuard], title: 'Team & account · KodiDesk' }
     ],
   },
 

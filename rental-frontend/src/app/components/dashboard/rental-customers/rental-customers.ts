@@ -1,3 +1,4 @@
+import { DialogSize } from '../../../shared/dialog-sizes';
 import { Component, inject, AfterViewInit, ViewChild, OnInit, TemplateRef, ChangeDetectorRef, PLATFORM_ID } from '@angular/core';
 import { SecureImagePipe } from '../../../shared/secure-image.pipe';
 import { isPlatformBrowser } from '@angular/common';
@@ -12,6 +13,7 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { BillingService } from '../../../services/billing';
 import { environment } from '../../../../environments/environment';
 import { A11yModule } from "@angular/cdk/a11y";
+import { downloadCsv, fileDate } from '../../../shared/export';
 
 export interface CustomerObject {
   id: string;
@@ -403,7 +405,7 @@ export class RentalCustomers implements OnInit, AfterViewInit {
     this.selectedBackImage = null;
     this.frontImagePreview = null;
     this.backImagePreview = null;
-    this.dialog.open(this.openAddDialog, { maxWidth: '700px' });
+    this.dialog.open(this.openAddDialog);
   }
 
   /** Add customer using FormData */
@@ -484,7 +486,7 @@ export class RentalCustomers implements OnInit, AfterViewInit {
 
   openViewDialog(customer: CustomerObject) {
     this.selectedCustomer = customer;
-    this.dialog.open(this.viewDialog, { maxWidth: '700px' });
+    this.dialog.open(this.viewDialog);
   }
 
   /** Opens dialog and pre-fills data for update */
@@ -504,7 +506,7 @@ export class RentalCustomers implements OnInit, AfterViewInit {
       email: customer.email,
       id_number: customer.id_number,
     });
-    this.dialog.open(this.updateDialog, { maxWidth: '700px' });
+    this.dialog.open(this.updateDialog);
   }
 
   /** Update customer using FormData */
@@ -564,7 +566,7 @@ export class RentalCustomers implements OnInit, AfterViewInit {
 
   openDeleteDialog(customer: CustomerObject) {
     this.selectedCustomerId = customer.id;
-    this.dialog.open(this.deleteDialog);
+    this.dialog.open(this.deleteDialog, DialogSize.confirm);
   }
 
   confirmDelete() {
@@ -591,5 +593,15 @@ export class RentalCustomers implements OnInit, AfterViewInit {
         }
       },
     });
+  }
+
+  /** The tenants on screen (tab and search applied) as a spreadsheet */
+  exportCsv(): void {
+    downloadCsv(`tenants-${fileDate()}`,
+      ['First name', 'Last name', 'Phone', 'Email', 'ID number', 'Unit', 'Property', 'Owes (KES)'],
+      this.dataSource.filteredData.map((c: any) => [
+        c.first_name, c.last_name, c.phone_number, c.email ?? '', c.id_number,
+        c.unit_number ?? '', c.property_name ?? '', this.owes(c),
+      ]));
   }
 }

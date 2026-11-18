@@ -78,7 +78,7 @@ export class PaybillInbox implements OnInit {
     this.saveError = '';
     this.saving = false;
     this.owingInvoices = [];
-    this.dialog.open(this.matchDialog, { width: '520px', maxWidth: '95vw' });
+    this.dialog.open(this.matchDialog);
     this.invoiceService.getReceipts().subscribe({
       next: (invoices: any[]) => {
         this.owingInvoices = (invoices ?? []).filter(invoice => Number(invoice.balance) > 0);

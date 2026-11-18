@@ -33,12 +33,15 @@
 }
 
 <ng-template #renewDialog>
-  <h2 mat-dialog-title>Renew contract</h2>
+  <div class="dialog-head">
+    <h2 mat-dialog-title>Renew Contract</h2>
+    <button mat-icon-button mat-dialog-close aria-label="Close dialog"><mat-icon>close</mat-icon></button>
+  </div>
   <mat-dialog-content>
     <p class="renew-for">
       {{ renewing?.customer_name }} · Unit {{ renewing?.unit }} · currently ends {{ renewing?.end_date | date:'d MMMM y' }}
     </p>
-    <mat-form-field appearance="outline" style="width: 100%">
+    <mat-form-field appearance="outline">
       <mat-label>New end date</mat-label>
       <input matInput type="date" [(ngModel)]="newEndDate" [min]="renewing?.end_date">
     </mat-form-field>

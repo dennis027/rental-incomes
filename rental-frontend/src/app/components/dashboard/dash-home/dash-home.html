@@ -6,9 +6,20 @@
     <span class="hero-blob hero-blob--three"></span>
 
     <div class="hero-text">
-      <p class="hero-date">{{ today | date: 'EEEE, d MMMM y' }}</p>
-      <h2>{{ greeting }} <span class="wave">👋</span></h2>
-      <p class="hero-sub">Here is how your properties are doing today.</p>
+      <p class="hero-date">
+        @if (accountName) { <span class="hero-account">{{ accountName }}</span> · }
+        {{ today | date: 'EEEE, d MMMM y' }}
+      </p>
+      <h2>{{ greeting }}{{ firstName ? ', ' + firstName : '' }}</h2>
+      <p class="hero-sub">
+        Here is how your properties are doing today.
+        @if (updatedAt) {
+          <button class="hero-refresh" (click)="loadDashboardData()" [disabled]="isLoading" title="Refresh the figures">
+            <i class="fas fa-rotate-right" [class.fa-spin]="isLoading"></i>
+            Updated {{ updatedAt | date: 'HH:mm' }}
+          </button>
+        }
+      </p>
 
       <div class="hero-actions">
         @for (action of quickActions; track action.route) {
@@ -22,7 +33,7 @@
 
     <div class="hero-figure">
       <span>Collected this month</span>
-      <strong>KSh {{ collectedShown | number }}</strong>
+      <strong>KES {{ collectedShown | number }}</strong>
       <div class="hero-meter">
         <div class="hero-meter-fill" [style.width.%]="occupancyRate"></div>
       </div>
@@ -47,7 +58,7 @@
         </div>
         <h4 class="stat-value">
           @if (stat.key === 'pending') {
-            <small>KSh</small> {{ stat.shown | number }}
+            <small>KES</small> {{ stat.shown | number }}
           } @else {
             {{ stat.shown | number }}
           }
@@ -137,7 +148,7 @@
               <strong>{{ method.share }}%</strong>
             </div>
             <div class="method-bar"><div [class]="'method-fill tone-' + method.tone" [style.width.%]="method.share"></div></div>
-            <small>KSh {{ method.amount | number }}</small>
+            <small>KES {{ method.amount | number }}</small>
           </li>
         }
       </ul>

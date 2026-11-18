@@ -4,105 +4,138 @@
       <h2>Invoices</h2>
       <p>The rent bills sent to tenants. Each new invoice brings forward what is still unpaid, so a tenant always pays their latest invoice.</p>
     </div>
-    <button mat-flat-button color="primary" (click)="openGenerateMonthlyDialog()">
-      <mat-icon>calendar_month</mat-icon>
-      Generate monthly invoices
-    </button>
+    <div class="ui-header-actions">
+      <button mat-stroked-button (click)="exportCsv()" matTooltip="Download what is on screen as a spreadsheet">
+        <mat-icon>download</mat-icon>
+        Export
+      </button>
+      <button mat-flat-button color="primary" (click)="openGenerateMonthlyDialog()">
+        <mat-icon>calendar_month</mat-icon>
+        Generate monthly invoices
+      </button>
+    </div>
   </div>
 
   <div class="ui-summary">
     <div class="ui-summary-card">
       <div class="ui-summary-icon"><i class="fas fa-file-invoice"></i></div>
-      <div><span>Billed</span><strong>{{ totalBilled | currency:'KES ' }}</strong></div>
+      <div><span>Billed{{ selectedMonth.value ? ' in ' + getSelectedMonthDisplay() : '' }}</span><strong>KES {{ totalBilled | number:'1.0-0' }}</strong></div>
     </div>
     <div class="ui-summary-card tone-green">
       <div class="ui-summary-icon"><i class="fas fa-circle-check"></i></div>
-      <div><span>Collected</span><strong>{{ totalCollected | currency:'KES ' }}</strong></div>
+      <div><span>Collected</span><strong>KES {{ totalCollected | number:'1.0-0' }}</strong></div>
     </div>
     <div class="ui-summary-card tone-pink">
       <div class="ui-summary-icon"><i class="fas fa-hourglass-half"></i></div>
-      <div><span>Outstanding</span><strong>{{ totalOutstanding | currency:'KES ' }}</strong></div>
+      <div>
+        <span>Outstanding</span>
+        <strong>KES {{ totalOutstanding | number:'1.0-0' }}</strong>
+        @if (earlierArrears > 0) {
+          <small class="inv-summary-note">incl. KES {{ earlierArrears | number:'1.0-0' }} from earlier months</small>
+        }
+      </div>
     </div>
     <div class="ui-summary-card tone-purple">
       <div class="ui-summary-icon"><i class="fas fa-receipt"></i></div>
-      <div><span>Not fully paid</span><strong>{{ unpaidCount }} of {{ dataSource.data.length }}</strong></div>
+      <div><span>Tenants still owing</span><strong>{{ unpaidCount }} of {{ monthRows.length }}</strong></div>
     </div>
   </div>
 
   <div class="ui-card">
     <div class="ui-toolbar">
       <div class="ui-toolbar-filters">
-        <mat-form-field appearance="outline" subscriptSizing="dynamic">
+        <div class="ui-segmented" role="tablist" aria-label="Filter by status">
+          <button role="tab" [class.active]="statusFilter === 'all'" (click)="setStatusFilter('all')">
+            All <span class="count">{{ statusCounts.all }}</span>
+          </button>
+          <button role="tab" [class.active]="statusFilter === 'unpaid'" (click)="setStatusFilter('unpaid')">
+            Unpaid <span class="count">{{ statusCounts.unpaid }}</span>
+          </button>
+          <button role="tab" [class.active]="statusFilter === 'paid'" (click)="setStatusFilter('paid')">
+            Paid <span class="count">{{ statusCounts.paid }}</span>
+          </button>
+        </div>
+        <mat-form-field appearance="outline" subscriptSizing="dynamic" class="inv-month">
           <mat-label>Month</mat-label>
           <mat-select [formControl]="selectedMonth">
             <mat-option value="">All months</mat-option>
             @for (month of availableMonths; track month.value) {
-              <mat-option [value]="month.value">
-                {{ month.display }}
-              </mat-option>
+              <mat-option [value]="month.value">{{ month.display }}</mat-option>
             }
           </mat-select>
         </mat-form-field>
-
-
       </div>
-
-      <span class="ui-toolbar-note">
-        {{ dataSource.data.length }} invoice(s)
-        @if (selectedMonth.value) {
-          <span> for {{ getSelectedMonthDisplay() }}</span>
-        }
-        @if (selectedProperty.value) {
-          <span> in {{ getPropertyName(selectedProperty.value) }}</span>
-        }
-      </span>
+      <mat-form-field appearance="outline" subscriptSizing="dynamic" class="inv-search">
+        <mat-label>Search invoice, unit or tenant</mat-label>
+        <input matInput [(ngModel)]="searchText" (ngModelChange)="applyFilters()" />
+        <mat-icon matSuffix>search</mat-icon>
+      </mat-form-field>
     </div>
 
     <div class="ui-table-scroll">
-    <table mat-table appMatTableResponsive [dataSource]="dataSource">
+    <table mat-table appMatTableResponsive [dataSource]="dataSource" class="inv-table">
       <ng-container matColumnDef="receipt_number">
         <th mat-header-cell *matHeaderCellDef>Invoice</th>
-        <td mat-cell *matCellDef="let r" [attr.data-label]="'Invoice'"><span class="ui-mono">{{ inv(r.receipt_number) }}</span></td>
+        <td mat-cell *matCellDef="let r" [attr.data-label]="'Invoice'">
+          <div class="ui-stack">
+            <strong class="ui-mono inv-number">{{ inv(r.receipt_number) }}</strong>
+            <small>Issued {{ r.issue_date | date: 'd MMM y' }}</small>
+          </div>
+        </td>
       </ng-container>
 
       <ng-container matColumnDef="unit">
-        <th mat-header-cell *matHeaderCellDef>Unit</th>
-        <td mat-cell *matCellDef="let r" [attr.data-label]="'Unit'">
+        <th mat-header-cell *matHeaderCellDef>Tenant</th>
+        <td mat-cell *matCellDef="let r" [attr.data-label]="'Tenant'">
           <div class="ui-stack">
-            <strong>{{ r.unit }}</strong>
-            <small>{{ r.customer }}</small>
+            <strong class="inv-nowrap">{{ r.customer_name }}</strong>
+            <small>Unit {{ r.unit }}</small>
           </div>
         </td>
       </ng-container>
 
       <ng-container matColumnDef="issue_date">
         <th mat-header-cell *matHeaderCellDef>Issued</th>
-        <td mat-cell *matCellDef="let r" [attr.data-label]="'Issued'">{{ r.issue_date | date: 'd MMM y' }}</td>
+        <td mat-cell *matCellDef="let r" class="inv-nowrap" [attr.data-label]="'Issued'">{{ r.issue_date | date: 'd MMM y' }}</td>
       </ng-container>
 
       <ng-container matColumnDef="monthly_rent">
         <th mat-header-cell *matHeaderCellDef class="ui-num">Rent</th>
-        <td mat-cell *matCellDef="let r" class="ui-num" [attr.data-label]="'Rent'">{{ r.monthly_rent | number:'1.2-2' }}</td>
+        <td mat-cell *matCellDef="let r" class="ui-num" [attr.data-label]="'Rent'">{{ r.monthly_rent | number:'1.0-2' }}</td>
       </ng-container>
 
-      <ng-container matColumnDef="electricity_bill">
-        <th mat-header-cell *matHeaderCellDef class="ui-num">Electricity</th>
-        <td mat-cell *matCellDef="let r" class="ui-num" [attr.data-label]="'Electricity'">{{ r.electricity_bill | number:'1.2-2' }}</td>
+      <ng-container matColumnDef="other_charges">
+        <th mat-header-cell *matHeaderCellDef class="ui-num">Other charges</th>
+        <td mat-cell *matCellDef="let r" class="ui-num" [attr.data-label]="'Other charges'">
+          @if (otherCharges(r) > 0) {
+            <span class="inv-hint" [matTooltip]="chargeBreakdown(r)">{{ otherCharges(r) | number:'1.0-2' }}</span>
+          } @else {
+            <span class="inv-zero">—</span>
+          }
+        </td>
       </ng-container>
 
-      <ng-container matColumnDef="water_bill">
-        <th mat-header-cell *matHeaderCellDef class="ui-num">Water</th>
-        <td mat-cell *matCellDef="let r" class="ui-num" [attr.data-label]="'Water'">{{ r.water_bill | number:'1.2-2' }}</td>
-      </ng-container>
-
-      <ng-container matColumnDef="service_charge">
-        <th mat-header-cell *matHeaderCellDef class="ui-num">Service</th>
-        <td mat-cell *matCellDef="let r" class="ui-num" [attr.data-label]="'Service'">{{ r.service_charge | number:'1.2-2' }}</td>
+      <ng-container matColumnDef="previous_balance">
+        <th mat-header-cell *matHeaderCellDef class="ui-num">Brought forward</th>
+        <td mat-cell *matCellDef="let r" class="ui-num" [attr.data-label]="'Brought forward'">
+          @if (+r.previous_balance > 0) {
+            <span matTooltip="Unpaid from earlier invoices">{{ r.previous_balance | number:'1.0-2' }}</span>
+          } @else {
+            <span class="inv-zero">—</span>
+          }
+        </td>
       </ng-container>
 
       <ng-container matColumnDef="total_amount">
         <th mat-header-cell *matHeaderCellDef class="ui-num">Total</th>
-        <td mat-cell *matCellDef="let r" class="ui-num" [attr.data-label]="'Total'"><strong>{{ r.total_amount | number:'1.2-2' }}</strong></td>
+        <td mat-cell *matCellDef="let r" class="ui-num" [attr.data-label]="'Total'"><strong>{{ r.total_amount | number:'1.0-2' }}</strong></td>
+      </ng-container>
+
+      <ng-container matColumnDef="amount_paid">
+        <th mat-header-cell *matHeaderCellDef class="ui-num">Paid</th>
+        <td mat-cell *matCellDef="let r" class="ui-num" [attr.data-label]="'Paid'">
+          @if (+r.amount_paid > 0) { {{ r.amount_paid | number:'1.0-2' }} } @else { <span class="inv-zero">—</span> }
+        </td>
       </ng-container>
 
       <ng-container matColumnDef="balance">
@@ -110,12 +143,19 @@
         <td mat-cell *matCellDef="let r" class="ui-num" [attr.data-label]="'Balance'">
           @if (r.is_latest) {
             @if (+r.balance_due < 0) {
-              <span class="ui-chip ui-chip--brand" matTooltip="Paid more than was owed; taken off the next invoice">{{ -r.balance_due | number:'1.2-2' }} credit</span>
+              <span class="ui-chip ui-chip--brand" matTooltip="Paid more than was owed; taken off the next invoice">{{ -r.balance_due | number:'1.0-2' }} credit</span>
+            } @else if (+r.balance_due > 0) {
+              <div class="inv-balance">
+                <span class="ui-owing">{{ r.balance_due | number:'1.0-2' }}</span>
+                @if (olderDebt(r) > 0) {
+                  <small matTooltip="Unpaid on this tenant's earlier invoices">+{{ olderDebt(r) | number:'1.0-0' }} earlier</small>
+                }
+              </div>
             } @else {
-              <span [class.ui-owing]="+r.balance_due > 0">{{ r.balance_due | number:'1.2-2' }}</span>
+              <span class="inv-zero">—</span>
             }
           } @else {
-            <span class="ui-toolbar-note">—</span>
+            <span class="inv-zero" [matTooltip]="'Carried to ' + inv(r.carried_to)">—</span>
           }
         </td>
       </ng-container>
@@ -150,15 +190,12 @@
                 Pay
               </button>
             }
-            <button mat-icon-button (click)="generateReceipt(r); openReceiptReview()" matTooltip="View and print invoice">
-              <mat-icon>print</mat-icon>
-            </button>
-            <button mat-icon-button (click)="openUpdateDialog(r)" matTooltip="Edit invoice">
-              <mat-icon>edit</mat-icon>
-            </button>
-            <button mat-icon-button color="warn" (click)="deleteReceipt(r.id)" matTooltip="Delete invoice">
-              <mat-icon>delete</mat-icon>
-            </button>
+            <button mat-icon-button [matMenuTriggerFor]="rowMenu" matTooltip="More actions" aria-label="More actions"><mat-icon>more_vert</mat-icon></button>
+            <mat-menu #rowMenu="matMenu" xPosition="before" class="row-menu">
+              <button mat-menu-item (click)="generateReceipt(r); openReceiptReview()"><mat-icon>print</mat-icon><span>View &amp; print</span></button>
+              <button mat-menu-item (click)="openUpdateDialog(r)"><mat-icon>edit</mat-icon><span>Edit invoice</span></button>
+              <button mat-menu-item class="menu-danger" (click)="deleteReceipt(r.id)"><mat-icon>delete_outline</mat-icon><span>Delete invoice</span></button>
+            </mat-menu>
           </div>
         </td>
       </ng-container>
@@ -168,7 +205,9 @@
       <tr class="mat-row" *matNoDataRow>
         <td class="mat-cell empty-state" [attr.colspan]="displayedColumns.length">
           <i class="fas fa-receipt"></i>
-          @if (selectedMonth.value) {
+          @if (searchText || statusFilter !== 'all') {
+            <p>No invoices match. Clear the search or choose "All".</p>
+          } @else if (selectedMonth.value) {
             <p>No invoices for {{ getSelectedMonthDisplay() }}. Use "Generate monthly invoices" to bill your active contracts.</p>
           } @else {
             <p>No invoices yet. They are created when you rent out a unit and when you generate monthly invoices.</p>
@@ -184,12 +223,15 @@
 
 <!-- Generate Monthly Receipts Dialog -->
 <ng-template #generateMonthlyDialog>
-  <h2 mat-dialog-title>Generate Monthly Invoices</h2>
+  <div class="dialog-head">
+    <h2 mat-dialog-title>Generate Monthly Invoices</h2>
+    <button mat-icon-button mat-dialog-close aria-label="Close dialog"><mat-icon>close</mat-icon></button>
+  </div>
   <mat-dialog-content>
-    <p class="dialog-description">This will generate receipts for all active contracts for the selected month.</p>
+    <p class="dialog-lead">Creates an invoice for every active contract for the month you choose.</p>
     
-    <form [formGroup]="generateMonthlyForm">
-      <mat-form-field appearance="outline" class="full-width">
+    <form [formGroup]="generateMonthlyForm" class="dialog-grid">
+      <mat-form-field appearance="outline">
         <mat-label>Year</mat-label>
         <input matInput formControlName="year" type="number" required />
         @if (generateMonthlyForm.get('year')?.hasError('required')) {
@@ -203,7 +245,7 @@
         }
       </mat-form-field>
 
-      <mat-form-field appearance="outline" class="full-width">
+      <mat-form-field appearance="outline">
         <mat-label>Month</mat-label>
         <mat-select formControlName="month" required>
           <mat-option [value]="1">January</mat-option>
@@ -224,11 +266,17 @@
         }
       </mat-form-field>
     </form>
+    @if (generateWarning) {
+      <div class="dialog-note">
+        <mat-icon>info</mat-icon>
+        <span>{{ generateWarning }}</span>
+      </div>
+    }
   </mat-dialog-content>
 
   <mat-dialog-actions align="end">
     <button mat-button mat-dialog-close>Cancel</button>
-    <button mat-flat-button color="accent" (click)="checkAndProceedToGeneration()" [disabled]="loadGenerating || generateMonthlyForm.invalid">
+    <button mat-flat-button color="primary" (click)="checkAndProceedToGeneration()" [disabled]="loadGenerating || generateMonthlyForm.invalid">
       @if (loadGenerating) {
         <span>
           <mat-icon class="spin">hourglass_empty</mat-icon>
@@ -243,18 +291,18 @@
 
 <!-- NEW: Meter Readings Dialog -->
 <ng-template #meterReadingsDialog>
-  <h2 mat-dialog-title>
-    <mat-icon style="vertical-align: middle; margin-right: 8px;">speed</mat-icon>
-    Enter Meter Readings
-  </h2>
-  <mat-dialog-content style="max-height: 70vh; overflow-y: auto;">
-    <div class="dialog-info" style="background: var(--brand-50); padding: 12px; border-radius: 4px; margin-bottom: 16px;">
-      <mat-icon style="vertical-align: middle; color: var(--brand-500);">info</mat-icon>
-      <span style="margin-left: 8px;">Please enter current meter readings for all units. Previous readings are shown for reference.</span>
+  <div class="dialog-head">
+    <h2 mat-dialog-title>Enter Meter Readings</h2>
+    <button mat-icon-button mat-dialog-close aria-label="Close dialog" [disabled]="loadGenerating"><mat-icon>close</mat-icon></button>
+  </div>
+  <mat-dialog-content>
+    <div class="dialog-note">
+      <mat-icon>info</mat-icon>
+      <span>Enter the current meter readings for every unit. Previous readings are shown for reference.</span>
     </div>
 
     @if (loadingUnits) {
-      <div style="text-align: center; padding: 40px;">
+      <div class="reading-loading">
         <mat-spinner diameter="40"></mat-spinner>
         <p>Loading units...</p>
       </div>
@@ -262,25 +310,25 @@
       <form [formGroup]="meterReadingsForm">
         <div formArrayName="readings">
           @for (reading of readingsArray.controls; track $index) {
-            <div [formGroupName]="$index" class="reading-card" style="border: 1px solid var(--gray-200); border-radius: 8px; padding: 16px; margin-bottom: 16px; background: var(--gray-50);">
-              <div class="reading-header" style="display: flex; justify-content: space-between; margin-bottom: 12px;">
+            <div [formGroupName]="$index" class="reading-card">
+              <div class="reading-header">
                 <div>
-                  <h3 style="margin: 0; color: var(--gray-800);">{{ reading.get('unit_number')?.value }}</h3>
-                  <p style="margin: 4px 0 0 0; color: var(--gray-500); font-size: 14px;">{{ reading.get('customer_name')?.value }}</p>
+                  <h3>{{ reading.get('unit_number')?.value }}</h3>
+                  <p class="reading-tenant">{{ reading.get('customer_name')?.value }}</p>
                   @if (reading.get('previous_balance')?.value && reading.get('previous_balance')?.value > 0) {
-                    <p style="margin: 4px 0 0 0; color: var(--error-600); font-size: 13px; font-weight: 500;">
-                      <mat-icon style="vertical-align: middle; font-size: 16px;">warning</mat-icon>
+                    <p class="reading-arrears">
+                      <mat-icon>warning</mat-icon>
                       Previous Balance: KES {{ reading.get('previous_balance')?.value | number:'1.2-2' }}
                     </p>
                   }
                 </div>
               </div>
 
-              <div class="readings-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+              <div class="readings-grid">
                 @if (systemParametersObject?.has_water_bill) {
                   <div class="reading-section">
-                    <h4 style="margin: 0 0 8px 0; color: var(--brand-500); font-size: 14px;">
-                      <mat-icon style="vertical-align: middle; font-size: 18px;">water_drop</mat-icon>
+                    <h4 class="reading-title water">
+                      <mat-icon>water_drop</mat-icon>
                       Water Reading
                     </h4>
                     <mat-form-field appearance="outline" class="full-width">
@@ -297,7 +345,7 @@
                         <mat-error>Must be greater than or equal to previous reading</mat-error>
                       }
                     </mat-form-field>
-                    <div style="padding: 8px; background: var(--success-50); border-radius: 4px; font-size: 13px;">
+                    <div class="reading-total water">
                       <strong>Units:</strong> {{ (reading.get('current_water_reading')?.value || 0) - (reading.get('previous_water_reading')?.value || 0) | number:'1.2-2' }}
                       <br>
                       <strong>Amount:</strong> KES {{ calculateWaterBill($index) | number:'1.2-2' }}
@@ -307,8 +355,8 @@
 
                 @if (systemParametersObject?.has_electricity_bill) {
                   <div class="reading-section">
-                    <h4 style="margin: 0 0 8px 0; color: var(--warning-600); font-size: 14px;">
-                      <mat-icon style="vertical-align: middle; font-size: 18px;">bolt</mat-icon>
+                    <h4 class="reading-title power">
+                      <mat-icon>bolt</mat-icon>
                       Electricity Reading
                     </h4>
                     <mat-form-field appearance="outline" class="full-width">
@@ -325,7 +373,7 @@
                         <mat-error>Must be greater than or equal to previous reading</mat-error>
                       }
                     </mat-form-field>
-                    <div style="padding: 8px; background: var(--warning-50); border-radius: 4px; font-size: 13px;">
+                    <div class="reading-total power">
                       <strong>Units:</strong> {{ (reading.get('current_electricity_reading')?.value || 0) - (reading.get('previous_electricity_reading')?.value || 0) | number:'1.2-2' }}
                       <br>
                       <strong>Amount:</strong> KES {{ calculateElectricityBill($index) | number:'1.2-2' }}
@@ -335,12 +383,12 @@
               </div>
 
               <!-- Additional Charges Section -->
-              <div class="additional-charges" style="margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--gray-200);">
-                <h4 style="margin: 0 0 12px 0; color: var(--gray-700); font-size: 14px;">
-                  <mat-icon style="vertical-align: middle; font-size: 18px;">attach_money</mat-icon>
+              <div class="additional-charges">
+                <h4 class="reading-title">
+                  <mat-icon>attach_money</mat-icon>
                   Additional Charges
                 </h4>
-                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px;">
+                <div class="charges-grid">
                   @if (systemParametersObject?.has_service_charge) {
                     <mat-form-field appearance="outline" class="full-width">
                       <mat-label>Service Charge</mat-label>
@@ -409,25 +457,153 @@
   </mat-dialog-actions>
 </ng-template>
 
-<!-- Delete Receipt Dialog -->
-<ng-template #deleteReceiptDial> <br>
-  <div class="container-fluid dialog-header">
-      <h2 style="display: inline;" mat-dialog-title>Delete Invoice</h2>
-      <button style="display: inline;float: right;" mat-icon-button mat-dialog-close aria-label="Close dialog">
-        <mat-icon>close</mat-icon>
-      </button> <br> 
-    <p>Are you sure you want to delete this invoice?</p>
-    <mat-dialog-actions align="end">
-        <button mat-button matDialogClose="no">No</button>
-        <button mat-button matDialogClose="yes">Yes</button>
-    </mat-dialog-actions>
+<!-- Edit Invoice Dialog -->
+<ng-template #updateReceiptDialog>
+  <div class="dialog-head">
+    <div>
+      <h2 mat-dialog-title>Edit Invoice</h2>
+      @if (editingReceipt) {
+        <p class="dialog-sub">{{ editingReceipt.receipt_number }} · {{ editingReceipt.customer }} · Unit {{ editingReceipt.unit }}</p>
+      }
+    </div>
+    <button mat-icon-button mat-dialog-close aria-label="Close dialog"><mat-icon>close</mat-icon></button>
   </div>
+  <mat-dialog-content>
+    <form [formGroup]="updateReceiptForm" class="dialog-grid">
+      <mat-form-field appearance="outline">
+        <mat-label>Monthly rent</mat-label>
+        <input matInput formControlName="monthly_rent" type="number" step="0.01" />
+        @if (updateReceiptForm.get('monthly_rent')?.hasError('required')) {
+          <mat-error>Monthly rent is required</mat-error>
+        }
+        @if (updateReceiptForm.get('monthly_rent')?.hasError('min')) {
+          <mat-error>Must be 0 or more</mat-error>
+        }
+      </mat-form-field>
+      <mat-form-field appearance="outline">
+        <mat-label>Balance brought forward</mat-label>
+        <input matInput formControlName="previous_balance" type="number" step="0.01" />
+        @if (updateReceiptForm.get('previous_balance')?.hasError('required')) {
+          <mat-error>Balance brought forward is required</mat-error>
+        }
+      </mat-form-field>
+      <mat-form-field appearance="outline">
+        <mat-label>Water bill</mat-label>
+        <input matInput formControlName="water_bill" type="number" step="0.01" />
+        @if (updateReceiptForm.get('water_bill')?.hasError('required')) {
+          <mat-error>Water bill is required</mat-error>
+        }
+        @if (updateReceiptForm.get('water_bill')?.hasError('min')) {
+          <mat-error>Must be 0 or more</mat-error>
+        }
+      </mat-form-field>
+      <mat-form-field appearance="outline">
+        <mat-label>Electricity bill</mat-label>
+        <input matInput formControlName="electricity_bill" type="number" step="0.01" />
+        @if (updateReceiptForm.get('electricity_bill')?.hasError('required')) {
+          <mat-error>Electricity bill is required</mat-error>
+        }
+        @if (updateReceiptForm.get('electricity_bill')?.hasError('min')) {
+          <mat-error>Must be 0 or more</mat-error>
+        }
+      </mat-form-field>
+      <mat-form-field appearance="outline">
+        <mat-label>Previous water reading</mat-label>
+        <input matInput formControlName="previous_water_reading" type="number" step="0.01" />
+        @if (updateReceiptForm.get('previous_water_reading')?.hasError('min')) {
+          <mat-error>Must be 0 or more</mat-error>
+        }
+      </mat-form-field>
+      <mat-form-field appearance="outline">
+        <mat-label>Current water reading</mat-label>
+        <input matInput formControlName="current_water_reading" type="number" step="0.01" />
+        @if (updateReceiptForm.get('current_water_reading')?.hasError('required')) {
+          <mat-error>Current water reading is required</mat-error>
+        }
+        @if (updateReceiptForm.get('current_water_reading')?.hasError('min')) {
+          <mat-error>Must be 0 or more</mat-error>
+        }
+      </mat-form-field>
+      <mat-form-field appearance="outline">
+        <mat-label>Service charge</mat-label>
+        <input matInput formControlName="service_charge" type="number" step="0.01" />
+        @if (updateReceiptForm.get('service_charge')?.hasError('required')) {
+          <mat-error>Service charge is required</mat-error>
+        }
+        @if (updateReceiptForm.get('service_charge')?.hasError('min')) {
+          <mat-error>Must be 0 or more</mat-error>
+        }
+      </mat-form-field>
+      <mat-form-field appearance="outline">
+        <mat-label>Security charge</mat-label>
+        <input matInput formControlName="security_charge" type="number" step="0.01" />
+        @if (updateReceiptForm.get('security_charge')?.hasError('required')) {
+          <mat-error>Security charge is required</mat-error>
+        }
+        @if (updateReceiptForm.get('security_charge')?.hasError('min')) {
+          <mat-error>Must be 0 or more</mat-error>
+        }
+      </mat-form-field>
+      <mat-form-field appearance="outline">
+        <mat-label>Rent deposit</mat-label>
+        <input matInput formControlName="rental_deposit" type="number" step="0.01" />
+        @if (updateReceiptForm.get('rental_deposit')?.hasError('min')) {
+          <mat-error>Must be 0 or more</mat-error>
+        }
+      </mat-form-field>
+      <mat-form-field appearance="outline">
+        <mat-label>Water deposit</mat-label>
+        <input matInput formControlName="water_deposit" type="number" step="0.01" />
+        @if (updateReceiptForm.get('water_deposit')?.hasError('min')) {
+          <mat-error>Must be 0 or more</mat-error>
+        }
+      </mat-form-field>
+      <mat-form-field appearance="outline">
+        <mat-label>Electricity deposit</mat-label>
+        <input matInput formControlName="electricity_deposit" type="number" step="0.01" />
+        @if (updateReceiptForm.get('electricity_deposit')?.hasError('min')) {
+          <mat-error>Must be 0 or more</mat-error>
+        }
+      </mat-form-field>
+      <mat-form-field appearance="outline">
+        <mat-label>Other charges</mat-label>
+        <input matInput formControlName="other_charges" type="number" step="0.01" />
+        @if (updateReceiptForm.get('other_charges')?.hasError('min')) {
+          <mat-error>Must be 0 or more</mat-error>
+        }
+      </mat-form-field>
+    </form>
+  </mat-dialog-content>
+  <mat-dialog-actions align="end">
+    <button mat-button mat-dialog-close>Cancel</button>
+    <button mat-flat-button color="primary" (click)="updateReceipt()" [disabled]="loadUpdating || updateReceiptForm.invalid">
+      {{ loadUpdating ? 'Saving…' : 'Save changes' }}
+    </button>
+  </mat-dialog-actions>
+</ng-template>
+
+<!-- Delete Receipt Dialog -->
+<ng-template #deleteReceiptDial>
+  <div class="dialog-head">
+    <h2 mat-dialog-title>Delete Invoice</h2>
+    <button mat-icon-button mat-dialog-close aria-label="Close dialog"><mat-icon>close</mat-icon></button>
+  </div>
+  <mat-dialog-content>
+    <div class="dialog-confirm">
+      <span class="dialog-confirm-icon"><mat-icon>delete_outline</mat-icon></span>
+      <p>Delete this invoice? Payments recorded against it are deleted too, and this cannot be undone.</p>
+    </div>
+  </mat-dialog-content>
+  <mat-dialog-actions align="end">
+    <button mat-button matDialogClose="no">Cancel</button>
+    <button mat-flat-button color="warn" matDialogClose="yes">Delete Invoice</button>
+  </mat-dialog-actions>
 </ng-template>
 
 <!-- Invoice preview; also shows the receipt right after a payment is recorded -->
 <ng-template #receiptPreviewDialog>
   <div class="doc-dialog">
-    <header class="doc-dialog-header">
+    <header class="dialog-head">
       <h2 mat-dialog-title>{{ documentData?.kind === 'receipt' ? 'Receipt' : 'Invoice' }} {{ documentData?.number }}</h2>
       <button mat-icon-button mat-dialog-close aria-label="Close dialog">
         <mat-icon>close</mat-icon>

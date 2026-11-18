@@ -177,12 +177,11 @@
                   Pay
                 </button>
               }
-              <button mat-icon-button (click)="openUpdateDial();openExpensesDialog(element)" matTooltip="Edit expense">
-                <mat-icon>edit</mat-icon>
-              </button>
-              <button mat-icon-button color="warn" (click)="openDeleteDialog(element)" matTooltip="Delete expense">
-                <mat-icon>delete</mat-icon>
-              </button>
+              <button mat-icon-button [matMenuTriggerFor]="rowMenu" matTooltip="More actions" aria-label="More actions"><mat-icon>more_vert</mat-icon></button>
+              <mat-menu #rowMenu="matMenu" xPosition="before" class="row-menu">
+              <button mat-menu-item (click)="openUpdateDial();openExpensesDialog(element)"><mat-icon>edit</mat-icon><span>Edit expense</span></button>
+              <button mat-menu-item class="menu-danger" (click)="openDeleteDialog(element)"><mat-icon>delete_outline</mat-icon><span>Delete expense</span></button>
+              </mat-menu>
             </div>
           </td>
         </ng-container>
@@ -273,15 +272,12 @@
                   Update status
                 </button>
               }
-              <button mat-icon-button (click)="openMakeMaintancePaymentDialog(element)" matTooltip="Record a payment for this repair">
-                <mat-icon>payments</mat-icon>
-              </button>
-              <button mat-icon-button (click)="openUpdateMaintanaceDialog(element)" matTooltip="Edit request">
-                <mat-icon>edit</mat-icon>
-              </button>
-              <button mat-icon-button color="warn" (click)="openDeleteMainanceDialog(element)" matTooltip="Delete request">
-                <mat-icon>delete</mat-icon>
-              </button>
+              <button mat-icon-button [matMenuTriggerFor]="rowMenu" matTooltip="More actions" aria-label="More actions"><mat-icon>more_vert</mat-icon></button>
+              <mat-menu #rowMenu="matMenu" xPosition="before" class="row-menu">
+              <button mat-menu-item (click)="openMakeMaintancePaymentDialog(element)"><mat-icon>payments</mat-icon><span>Record a payment</span></button>
+              <button mat-menu-item (click)="openUpdateMaintanaceDialog(element)"><mat-icon>edit</mat-icon><span>Edit request</span></button>
+              <button mat-menu-item class="menu-danger" (click)="openDeleteMainanceDialog(element)"><mat-icon>delete_outline</mat-icon><span>Delete request</span></button>
+              </mat-menu>
             </div>
           </td>
         </ng-container>
@@ -305,673 +301,424 @@
 </div>
 
 
-<ng-template #addExpeDial> <br>
-  <div class="container-fluid dialog-header">
-    <h2 style="display: inline;" mat-dialog-title>Add Expense</h2>
-    <button style="display: inline;float: right;" mat-icon-button mat-dialog-close aria-label="Close dialog">
-      <mat-icon>close</mat-icon>
+<ng-template #addExpeDial>
+  <div class="dialog-head">
+    <h2 mat-dialog-title>Add Expense</h2>
+    <button mat-icon-button mat-dialog-close aria-label="Close dialog"><mat-icon>close</mat-icon></button>
+  </div>
+  <mat-dialog-content>
+    @if (expenseForm) {
+      <form [formGroup]="expenseForm" class="dialog-grid">
+        <mat-form-field appearance="outline">
+          <mat-label>Type</mat-label>
+          <mat-select formControlName="category">
+            @for (type of expenseCategories; track type.value) {
+              <mat-option [value]="type.value">{{ type.label }}</mat-option>
+            }
+          </mat-select>
+          @if (expenseForm.get('category')?.hasError('required')) {
+            <mat-error>Choose a type</mat-error>
+          }
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>Amount (KES)</mat-label>
+          <input matInput type="number" placeholder="0.00" formControlName="amount">
+          @if (expenseForm.get('amount')?.hasError('required')) {
+            <mat-error>Amount is required</mat-error>
+          } @else if (expenseForm.get('amount')?.hasError('pattern')) {
+            <mat-error>Enter a valid number</mat-error>
+          }
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="span-2">
+          <mat-label>Description</mat-label>
+          <input matInput placeholder="What was the money spent on?" formControlName="description">
+          @if (expenseForm.get('description')?.hasError('required')) {
+            <mat-error>Description is required</mat-error>
+          } @else if (expenseForm.get('description')?.hasError('minlength')) {
+            <mat-error>Description must be at least 3 characters</mat-error>
+          }
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>Date</mat-label>
+          <input matInput [matDatepicker]="picker" [value]="today" disabled />
+          <mat-datepicker-toggle matIconSuffix [for]="picker"></mat-datepicker-toggle>
+          <mat-datepicker #picker></mat-datepicker>
+        </mat-form-field>
+      </form>
+    } @else {
+      <p class="dialog-lead">Loading form...</p>
+    }
+  </mat-dialog-content>
+  <mat-dialog-actions align="end">
+    <button mat-button mat-dialog-close>Cancel</button>
+    <button mat-flat-button color="primary" (click)="addExpenses()" [disabled]="isSubmitting || expenseForm.invalid">
+      {{ isSubmitting ? 'Saving...' : 'Save Expense' }}
     </button>
-  </div>
-  <div class="expense-form-container">
-   <br>
-
-  @if (expenseForm) {
-    <form [formGroup]="expenseForm" >
-
-      <div class = "container-fluid mb-3">
-        <div class="container-fluid">
-        <div class="row">
-          
-
-
-            <div class="col-md-4">
-              <mat-form-field appearance="outline" class="full-width">
-                <mat-label>Type</mat-label>
-                <mat-select formControlName="category">
-                  @for (type of expenseCategories; track type.value) {
-                    <mat-option [value]="type.value">{{ type.label }}</mat-option>
-                  }
-                </mat-select>
-                @if (expenseForm.get('category')?.hasError('required')) {
-                  <mat-error>Choose a type</mat-error>
-                }
-              </mat-form-field>
-            </div>
-
-            <div class="col-md-4">
-                <mat-form-field appearance="outline" class="full-width">
-                  <mat-label>Description</mat-label>
-                  <input matInput placeholder="Enter description" formControlName="description">
-
-                  @if (expenseForm.get('description')?.hasError('required')) {
-                    <mat-error>Description is required</mat-error>
-                  } @else if (expenseForm.get('description')?.hasError('minlength')) {
-                    <mat-error>Description must be at least 3 characters</mat-error>
-                  }
-                </mat-form-field>
-            </div>
-
-            <div class="col-md-4">
-              <mat-form-field appearance="outline" class="full-width">
-                <mat-label>Amount (KES)</mat-label>
-                <input matInput type="number" placeholder="0.00" formControlName="amount">
-
-                @if (expenseForm.get('amount')?.hasError('required')) {
-                  <mat-error>Amount is required</mat-error>
-                } @else if (expenseForm.get('amount')?.hasError('pattern')) {
-                  <mat-error>Enter a valid number</mat-error>
-                }
-              </mat-form-field>
-            </div>
-
-            <div class="col-md-4">
-              <mat-form-field appearance="outline" class="full-width" style="width: 100%;">
-                <mat-label>Date</mat-label>
-                <input
-                  matInput
-                  [matDatepicker]="picker"
-                  [value]="today"
-                  disabled
-                />
-                <mat-datepicker-toggle matIconSuffix [for]="picker"></mat-datepicker-toggle>
-                <mat-datepicker #picker></mat-datepicker>
-              </mat-form-field>
-            </div>
-
-
-        </div>
-          <div class="row">
-
-            <div class="col">
-
-            </div>
-
-            <div class="col">
-              
-            </div>
-
-          </div>
-      </div>
-      </div>
-   
-    </form>
-  } @else {
-    <p>Loading form...</p>
-  }
-</div>
-
-    <mat-dialog-actions align="end">
-      <button matButton  (click)="addExpenses()" mat-raised-buttoncolor="primary"type="submit"  [disabled]="isSubmitting || expenseForm.invalid" >    {{ isSubmitting ? 'Saving...' : 'Save Expense' }}  </button>
-    </mat-dialog-actions>
+  </mat-dialog-actions>
 </ng-template>
 
 
-
-
-
-
-
-<ng-template #updateExpenseDial>  
-  <div class="container-fluid dialog-header">
-    <h2 style="display: inline;" mat-dialog-title>Update Expense</h2>
-    <button style="display: inline;float: right;" mat-icon-button mat-dialog-close aria-label="Close dialog">
-      <mat-icon>close</mat-icon>
-    </button> <br> <br>
-    <div class="expense-form-container">
-  @if (updateExpenseForm) {
-    <form [formGroup]="updateExpenseForm">
-      <div class="container-fluid mb-3">
-          <div class="row">
-
-
-
-            <div class="col-md-4">
-              <mat-form-field appearance="outline" class="full-width">
-                <mat-label>Type</mat-label>
-                <mat-select formControlName="category">
-                  @for (type of expenseCategories; track type.value) {
-                    <mat-option [value]="type.value">{{ type.label }}</mat-option>
-                  }
-                </mat-select>
-                @if (updateExpenseForm.get('category')?.hasError('required')) {
-                  <mat-error>Choose a type</mat-error>
-                }
-              </mat-form-field>
-            </div>
-
-            <div class="col-md-4">
-              <mat-form-field appearance="outline" class="full-width">
-                <mat-label>Description</mat-label>
-                <input matInput placeholder="Enter description" formControlName="description">
-
-                @if (updateExpenseForm.get('description')?.hasError('required')) {
-                  <mat-error>Description is required</mat-error>
-                } @else if (updateExpenseForm.get('description')?.hasError('minlength')) {
-                  <mat-error>Description must be at least 3 characters</mat-error>
-                }
-              </mat-form-field>
-
-            </div>
-
-
-            <div class="col-md-4">
-                <mat-form-field appearance="outline" class="full-width">
-                  <mat-label>Amount (KES)</mat-label>
-                  <input matInput type="number" placeholder="0.00" formControlName="amount">
-
-                  @if (updateExpenseForm.get('amount')?.hasError('required')) {
-                    <mat-error>Amount is required</mat-error>
-                  } @else if (updateExpenseForm.get('amount')?.hasError('pattern')) {
-                    <mat-error>Enter a valid number</mat-error>
-                  }
-                </mat-form-field>
-            </div>
-
-            <div class="col-md-4">
-              <mat-form-field appearance="outline" class="full-width" style="width: 100%;">
-                <mat-label>Date</mat-label>
-                <input
-                  matInput
-                  [matDatepicker]="picker"
-                  [value]="today"
-                  disabled
-                />
-                <mat-datepicker-toggle matIconSuffix [for]="picker"></mat-datepicker-toggle>
-                <mat-datepicker #picker></mat-datepicker>
-              </mat-form-field>
-            </div>
-          </div>
-
-          <div class="row">
-
-            <div class="col">
-
-            </div>
-
-            <div class="col">
-              
-            </div>
-
-            <div class="col">
-              <button
-                mat-raised-button
-                color="primary"
-                (click)="updateExpense()"
-                type="submit"
-                [disabled]="isUpdateExpenseSubmit || updateExpenseForm.invalid"
-              >
-                {{ isUpdateExpenseSubmit ? 'Updating...' : 'Update Expense' }}
-              </button>
-            </div>
-
-          </div>
-      </div>
-
- 
-
-
-
-    </form>
-  } @else {
-    <p>Loading form...</p>
-  }
-</div>
+<ng-template #updateExpenseDial>
+  <div class="dialog-head">
+    <h2 mat-dialog-title>Edit Expense</h2>
+    <button mat-icon-button mat-dialog-close aria-label="Close dialog"><mat-icon>close</mat-icon></button>
   </div>
+  <mat-dialog-content>
+    @if (updateExpenseForm) {
+      <form [formGroup]="updateExpenseForm" class="dialog-grid">
+        <mat-form-field appearance="outline">
+          <mat-label>Type</mat-label>
+          <mat-select formControlName="category">
+            @for (type of expenseCategories; track type.value) {
+              <mat-option [value]="type.value">{{ type.label }}</mat-option>
+            }
+          </mat-select>
+          @if (updateExpenseForm.get('category')?.hasError('required')) {
+            <mat-error>Choose a type</mat-error>
+          }
+        </mat-form-field>
 
-    <mat-dialog-actions align="end">
-    </mat-dialog-actions>
+        <mat-form-field appearance="outline">
+          <mat-label>Amount (KES)</mat-label>
+          <input matInput type="number" placeholder="0.00" formControlName="amount">
+          @if (updateExpenseForm.get('amount')?.hasError('required')) {
+            <mat-error>Amount is required</mat-error>
+          } @else if (updateExpenseForm.get('amount')?.hasError('pattern')) {
+            <mat-error>Enter a valid number</mat-error>
+          }
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="span-2">
+          <mat-label>Description</mat-label>
+          <input matInput placeholder="What was the money spent on?" formControlName="description">
+          @if (updateExpenseForm.get('description')?.hasError('required')) {
+            <mat-error>Description is required</mat-error>
+          } @else if (updateExpenseForm.get('description')?.hasError('minlength')) {
+            <mat-error>Description must be at least 3 characters</mat-error>
+          }
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>Date</mat-label>
+          <input matInput [matDatepicker]="picker" [value]="today" disabled />
+          <mat-datepicker-toggle matIconSuffix [for]="picker"></mat-datepicker-toggle>
+          <mat-datepicker #picker></mat-datepicker>
+        </mat-form-field>
+      </form>
+    } @else {
+      <p class="dialog-lead">Loading form...</p>
+    }
+  </mat-dialog-content>
+  <mat-dialog-actions align="end">
+    <button mat-button mat-dialog-close>Cancel</button>
+    <button mat-flat-button color="primary" (click)="updateExpense()" [disabled]="isUpdateExpenseSubmit || updateExpenseForm.invalid">
+      {{ isUpdateExpenseSubmit ? 'Updating...' : 'Update Expense' }}
+    </button>
+  </mat-dialog-actions>
 </ng-template>
-
-
-
 
 
 <ng-template #deleteExpensDial>
-    <div class="container-fluid dialog-header">
-      <h2 style="display: inline;" mat-dialog-title>Delete Expense</h2>
-      <button style="display: inline;float: right;" mat-icon-button mat-dialog-close aria-label="Close dialog">
-        <mat-icon>close</mat-icon>
-      </button> <br> <br>
-      <h5>Are you sure you want to delete <span style="color: blue;"><i>{{expenseName}}</i></span> </h5>
-      <mat-dialog-actions align="end">
-          <button mat-button matDialogClose="no">Cancel</button>
-          <button mat-button matDialogClose="yes">Delete</button>
-      </mat-dialog-actions>
+  <div class="dialog-head">
+    <h2 mat-dialog-title>Delete Expense</h2>
+    <button mat-icon-button mat-dialog-close aria-label="Close dialog"><mat-icon>close</mat-icon></button>
+  </div>
+  <mat-dialog-content>
+    <div class="dialog-confirm">
+      <span class="dialog-confirm-icon"><mat-icon>delete_outline</mat-icon></span>
+      <p>Delete the expense <strong>{{ expenseName }}</strong>? This cannot be undone.</p>
     </div>
+  </mat-dialog-content>
+  <mat-dialog-actions align="end">
+    <button mat-button matDialogClose="no">Cancel</button>
+    <button mat-flat-button color="warn" matDialogClose="yes">Delete</button>
+  </mat-dialog-actions>
 </ng-template>
-
-
 
 
 <ng-template #addMaintanceDial>
-     <div class="container-fluid dialog-header">
-      <h2 style="display: inline;" mat-dialog-title>Add Maintenance Request</h2>
-      <button style="display: inline;float: right;" mat-icon-button mat-dialog-close aria-label="Close dialog">
-        <mat-icon>close</mat-icon>
-      </button> <br> <br>
-        <div class="maintenance-form-container">
-
-          <form [formGroup]="maintanaceForm">
-
-            <!-- Unit -->
-
-            <div class = "container-fluid mb-3">
-              <div class="row">
-
-                  <div class="col-md-4">
-                      
-                      <mat-form-field appearance="outline">
-                        <mat-label>Unit</mat-label>
-                        <mat-select formControlName="unit" >
-                          @for (unit of filteredUnits; track unit.id) {
-                            <mat-option [value]="unit.id">
-                              {{ unit.unit_number }}
-                            </mat-option>
-                          }
-                        </mat-select>
-                        @if (maintanaceForm.get('unit')?.hasError('required')) {
-                          <mat-error>Unit is required</mat-error>
-                        }
-                      </mat-form-field>
-                  </div>
-                  <div class="col-md-4">
-                          <!-- Customer -->
-                    <mat-form-field appearance="outline" class="full-width">
-                      <mat-label>Customer</mat-label>
-                      <mat-select formControlName="customer" required>
-                        <mat-option value="">-- Select Customer --</mat-option>
-                        <mat-option [value]="c.id" *ngFor="let c of customers">
-                          {{ c.name || (c.first_name + ' ' + c.last_name) }}
-                        </mat-option>
-                      </mat-select>
-
-                      @if (maintanaceForm.get('customer')?.hasError('required')) {
-                        <mat-error>Customer is required</mat-error>
-                      }
-                    </mat-form-field>
-                  </div>
-
-                  <div class="col-md-4">
-                    <mat-form-field appearance="outline" class="full-width" style="width: 100%;">
-                          <mat-label>Date</mat-label>
-                          <input
-                            matInput
-                            [matDatepicker]="picker"
-                            [value]="today"
-                            disabled
-                          />
-                          <mat-datepicker-toggle matIconSuffix [for]="picker"></mat-datepicker-toggle>
-                          <mat-datepicker #picker></mat-datepicker>
-                    </mat-form-field>
-                  </div>
-              </div>
-                    <div class="row">
-                <div class="col-md-4">
-              <mat-form-field appearance="outline" class="full-width">
-                <mat-label>Type</mat-label>
-                <mat-select formControlName="category">
-                  @for (type of maintenanceCategories; track type.value) {
-                    <mat-option [value]="type.value">{{ type.label }}</mat-option>
-                  }
-                </mat-select>
-                @if (maintanaceForm.get('category')?.hasError('required')) {
-                  <mat-error>Choose a type</mat-error>
-                }
-              </mat-form-field>
-            </div>
-
-                <div class="col-md-8">
-                            <!-- Description -->
-                    <mat-form-field appearance="outline" class="full-width" style="width: 100%;">
-                      <mat-label>Description</mat-label>
-                      <textarea
-                        matInput
-                        formControlName="description"
-                        placeholder="Describe the issue..."
-                        rows="3">
-                      </textarea>
-
-                      @if (maintanaceForm.get('description')?.hasError('required')) {
-                        <mat-error>Description is required</mat-error>
-                      }
-                    </mat-form-field>
-
-                  </div>
-                
-                  <div class="col-md-4">
-
-                  </div>
-              </div>
-            </div>
-
-          </form>
-        </div>
-
-      </div>
-    <mat-dialog-actions align="end">
-              <!-- Submit Button -->
-            <button
-              mat-raised-button
-              color="primary"
-              type="submit"
-              (click)="addMaintanaceForm()"
-              [disabled]="maintanaceForm.invalid || isSubmitting">
-              {{ isSubmitting ? 'Submitting...' : 'Submit Request' }}
-            </button>
-    </mat-dialog-actions>
-</ng-template>
-
-<!-- Add Maintenance Dialog -->
-<ng-template #updateMaintanceDial>
-  <div class="container-fluid dialog-header">
-    <h2 style="display: inline;" mat-dialog-title>Update Maintenance Request</h2>
-    <button style="display: inline;float: right;" mat-icon-button mat-dialog-close aria-label="Close dialog">
-      <mat-icon>close</mat-icon>
-    </button>
-
-  <form [formGroup]="updateMaintanaceForm" class="p-3">
-
-    <div class="row g-3">
-
-      <!-- Property Unit -->
-      <div class="col-md-4">
-        <mat-form-field appearance="outline" class="full-width">
-          <mat-label>Unit</mat-label>
-          <mat-select formControlName="unit">
-            <mat-option *ngFor="let unit of filteredUnits" [value]="unit.id">
-              {{ unit.unit_number }}
-            </mat-option>
-          </mat-select>
-          <mat-error *ngIf="updateMaintanaceForm.get('unit')?.hasError('required')">
-            Unit is required
-          </mat-error>
-        </mat-form-field>
-      </div>
-
-      <!-- Customer -->
-      <div class="col-md-4">
-        <mat-form-field appearance="outline" class="full-width">
-          <mat-label>Customer</mat-label>
-          <mat-select formControlName="customer">
-            <mat-option *ngFor="let c of customers" [value]="c.id">
-              {{ c.name || (c.first_name + ' ' + c.last_name) }}
-            </mat-option>
-          </mat-select>
-          <mat-error *ngIf="updateMaintanaceForm.get('customer')?.hasError('required')">
-            Customer is required
-          </mat-error>
-        </mat-form-field>
-      </div>
-
-      <!-- date -->
-           <div class="col-md-4">
-              <mat-form-field appearance="outline" class="full-width" style="width: 100%;">
-                    <mat-label>Date</mat-label>
-                    <input
-                      matInput
-                      [matDatepicker]="picker"
-                      [value]="today"
-                      disabled
-                    />
-                    <mat-datepicker-toggle matIconSuffix [for]="picker"></mat-datepicker-toggle>
-                    <mat-datepicker #picker></mat-datepicker>
-              </mat-form-field>
-            </div>
-
-            <div class="col-4">
-              <mat-form-field appearance="outline" class="full-width">
-                <mat-label>Type</mat-label>
-                <mat-select formControlName="category">
-                  @for (type of maintenanceCategories; track type.value) {
-                    <mat-option [value]="type.value">{{ type.label }}</mat-option>
-                  }
-                </mat-select>
-                @if (updateMaintanaceForm.get('category')?.hasError('required')) {
-                  <mat-error>Choose a type</mat-error>
-                }
-              </mat-form-field>
-            </div>
-
-      <!-- Description -->
-      <div class="col-8">
-        <mat-form-field style="width: 100%;"  appearance="outline" class="full-width">
-          <mat-label>Description</mat-label>
-          <textarea matInput formControlName="description" rows="4" placeholder="Describe the issue..."></textarea>
-          <mat-error *ngIf="updateMaintanaceForm.get('description')?.hasError('required')">
-            Description is required
-          </mat-error>
-        </mat-form-field>
-      </div>
-
-      <!-- Submit Button -->
-      <div class="col-12 text-end">
-        <button mat-raised-button color="primary" 
-          [disabled]="updateMaintanaceForm.invalid || isSubmitting" 
-          (click)="updateMaintanaceFormSubmit()">
-          {{ isSubmitting ? 'Saving...' : 'Update Maintenance' }}
-        </button>
-      </div>
-
-    </div>
-  </form>
+  <div class="dialog-head">
+    <h2 mat-dialog-title>Add Maintenance Request</h2>
+    <button mat-icon-button mat-dialog-close aria-label="Close dialog"><mat-icon>close</mat-icon></button>
   </div>
+  <mat-dialog-content>
+    <form [formGroup]="maintanaceForm" class="dialog-grid">
+      <mat-form-field appearance="outline">
+        <mat-label>Unit</mat-label>
+        <mat-select formControlName="unit">
+          @for (unit of filteredUnits; track unit.id) {
+            <mat-option [value]="unit.id">{{ unit.unit_number }}</mat-option>
+          }
+        </mat-select>
+        @if (maintanaceForm.get('unit')?.hasError('required')) {
+          <mat-error>Unit is required</mat-error>
+        }
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>Tenant</mat-label>
+        <mat-select formControlName="customer" required>
+          <mat-option value="">-- Select tenant --</mat-option>
+          @for (c of customers; track c.id) {
+            <mat-option [value]="c.id">{{ c.name || (c.first_name + ' ' + c.last_name) }}</mat-option>
+          }
+        </mat-select>
+        @if (maintanaceForm.get('customer')?.hasError('required')) {
+          <mat-error>Tenant is required</mat-error>
+        }
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>Type</mat-label>
+        <mat-select formControlName="category">
+          @for (type of maintenanceCategories; track type.value) {
+            <mat-option [value]="type.value">{{ type.label }}</mat-option>
+          }
+        </mat-select>
+        @if (maintanaceForm.get('category')?.hasError('required')) {
+          <mat-error>Choose a type</mat-error>
+        }
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>Date</mat-label>
+        <input matInput [matDatepicker]="picker" [value]="today" disabled />
+        <mat-datepicker-toggle matIconSuffix [for]="picker"></mat-datepicker-toggle>
+        <mat-datepicker #picker></mat-datepicker>
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" class="span-2">
+        <mat-label>Description</mat-label>
+        <textarea matInput formControlName="description" placeholder="Describe the issue..." rows="3"></textarea>
+        @if (maintanaceForm.get('description')?.hasError('required')) {
+          <mat-error>Description is required</mat-error>
+        }
+      </mat-form-field>
+    </form>
+  </mat-dialog-content>
+  <mat-dialog-actions align="end">
+    <button mat-button mat-dialog-close>Cancel</button>
+    <button mat-flat-button color="primary" (click)="addMaintanaceForm()" [disabled]="maintanaceForm.invalid || isSubmitting">
+      {{ isSubmitting ? 'Submitting...' : 'Submit Request' }}
+    </button>
+  </mat-dialog-actions>
 </ng-template>
 
 
+<ng-template #updateMaintanceDial>
+  <div class="dialog-head">
+    <h2 mat-dialog-title>Edit Maintenance Request</h2>
+    <button mat-icon-button mat-dialog-close aria-label="Close dialog"><mat-icon>close</mat-icon></button>
+  </div>
+  <mat-dialog-content>
+    <form [formGroup]="updateMaintanaceForm" class="dialog-grid">
+      <mat-form-field appearance="outline">
+        <mat-label>Unit</mat-label>
+        <mat-select formControlName="unit">
+          @for (unit of filteredUnits; track unit.id) {
+            <mat-option [value]="unit.id">{{ unit.unit_number }}</mat-option>
+          }
+        </mat-select>
+        @if (updateMaintanaceForm.get('unit')?.hasError('required')) {
+          <mat-error>Unit is required</mat-error>
+        }
+      </mat-form-field>
 
-<ng-template #deleteMaintanceDial> <br>
-    <div class="container-fluid dialog-header">
-      <h2 style="display: inline;" mat-dialog-title>Delete Maintenance Request</h2>
-      <button style="display: inline;float: right;" mat-icon-button mat-dialog-close aria-label="Close dialog">
-        <mat-icon>close</mat-icon>
-      </button> <br> <br>
-      <h5>Are you sure you want to delete <span style="color: blue;"><i>{{maintanaceName}}</i></span> </h5>
-      <mat-dialog-actions align="end">
-          <button mat-button matDialogClose="no">Cancel</button>
-          <button mat-button matDialogClose="yes">Delete</button>
-      </mat-dialog-actions>
+      <mat-form-field appearance="outline">
+        <mat-label>Tenant</mat-label>
+        <mat-select formControlName="customer">
+          @for (c of customers; track c.id) {
+            <mat-option [value]="c.id">{{ c.name || (c.first_name + ' ' + c.last_name) }}</mat-option>
+          }
+        </mat-select>
+        @if (updateMaintanaceForm.get('customer')?.hasError('required')) {
+          <mat-error>Tenant is required</mat-error>
+        }
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>Type</mat-label>
+        <mat-select formControlName="category">
+          @for (type of maintenanceCategories; track type.value) {
+            <mat-option [value]="type.value">{{ type.label }}</mat-option>
+          }
+        </mat-select>
+        @if (updateMaintanaceForm.get('category')?.hasError('required')) {
+          <mat-error>Choose a type</mat-error>
+        }
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>Date</mat-label>
+        <input matInput [matDatepicker]="picker" [value]="today" disabled />
+        <mat-datepicker-toggle matIconSuffix [for]="picker"></mat-datepicker-toggle>
+        <mat-datepicker #picker></mat-datepicker>
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" class="span-2">
+        <mat-label>Description</mat-label>
+        <textarea matInput formControlName="description" rows="3" placeholder="Describe the issue..."></textarea>
+        @if (updateMaintanaceForm.get('description')?.hasError('required')) {
+          <mat-error>Description is required</mat-error>
+        }
+      </mat-form-field>
+    </form>
+  </mat-dialog-content>
+  <mat-dialog-actions align="end">
+    <button mat-button mat-dialog-close>Cancel</button>
+    <button mat-flat-button color="primary" (click)="updateMaintanaceFormSubmit()" [disabled]="updateMaintanaceForm.invalid || isUpdateSubmitting">
+      {{ isUpdateSubmitting ? 'Saving...' : 'Update Request' }}
+    </button>
+  </mat-dialog-actions>
+</ng-template>
+
+
+<ng-template #deleteMaintanceDial>
+  <div class="dialog-head">
+    <h2 mat-dialog-title>Delete Maintenance Request</h2>
+    <button mat-icon-button mat-dialog-close aria-label="Close dialog"><mat-icon>close</mat-icon></button>
+  </div>
+  <mat-dialog-content>
+    <div class="dialog-confirm">
+      <span class="dialog-confirm-icon"><mat-icon>delete_outline</mat-icon></span>
+      <p>Delete the request <strong>{{ maintanaceName }}</strong>? This cannot be undone.</p>
     </div>
+  </mat-dialog-content>
+  <mat-dialog-actions align="end">
+    <button mat-button matDialogClose="no">Cancel</button>
+    <button mat-flat-button color="warn" matDialogClose="yes">Delete</button>
+  </mat-dialog-actions>
 </ng-template>
-
-
 
 
 <ng-template #maintananceChangeState>
-    <div class="container-fluid dialog-header">
-      <h2 style="display: inline;" mat-dialog-title>Update Maintenance Status</h2>
-      <button style="display: inline;float: right;" mat-icon-button mat-dialog-close aria-label="Close dialog">
-        <mat-icon>close</mat-icon>
-      </button> 
-
- 
-    <mat-dialog-content class="dialog-content">
-      <p>
-        Choose the new status for this maintenance request:
-      </p>
-
-      <mat-list>
-        <mat-list-item>
-          <mat-icon matListItemIcon color="primary">build</mat-icon>
-          <div matListItemTitle>In Progress</div>
-          <div matListItemLine>Mark the task as being worked on</div>
-        </mat-list-item>
-
-        <mat-list-item>
-          <mat-icon matListItemIcon color="accent">check_circle</mat-icon>
-          <div matListItemTitle>Resolved</div>
-          <div matListItemLine>Mark the task as completed</div>
-        </mat-list-item>
-      </mat-list>
-    </mat-dialog-content>
-
-    <mat-dialog-actions align="end">
-      <button mat-stroked-button color="warn" matDialogClose="no">
-        Mark Resolved
-      </button>
-
-      <button mat-raised-button color="primary" matDialogClose="yes">
-        Mark In Progress
-      </button>
-    </mat-dialog-actions>
-    
+  <div class="dialog-head">
+    <h2 mat-dialog-title>Update Maintenance Status</h2>
+    <button mat-icon-button mat-dialog-close aria-label="Close dialog"><mat-icon>close</mat-icon></button>
   </div>
-  
+  <mat-dialog-content>
+    <p class="dialog-lead">Choose the new status for this maintenance request.</p>
+    <div class="dialog-choices">
+      <button type="button" class="dialog-choice" matDialogClose="yes">
+        <mat-icon>build</mat-icon>
+        <span><strong>In progress</strong><small>Someone is working on it</small></span>
+      </button>
+      <button type="button" class="dialog-choice" matDialogClose="no">
+        <mat-icon>check_circle</mat-icon>
+        <span><strong>Resolved</strong><small>The work is finished</small></span>
+      </button>
+    </div>
+  </mat-dialog-content>
+  <mat-dialog-actions align="end">
+    <button mat-button mat-dialog-close>Cancel</button>
+  </mat-dialog-actions>
 </ng-template>
 
 
-
-<!-- Expense Payment Dialog -->
-<ng-template #expensesPaymentsDial> <br>
-  <div class="container-fluid dialog-header">
-      <h2 style="display: inline;" mat-dialog-title> Pay Expense </h2>
-      <button style="display: inline;float: right;" mat-icon-button mat-dialog-close aria-label="Close dialog">
-        <mat-icon>close</mat-icon>
-      </button> <br> 
-
-          <form [formGroup]="expensePaymentForm">
-
-            <div class="container-fluid">
-              <div class="row">
-                <div class="col-md-4">
-                  <mat-form-field appearance="outline" class="full-width">
-                    <mat-label>Amount</mat-label>
-                    <input matInput formControlName="amount" type="number" step="0.01" required />
-                    @if (expensePaymentForm.get('amount')?.hasError('required')) {
-                      <mat-error>Amount is required</mat-error>
-                    }
-                    @if (expensePaymentForm.get('amount')?.hasError('min')) {
-                      <mat-error>Amount must be greater than 0</mat-error>
-                    }
-                  </mat-form-field>
-                </div>
-                <div class="col-md-4">
-                  <mat-form-field appearance="outline" class="full-width">
-                    <mat-label>Payment Method</mat-label>
-                    <mat-select formControlName="method" required>
-                      <mat-option value="cash">Cash</mat-option>
-                      <mat-option value="mpesa">M-Pesa</mat-option>
-                      <mat-option value="bank">Bank Transfer</mat-option>
-                    </mat-select>
-                    @if (expensePaymentForm.get('method')?.hasError('required')) {
-                      <mat-error>Payment method is required</mat-error>
-                    }
-                  </mat-form-field>
-                </div>
-                <div class="col-md-4">
-                    <mat-form-field appearance="outline" class="full-width">
-                      <mat-label>Reference (M-Pesa Code / Bank Ref)</mat-label>
-                      <input matInput formControlName="reference" type="text" />
-                      @if (expensePaymentForm.get('reference')?.hasError('required')) {
-                        <mat-error>Reference Code is required </mat-error>
-                      }
-                    </mat-form-field>
-                  </div>
-                </div>
-
-                <div class="row">
-                  <div class="col-md-8">
-                      <mat-form-field style="width: 100%;" appearance="outline" class="full-width">
-                        <mat-label>Notes</mat-label>
-                        <textarea matInput formControlName="notes" rows="3"></textarea>
-                      </mat-form-field>
-                  </div>
-                  <div class="col-md-4">
-                  </div>
-                </div>
-              </div>
-
-        
-
-          </form>
-
-        <mat-dialog-actions align="end">
-          <button mat-button mat-dialog-close>Cancel</button>
-          <button mat-flat-button color="primary" (click)="addExpensePayment()" [disabled]="loadMakingPayments || expensePaymentForm.invalid">
-            @if (loadMakingPayments) {
-              <span>Saving...</span>
-            } @else {
-              <span>Make Payments</span>
-            }
-          </button>
-        </mat-dialog-actions>
-
+<ng-template #expensesPaymentsDial>
+  <div class="dialog-head">
+    <h2 mat-dialog-title>Pay Expense</h2>
+    <button mat-icon-button mat-dialog-close aria-label="Close dialog"><mat-icon>close</mat-icon></button>
   </div>
+  <mat-dialog-content>
+    <form [formGroup]="expensePaymentForm" class="dialog-grid">
+      <mat-form-field appearance="outline">
+        <mat-label>Amount (KES)</mat-label>
+        <input matInput formControlName="amount" type="number" step="0.01" required />
+        @if (expensePaymentForm.get('amount')?.hasError('required')) {
+          <mat-error>Amount is required</mat-error>
+        }
+        @if (expensePaymentForm.get('amount')?.hasError('min')) {
+          <mat-error>Amount must be greater than 0</mat-error>
+        }
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>Payment method</mat-label>
+        <mat-select formControlName="method" required>
+          <mat-option value="cash">Cash</mat-option>
+          <mat-option value="mpesa">M-Pesa</mat-option>
+          <mat-option value="bank">Bank Transfer</mat-option>
+        </mat-select>
+        @if (expensePaymentForm.get('method')?.hasError('required')) {
+          <mat-error>Payment method is required</mat-error>
+        }
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" class="span-2">
+        <mat-label>Reference (M-Pesa code / bank ref)</mat-label>
+        <input matInput formControlName="reference" type="text" />
+        @if (expensePaymentForm.get('reference')?.hasError('required')) {
+          <mat-error>Reference code is required</mat-error>
+        }
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" class="span-2">
+        <mat-label>Notes</mat-label>
+        <textarea matInput formControlName="notes" rows="3"></textarea>
+      </mat-form-field>
+    </form>
+  </mat-dialog-content>
+  <mat-dialog-actions align="end">
+    <button mat-button mat-dialog-close>Cancel</button>
+    <button mat-flat-button color="primary" (click)="addExpensePayment()" [disabled]="loadMakingPayments || expensePaymentForm.invalid">
+      {{ loadMakingPayments ? 'Saving...' : 'Record Payment' }}
+    </button>
+  </mat-dialog-actions>
 </ng-template>
 
 
-<!-- maintance Payment Dialog -->
-<ng-template #maintancePaymentsDial> <br>
-  <div class="container-fluid dialog-header">
-      <h2 style="display: inline;" mat-dialog-title> Pay for Maintenance </h2>
-      <button style="display: inline;float: right;" mat-icon-button mat-dialog-close aria-label="Close dialog">
-        <mat-icon>close</mat-icon>
-      </button> <br> 
-
-          <form [formGroup]="maintanancePaymentForm"> <!-- ✅ FIXED -->
-
-            <div class="container-fluid">
-              <div class="row">
-                <div class="col-md-4">
-                  <mat-form-field appearance="outline" class="full-width">
-                    <mat-label>Amount</mat-label>
-                    <input matInput formControlName="amount" type="number" step="0.01" required />
-                    @if (maintanancePaymentForm.get('amount')?.hasError('required')) { <!-- ✅ FIXED -->
-                      <mat-error>Amount is required</mat-error>
-                    }
-                    @if (maintanancePaymentForm.get('amount')?.hasError('min')) { <!-- ✅ FIXED -->
-                      <mat-error>Amount must be greater than 0</mat-error>
-                    }
-                  </mat-form-field>
-                </div>
-                <div class="col-md-4">
-                  <mat-form-field appearance="outline" class="full-width">
-                    <mat-label>Payment Method</mat-label>
-                    <mat-select formControlName="method" required>
-                      <mat-option value="cash">Cash</mat-option>
-                      <mat-option value="mpesa">M-Pesa</mat-option>
-                      <mat-option value="bank">Bank Transfer</mat-option>
-                    </mat-select>
-                    @if (maintanancePaymentForm.get('method')?.hasError('required')) { <!-- ✅ FIXED -->
-                      <mat-error>Payment method is required</mat-error>
-                    }
-                  </mat-form-field>
-                </div>
-                <div class="col-md-4">
-                    <mat-form-field appearance="outline" class="full-width">
-                      <mat-label>Reference (M-Pesa Code / Bank Ref)</mat-label>
-                      <input matInput formControlName="reference" type="text" />
-                      @if (maintanancePaymentForm.get('reference')?.hasError('required')) { <!-- ✅ FIXED -->
-                        <mat-error>Reference Code is required </mat-error>
-                      }
-                    </mat-form-field>
-                  </div>
-                </div>
-                <div class="row">
-                  <div class="col-md-8">
-                      <mat-form-field style="width: 100%;" appearance="outline" class="full-width">
-                        <mat-label>Notes</mat-label>
-                        <textarea matInput formControlName="notes" rows="3"></textarea>
-                      </mat-form-field>
-                  </div>
-                  <div class="col-md-4">
-                  </div>
-                </div>
-              </div>
-
-     
-
-          </form>
-
-        <mat-dialog-actions align="end">
-          <button mat-button mat-dialog-close>Cancel</button>
-          <button mat-flat-button color="primary" (click)="addMaintancePayment()" [disabled]="loadMakingPayments || maintanancePaymentForm.invalid"> <!-- ✅ FIXED -->
-            @if (loadMakingPayments) {
-              <span>Saving...</span>
-            } @else {
-              <span>Make Payments</span>
-            }
-          </button>
-        </mat-dialog-actions>
-
+<ng-template #maintancePaymentsDial>
+  <div class="dialog-head">
+    <h2 mat-dialog-title>Pay for Maintenance</h2>
+    <button mat-icon-button mat-dialog-close aria-label="Close dialog"><mat-icon>close</mat-icon></button>
   </div>
+  <mat-dialog-content>
+    <form [formGroup]="maintanancePaymentForm" class="dialog-grid">
+      <mat-form-field appearance="outline">
+        <mat-label>Amount (KES)</mat-label>
+        <input matInput formControlName="amount" type="number" step="0.01" required />
+        @if (maintanancePaymentForm.get('amount')?.hasError('required')) {
+          <mat-error>Amount is required</mat-error>
+        }
+        @if (maintanancePaymentForm.get('amount')?.hasError('min')) {
+          <mat-error>Amount must be greater than 0</mat-error>
+        }
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>Payment method</mat-label>
+        <mat-select formControlName="method" required>
+          <mat-option value="cash">Cash</mat-option>
+          <mat-option value="mpesa">M-Pesa</mat-option>
+          <mat-option value="bank">Bank Transfer</mat-option>
+        </mat-select>
+        @if (maintanancePaymentForm.get('method')?.hasError('required')) {
+          <mat-error>Payment method is required</mat-error>
+        }
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" class="span-2">
+        <mat-label>Reference (M-Pesa code / bank ref)</mat-label>
+        <input matInput formControlName="reference" type="text" />
+        @if (maintanancePaymentForm.get('reference')?.hasError('required')) {
+          <mat-error>Reference code is required</mat-error>
+        }
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" class="span-2">
+        <mat-label>Notes</mat-label>
+        <textarea matInput formControlName="notes" rows="3"></textarea>
+      </mat-form-field>
+    </form>
+  </mat-dialog-content>
+  <mat-dialog-actions align="end">
+    <button mat-button mat-dialog-close>Cancel</button>
+    <button mat-flat-button color="primary" (click)="addMaintancePayment()" [disabled]="loadMakingPayments || maintanancePaymentForm.invalid">
+      {{ loadMakingPayments ? 'Saving...' : 'Record Payment' }}
+    </button>
+  </mat-dialog-actions>
 </ng-template>

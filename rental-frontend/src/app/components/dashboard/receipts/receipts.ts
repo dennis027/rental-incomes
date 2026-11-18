@@ -1,3 +1,4 @@
+import { DialogSize } from '../../../shared/dialog-sizes';
 import { PropertyContext } from '../../../services/property-context';
 import { Component, OnInit, AfterViewInit, ViewChild, inject, TemplateRef, ChangeDetectorRef, PLATFORM_ID, effect, untracked } from '@angular/core';
 import { isPlatformBrowser } from '@angular/common';
@@ -14,6 +15,7 @@ import { forkJoin } from 'rxjs';
 import { RentDocument, RentDocumentData, invoiceNumber } from '../rent-document/rent-document';
 import { openRecordPayment } from '../record-payment/record-payment-dialog';
 import { SystemParametersServices } from '../../../services/system-parameters-services';
+import { downloadCsv, fileDate } from '../../../shared/export';
 
 export interface Receipt {
   id: number;
@@ -110,14 +112,30 @@ export class Receipts implements OnInit, AfterViewInit {
   return Number(value) || 0;
 }
 
-  displayedColumns: string[] = [
-    'receipt_number', 'unit', 'issue_date',
-    'monthly_rent', 'electricity_bill', 'water_bill', 'service_charge', 'total_amount', 'balance', 'status', 'actions'
+  // Rent + other charges + brought forward = total; total - paid = what is left.
+  // Other charges and brought forward appear only when an invoice on screen has them.
+  private allColumns = [
+    'receipt_number', 'unit',
+    'monthly_rent', 'other_charges', 'previous_balance', 'total_amount', 'amount_paid', 'balance', 'status', 'actions'
   ];
+  displayedColumns: string[] = [...this.allColumns];
+
+  private updateColumns(rows: any[]): void {
+    const hasOther = rows.some(row => this.otherCharges(row) > 0);
+    const hasBroughtForward = rows.some(row => Number(row.previous_balance) > 0);
+    this.displayedColumns = this.allColumns.filter(column =>
+      (column !== 'other_charges' || hasOther) && (column !== 'previous_balance' || hasBroughtForward));
+  }
+
+  // Tabs and search above the table; the totals cards ignore them and describe the whole month
+  statusFilter: 'all' | 'unpaid' | 'paid' = 'all';
+  private paramsLoadedFor: string | null | undefined = undefined;
+  searchText = '';
+  monthRows: any[] = [];
 
   /** Totals for the receipts currently listed */
   private sumOf(field: string): number {
-    return this.dataSource.data.reduce((total, receipt: any) => total + (Number(receipt[field]) || 0), 0);
+    return this.monthRows.reduce((total, receipt: any) => total + (Number(receipt[field]) || 0), 0);
   }
 
   // Charges only: the balance brought forward was already billed on an earlier invoice
@@ -135,7 +153,63 @@ export class Receipts implements OnInit, AfterViewInit {
   }
 
   get unpaidCount(): number {
-    return this.dataSource.data.filter((receipt: any) => Number(receipt.balance_due) > 0).length;
+    return this.monthRows.filter(receipt => this.isUnpaid(receipt)).length;
+  }
+
+  /** Owed from months before the one shown: why Outstanding can exceed Billed minus Collected */
+  get earlierArrears(): number {
+    return Math.max(this.totalOutstanding - (this.totalBilled - this.totalCollected), 0);
+  }
+
+  isUnpaid(receipt: any): boolean {
+    return receipt.is_latest && Number(receipt.balance_due) > 0;
+  }
+
+  // Earlier invoices whose balance moved onto a newer one count as neither
+  isPaid(receipt: any): boolean {
+    return receipt.is_latest ? Number(receipt.balance_due) <= 0 : receipt.status === 'paid';
+  }
+
+  /**
+   * Owed on earlier invoices but not brought forward onto this one, so the
+   * balance can be more than total minus paid. Shown under the balance.
+   */
+  olderDebt(receipt: any): number {
+    if (!receipt.is_latest) return 0;
+    const left = (Number(receipt.total_amount) || 0) - (Number(receipt.amount_paid) || 0);
+    const extra = (Number(receipt.balance_due) || 0) - Math.max(left, 0);
+    return extra > 0.5 ? extra : 0;
+  }
+
+  /** Everything on the invoice besides rent and the balance brought forward */
+  otherCharges(receipt: any): number {
+    return (Number(receipt.charges) || 0) - (Number(receipt.monthly_rent) || 0);
+  }
+
+  /** "Water 1,200 · Service charge 500", for the tooltip on the charges column */
+  chargeBreakdown(receipt: any): string {
+    const parts: [string, string][] = [
+      ['Water', 'water_bill'], ['Electricity', 'electricity_bill'], ['Service charge', 'service_charge'],
+      ['Security', 'security_charge'], ['Other', 'other_charges'], ['Late penalty', 'late_penalty'],
+      ['Rent deposit', 'rental_deposit'], ['Water deposit', 'water_deposit'], ['Electricity deposit', 'electricity_deposit'],
+    ];
+    return parts
+      .filter(([, field]) => Number(receipt[field]) > 0)
+      .map(([label, field]) => `${label} ${Number(receipt[field]).toLocaleString('en-KE')}`)
+      .join(' · ');
+  }
+
+  get statusCounts() {
+    return {
+      all: this.monthRows.length,
+      unpaid: this.monthRows.filter(r => this.isUnpaid(r)).length,
+      paid: this.monthRows.filter(r => this.isPaid(r)).length,
+    };
+  }
+
+  setStatusFilter(filter: 'all' | 'unpaid' | 'paid'): void {
+    this.statusFilter = filter;
+    this.applyFilters();
   }
   dataSource = new MatTableDataSource<Receipt>([]);
   receipts: Receipt[] = [];
@@ -146,7 +220,6 @@ export class Receipts implements OnInit, AfterViewInit {
   selectedProperty = new FormControl<string>('');
 
   @ViewChild(MatPaginator) paginator!: MatPaginator;
-  @ViewChild('addReceiptDialog') addReceiptDialog!: TemplateRef<any>;
   @ViewChild('updateReceiptDialog') updateReceiptDialog!: TemplateRef<any>;
   @ViewChild('deleteReceiptDial') deleteReceiptDial!: TemplateRef<any>;
   @ViewChild('generateMonthlyDialog') generateMonthlyDialog!: TemplateRef<any>;
@@ -161,6 +234,9 @@ export class Receipts implements OnInit, AfterViewInit {
   loadGenerating = false;
   loadingUnits = false;
   selectedReceiptId: number | null = null;
+  // The invoice open in the edit dialog, named in its header
+  editingReceipt: Receipt | null = null;
+  loadUpdating = false;
   currentMonth: any;
   currentYear: any;
 
@@ -325,7 +401,11 @@ export class Receipts implements OnInit, AfterViewInit {
     let filtered = [...this.receipts];
 
     const propertyId = this.selectedProperty.value;
-    this.getSystemParameters();
+    // Billing settings belong to the property; fetch them again only when it changes
+    if (propertyId !== this.paramsLoadedFor) {
+      this.paramsLoadedFor = propertyId;
+      this.getSystemParameters();
+    }
     if (propertyId) {
       filtered = filtered.filter(receipt =>
         String(receipt.property_id) === String(propertyId)
@@ -342,6 +422,19 @@ export class Receipts implements OnInit, AfterViewInit {
 
     // Newest first: the invoice a tenant pays is their latest one
     filtered.sort((a: any, b: any) => new Date(b.issue_date).getTime() - new Date(a.issue_date).getTime() || b.id - a.id);
+
+    this.monthRows = filtered;
+    this.updateColumns(filtered);
+
+    if (this.statusFilter !== 'all') {
+      filtered = filtered.filter(receipt => this.statusFilter === 'unpaid' ? this.isUnpaid(receipt) : this.isPaid(receipt));
+    }
+    const term = this.searchText.trim().toLowerCase();
+    if (term) {
+      filtered = filtered.filter((receipt: any) =>
+        [this.inv(receipt.receipt_number), receipt.receipt_number, receipt.unit, receipt.customer_name]
+          .some(value => String(value ?? '').toLowerCase().includes(term)));
+    }
 
     this.filteredReceipts = filtered;
     this.dataSource.data = filtered;
@@ -397,8 +490,44 @@ export class Receipts implements OnInit, AfterViewInit {
     }
   }
 
-  getReceipts() {
-    const prevSelectedMonth = this.selectedMonth.value;
+  /**
+   * Says what the generation actually did (it may create nothing when the month
+   * is already billed or no unit is let) and shows that month's invoices.
+   */
+  reportGeneration(response: any): void {
+    const summary = response?.summary ?? {};
+    const created = Number(summary.receipts_created ?? response?.count ?? 0);
+    const existed = Number(summary.already_existed ?? 0);
+    const noContract = Number(summary.no_active_contract ?? 0);
+    const failed: any[] = response?.errors ?? [];
+    const [year, month] = String(response?.month_generated ?? '').split('-').map(Number);
+    const monthName = year && month
+      ? new Date(year, month - 1, 1).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
+      : 'that month';
+    const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? '' : 's'}`;
+
+    const notes: string[] = [];
+    if (existed) notes.push(`${plural(existed, 'tenant')} already had one`);
+    if (noContract) notes.push(`${plural(noContract, 'unit')} without a tenant skipped`);
+    if (failed.length) notes.push(`${failed.length} failed: ${failed[0].error}`);
+    const detail = notes.length ? ` (${notes.join('; ')})` : '';
+
+    if (created > 0) {
+      this.showSuccess(`Created ${plural(created, 'invoice')} for ${monthName}${detail}.`);
+    } else if (existed > 0 && !failed.length) {
+      this.showError(`Nothing new: every tenant already has an invoice for ${monthName}.`);
+    } else if (noContract > 0 && !existed && !failed.length) {
+      this.showError(`No invoices created: no unit in this property has an active contract. Rent out a unit first.`);
+    } else {
+      this.showError(`No invoices were created for ${monthName}${detail}.`);
+    }
+
+    // Open the month that was just billed so the new invoices are in view
+    this.getReceipts(year && month ? `${year}${String(month).padStart(2, '0')}` : undefined);
+  }
+
+  getReceipts(showMonth?: string) {
+    const prevSelectedMonth = showMonth || this.selectedMonth.value;
     const prevSelectedProperty = this.selectedProperty.value;
 
     this.receiptService.getReceipts().subscribe({
@@ -406,7 +535,7 @@ export class Receipts implements OnInit, AfterViewInit {
         this.receipts = res;
         this.updateAvailableMonths(prevSelectedMonth);
 
-        if (prevSelectedMonth) {
+        if (prevSelectedMonth && this.availableMonths.some(m => m.value === prevSelectedMonth)) {
           this.selectedMonth.setValue(prevSelectedMonth, { emitEvent: false });
         }
         if (prevSelectedProperty) {
@@ -431,17 +560,35 @@ export class Receipts implements OnInit, AfterViewInit {
     });
   }
 
-  openAddReceiptDialog() {
-    this.dialog.open(this.addReceiptDialog);
+  openGenerateMonthlyDialog() {
+    // This month, or next month once this one has been billed
+    const now = new Date();
+    let year = now.getFullYear();
+    let month = now.getMonth() + 1;
+    if (this.billedCount(year, month) > 0) {
+      month = month === 12 ? 1 : month + 1;
+      year = month === 1 ? year + 1 : year;
+    }
+    this.generateMonthlyForm.patchValue({ year, month });
+    this.dialog.open(this.generateMonthlyDialog);
   }
 
-  openGenerateMonthlyDialog() {
-    const now = new Date();
-    this.generateMonthlyForm.patchValue({
-      year: now.getFullYear(),
-      month: now.getMonth() + 1
-    });
-    this.dialog.open(this.generateMonthlyDialog);
+  /** Invoices the chosen property already has for a month */
+  billedCount(year: number, month: number): number {
+    const key = `${year}${String(month).padStart(2, '0')}`;
+    const propertyId = this.selectedProperty.value;
+    return this.receipts.filter(receipt =>
+      this.extractMonthYearFromReceipt(receipt) === key &&
+      (!propertyId || String(receipt.property_id) === String(propertyId))).length;
+  }
+
+  /** Shown in the dialog when the chosen month has invoices already */
+  get generateWarning(): string {
+    const { year, month } = this.generateMonthlyForm?.value ?? {};
+    const count = year && month ? this.billedCount(Number(year), Number(month)) : 0;
+    if (!count) return '';
+    const name = new Date(Number(year), Number(month) - 1, 1).toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+    return `${count} invoice${count === 1 ? '' : 's'} for ${name} already exist. Only tenants without one will be billed.`;
   }
 
   // NEW: Check if meter readings are needed before generation
@@ -512,7 +659,7 @@ loadActiveUnitsForReadings() {
       // Close first dialog and open meter readings dialog
       this.dialog.closeAll();
       this.dialog.open(this.meterReadingsDialog, {
-        width: '900px',
+        ...DialogSize.wide,
         maxHeight: '90vh',
         disableClose: true
       });
@@ -630,15 +777,14 @@ submitMeterReadingsAndGenerate() {
     next: (response) => {
       this.loadGenerating = false;
       this.dialog.closeAll();
-      this.showSuccess(`Successfully generated ${response.count || 'monthly'} receipts!`);
-      this.getReceipts();
+      this.reportGeneration(response);
       this.generateMonthlyForm.reset();
       this.meterReadingsForm.reset();
     },
     error: (err) => {
       console.error('❌ Error generating monthly receipts:', err);
       this.loadGenerating = false;
-      this.showError('Failed to generate monthly receipts. Please try again.');
+      this.showError(err.error?.error || 'The invoices could not be generated. Please try again.');
       if (err.status === 401) {
         this.router.navigate(['/login']);
         this.dialog.closeAll();
@@ -649,6 +795,7 @@ submitMeterReadingsAndGenerate() {
 
   openUpdateDialog(receipt: Receipt) {
     this.selectedReceiptId = receipt.id;
+    this.editingReceipt = receipt;
     this.updateReceiptForm.patchValue(receipt);
     this.dialog.open(this.updateReceiptDialog);
   }
@@ -700,14 +847,13 @@ submitMeterReadingsAndGenerate() {
       next: (response) => {
         this.loadGenerating = false;
         this.dialog.closeAll();
-        this.showSuccess(`Successfully generated ${response.count || 'monthly'} receipts!`);
-        this.getReceipts();
+        this.reportGeneration(response);
         this.generateMonthlyForm.reset();
       },
       error: (err) => {
         console.error('❌ Error generating monthly receipts:', err);
         this.loadGenerating = false;
-        this.showError('Failed to generate monthly receipts. Please try again.');
+        this.showError(err.error?.error || 'The invoices could not be generated. Please try again.');
         if (err.status === 401) {
           this.router.navigate(['/login']);
           this.dialog.closeAll();
@@ -720,16 +866,19 @@ submitMeterReadingsAndGenerate() {
     if (this.updateReceiptForm.invalid || !this.selectedReceiptId) return;
 
     const updatedData = this.updateReceiptForm.value;
+    this.loadUpdating = true;
 
     this.receiptService.updateReceipt(this.selectedReceiptId, updatedData).subscribe({
       next: () => {
+        this.loadUpdating = false;
         this.dialog.closeAll();
-        this.showSuccess('Receipt updated successfully!');
+        this.showSuccess('Invoice updated');
         this.getReceipts();
       },
       error: (err) => {
         console.error('❌ Error updating receipt:', err);
-        this.showError('Failed to update receipt.');
+        this.loadUpdating = false;
+        this.showError(err.error?.error || 'The invoice could not be updated.');
         if (err.status === 401) {
           this.router.navigate(['/login']);
           this.dialog.closeAll();
@@ -739,7 +888,7 @@ submitMeterReadingsAndGenerate() {
   }
 
   deleteReceipt(id: number) {
-    let dialogRef = this.dialog.open(this.deleteReceiptDial);
+    let dialogRef = this.dialog.open(this.deleteReceiptDial, DialogSize.confirm);
     dialogRef.afterClosed().subscribe(result => {
       if (result !== undefined) {
         if (result === 'yes') {
@@ -763,7 +912,7 @@ submitMeterReadingsAndGenerate() {
 
   showSuccess(message: string) {
     this.snackBar.open(message, 'Close', {
-      duration: 3000,
+      duration: 6000,
       panelClass: ['success-snackbar'],
       horizontalPosition: 'right',
       verticalPosition: 'top'
@@ -772,7 +921,7 @@ submitMeterReadingsAndGenerate() {
 
   showError(message: string) {
     this.snackBar.open(message, 'Close', {
-      duration: 4000,
+      duration: 7000,
       panelClass: ['error-snackbar'],
       horizontalPosition: 'right',
       verticalPosition: 'top'
@@ -849,10 +998,7 @@ submitMeterReadingsAndGenerate() {
 
   openReceiptReview() {
     const dialogRef = this.dialog.open(this.receiptPreviewDialog, {
-      width: '800px',
-      // Material caps dialogs at 560px unless told otherwise, which cut the sheet off
-      maxWidth: '95vw',
-      height: 'auto',
+      ...DialogSize.document,
       panelClass: 'receipt-preview-dialog'
     });
 
@@ -865,5 +1011,16 @@ submitMeterReadingsAndGenerate() {
         }
       }
     });
+  }
+
+  /** The month's invoices on screen as a spreadsheet */
+  exportCsv(): void {
+    downloadCsv(`invoices-${fileDate()}`,
+      ['Invoice', 'Tenant', 'Unit', 'Issued', 'Rent', 'Other charges', 'Brought forward', 'Total (KES)', 'Paid (KES)', 'Balance (KES)', 'Status'],
+      this.dataSource.filteredData.map((r: any) => [
+        this.inv(r.receipt_number), r.customer_name, r.unit, (r.issue_date || '').slice(0, 10),
+        r.monthly_rent, this.otherCharges(r), r.previous_balance, r.total_amount, r.amount_paid,
+        r.is_latest ? r.balance_due : 0, this.isUnpaid(r) ? 'Unpaid' : r.is_latest || r.status === 'paid' ? 'Paid' : 'Carried over',
+      ]));
   }
 }

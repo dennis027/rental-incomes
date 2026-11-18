@@ -1,3 +1,4 @@
+import { DialogSize } from '../../../shared/dialog-sizes';
 import { PropertyContext } from '../../../services/property-context';
 import { CategoryOption, EXPENSE_CATEGORIES, MAINTENANCE_CATEGORIES } from './expense-categories';
 import { Component, AfterViewInit, ViewChild, inject, TemplateRef, ChangeDetectorRef, PLATFORM_ID, OnInit, effect, untracked } from '@angular/core';
@@ -434,13 +435,11 @@ loadInitialData() {
 
   openAAddExpenseDialog() {
     let dialogRef = this.dialog.open(this.addExpeDial, {
-      maxWidth: '700px',
     });
   }
 
   openUpdateDial() {
     let dialogRef = this.dialog.open(this.updateExpenseDial, {
-      maxWidth: '700px',
     });
   }
 
@@ -490,7 +489,7 @@ loadInitialData() {
   openDeleteDialog(element: any) {
     this.expenseId = element.id;
     this.expenseName = element.description;
-    let dialogRef = this.dialog.open(this.deleteExpensDial);
+    let dialogRef = this.dialog.open(this.deleteExpensDial, DialogSize.confirm);
     dialogRef.afterClosed().subscribe(result => {
       if (result === 'yes') {
         this.expenseService.deleteExpense(this.expenseId).subscribe({
@@ -512,7 +511,7 @@ loadInitialData() {
   openDeleteMainanceDialog(element: any) {
     this.maintananceId = element.id;
     this.maintanaceName = element.description;
-    let dialogRef = this.dialog.open(this.deleteMaintanceDial);
+    let dialogRef = this.dialog.open(this.deleteMaintanceDial, DialogSize.confirm);
     dialogRef.afterClosed().subscribe(result => {
       if (result === 'yes') {
         this.maintanaceService.deleteMaintenanceRequest(this.maintananceId).subscribe({
@@ -567,7 +566,7 @@ loadInitialData() {
       description: element.description
     });
     this.isUpdateSubmitting = false;
-    this.dialog.open(this.updateMaintanceDial, { maxWidth: '780px' });
+    this.dialog.open(this.updateMaintanceDial);
   }
 
   updateMaintanaceFormSubmit() {
@@ -597,7 +596,6 @@ loadInitialData() {
 
   openAddMaintanaceDialog() {
     this.dialog.open(this.addMaintanceDial, {
-      maxWidth: '780px',
     });
   }
 
@@ -718,10 +716,7 @@ loadInitialData() {
   // change status dialog
 
 changeMaintanaceStatus() {
-  const dialogRef = this.dialog.open(this.maintananceChangeState, {
-    maxWidth: '700px',
-    panelClass: 'confirm-dialog'
-  });
+  const dialogRef = this.dialog.open(this.maintananceChangeState, DialogSize.confirm);
 
   dialogRef.afterClosed().subscribe(result => {
     if (!result) return;
@@ -752,7 +747,6 @@ changeMaintanaceStatus() {
     this.expenseIDP = element.id;
 
      let dialogRef = this.dialog.open(this.expensesPaymentsDial,{
-      maxWidth: '700px',
      });
     dialogRef.afterClosed().subscribe(result => {
       if (result !== undefined) {
@@ -804,7 +798,6 @@ changeMaintanaceStatus() {
     this.maintananceIDP = element.id;
 
      let dialogRef = this.dialog.open(this.maintancePaymentsDial,{
-      maxWidth: '700px',
      });
     dialogRef.afterClosed().subscribe(result => {
       if (result !== undefined) {
