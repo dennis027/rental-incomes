@@ -4,30 +4,92 @@ import uuid
 from decimal import Decimal
 from django.utils import timezone
 from django.conf import settings
+import secrets
+
+from .tenancy import current_account_id, scoped_manager
+
+
+def _new_callback_token():
+    return secrets.token_urlsafe(24)
+
+
+class Account(models.Model):
+    """A landlord or agency. Its members see only its properties, tenants and money."""
+    name = models.CharField(max_length=150)
+    # Part of the M-Pesa callback URLs; tells which account a paybill payment belongs to
+    mpesa_callback_token = models.CharField(max_length=64, unique=True, default=_new_callback_token)
+    # Automatic SMS rent reminders
+    sms_reminders_enabled = models.BooleanField(default=False)
+    sms_days_before_due = models.PositiveSmallIntegerField(default=3)
+    sms_overdue_every_days = models.PositiveSmallIntegerField(default=7)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return self.name
+
 
 class CustomUser(AbstractUser):
+    OWNER = "owner"
+    MANAGER = "manager"
+    ACCOUNTANT = "accountant"
+    CARETAKER = "caretaker"
+    ROLES = [
+        (OWNER, "Owner"),
+        (MANAGER, "Property manager"),
+        (ACCOUNTANT, "Accountant"),
+        (CARETAKER, "Caretaker"),
+    ]
+
     email = models.EmailField(unique=True, null=True, blank=True)
     phone_number = models.CharField(max_length=20, unique=True, null=True, blank=True)
     reset_code = models.CharField(max_length=6, blank=True, null=True)
     reset_code_expiry = models.DateTimeField(blank=True, null=True)
+    account = models.ForeignKey(Account, on_delete=models.CASCADE, null=True, blank=True, related_name="members")
+    role = models.CharField(max_length=20, choices=ROLES, default=OWNER)
+
+    def save(self, *args, **kwargs):
+        # Someone who signs up (or is made in the admin) gets an account of their own;
+        # team members are given their owner's account before they are saved
+        if self.account_id is None:
+            self.account = Account.objects.create(name=self.get_full_name() or self.username or "My properties")
+            self.role = self.OWNER
+        super().save(*args, **kwargs)
 
     def __str__(self):
         return self.username
+
+
+class AccountOwnedMixin(models.Model):
+    """Rows created during a request belong to the signed-in user's account."""
+    class Meta:
+        abstract = True
+
+    def save(self, *args, **kwargs):
+        if self.account_id is None:
+            self.account_id = current_account_id()
+        super().save(*args, **kwargs)
     
 
-class Property(models.Model):
+class Property(AccountOwnedMixin):
+    account = models.ForeignKey(Account, on_delete=models.CASCADE, null=True, blank=True, related_name="properties")
     name = models.CharField(max_length=255) 
     address = models.TextField() 
     description = models.TextField(blank=True, null=True) 
     created_at = models.DateTimeField(auto_now_add=True)  
     updated_at = models.DateTimeField(auto_now=True)
     is_active = models.BooleanField(default=True)
-    
+
+    objects = scoped_manager("account_id")
+    all_objects = models.Manager()
+
     def __str__(self):
         return self.name
 
 
 class Unit(models.Model):
+    objects = scoped_manager("property__account_id")
+    all_objects = models.Manager()
+
     class UnitType(models.TextChoices):
         SINGLE = "single", "Single"
         BEDSITTER = "bedsitter", "Bedsitter"
@@ -116,12 +178,14 @@ def customer_id_upload_path(instance, filename):
     return f"customer_ids/{instance.id_number}/{filename}"
 
 
-class Customer(models.Model):
+class Customer(AccountOwnedMixin):
+    account = models.ForeignKey(Account, on_delete=models.CASCADE, null=True, blank=True, related_name="customers")
     first_name = models.CharField(max_length=100)
     last_name = models.CharField(max_length=100)
-    phone_number = models.CharField(max_length=20, unique=True)
-    email = models.EmailField(blank=True, null=True, unique=True)
-    id_number = models.CharField(max_length=50, unique=True)
+    # Unique within an account: the same person may rent from two landlords
+    phone_number = models.CharField(max_length=20)
+    email = models.EmailField(blank=True, null=True)
+    id_number = models.CharField(max_length=50)
     id_photo_front = models.ImageField(upload_to=customer_id_upload_path, null=True, blank=True)
     id_photo_back = models.ImageField(upload_to=customer_id_upload_path, null=True, blank=True)
     
@@ -132,11 +196,24 @@ class Customer(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
+    objects = scoped_manager("account_id")
+    all_objects = models.Manager()
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=["account", "phone_number"], name="unique_customer_phone_per_account"),
+            models.UniqueConstraint(fields=["account", "email"], name="unique_customer_email_per_account"),
+            models.UniqueConstraint(fields=["account", "id_number"], name="unique_customer_id_per_account"),
+        ]
+
     def __str__(self):
         return f"{self.first_name} {self.last_name} ({self.phone_number})"
 
 
 class RentalContract(models.Model):
+    objects = scoped_manager("unit__property__account_id")
+    all_objects = models.Manager()
+
     contract_number = models.CharField(max_length=50, unique=True, blank=True, null=True)
     customer = models.ForeignKey(Customer, on_delete=models.CASCADE, related_name="contracts")
     unit = models.ForeignKey(Unit, on_delete=models.CASCADE, related_name="contracts")
@@ -159,7 +236,7 @@ class RentalContract(models.Model):
             contract_number = base_number
 
             counter = 1
-            while RentalContract.objects.filter(contract_number=contract_number).exists():
+            while RentalContract.all_objects.filter(contract_number=contract_number).exists():
                 contract_number = f"{base_number}-{counter}"
                 counter += 1
 
@@ -172,6 +249,9 @@ class RentalContract(models.Model):
 
 
 class Receipt(models.Model):
+    objects = scoped_manager("contract__unit__property__account_id")
+    all_objects = models.Manager()
+
     STATUS_CHOICES = [
         ('unpaid', 'Unpaid'),
         ('partial', 'Partially Paid'),
@@ -239,7 +319,7 @@ class Receipt(models.Model):
 
             # Skip numbers already taken (an invoice was deleted or re-dated)
             prefix = f"RCT-{self.contract.id}-{issue_year}{formatted_month}-"
-            while Receipt.objects.filter(receipt_number=f"{prefix}{count}").exists():
+            while Receipt.all_objects.filter(receipt_number=f"{prefix}{count}").exists():
                 count += 1
             self.receipt_number = f"{prefix}{count}"
 
@@ -305,6 +385,13 @@ class Receipt(models.Model):
         return self.total_amount - Decimal(str(self.amount_paid or 0))
 
 class Payment(models.Model):
+    objects = scoped_manager((
+        "receipt__contract__unit__property__account_id",
+        "expense__property__account_id",
+        "maintenance_request__unit__property__account_id",
+    ))
+    all_objects = models.Manager()
+
     INCOME = "IN"
     EXPENSE = "OUT"
     
@@ -388,6 +475,9 @@ class Payment(models.Model):
 
 
 class Expense(models.Model):
+    objects = scoped_manager("property__account_id")
+    all_objects = models.Manager()
+
     class Category(models.TextChoices):
         CLEANING = "cleaning", "Cleaning"
         SALARIES = "salaries", "Salaries & wages"
@@ -439,6 +529,9 @@ class Expense(models.Model):
 
 
 class MaintenanceRequest(models.Model):
+    objects = scoped_manager("unit__property__account_id")
+    all_objects = models.Manager()
+
     class Category(models.TextChoices):
         PLUMBING = "plumbing", "Plumbing"
         ELECTRICAL = "electrical", "Electrical"
@@ -487,6 +580,9 @@ class MaintenanceRequest(models.Model):
 
 
 class SystemParameter(models.Model):
+    objects = scoped_manager("property__account_id")
+    all_objects = models.Manager()
+
     property = models.OneToOneField(
         Property,
         on_delete=models.CASCADE,
@@ -532,6 +628,9 @@ class SystemParameter(models.Model):
 
 class MoveOut(models.Model):
     """The settlement made when a tenant leaves: deposit held, what is taken off it, and what goes back."""
+    objects = scoped_manager("contract__unit__property__account_id")
+    all_objects = models.Manager()
+
     contract = models.OneToOneField(RentalContract, on_delete=models.CASCADE, related_name="move_out")
     move_out_date = models.DateField()
     deposit_held = models.DecimalField(max_digits=12, decimal_places=2, default=0)
@@ -550,6 +649,10 @@ class MoveOut(models.Model):
 
 class MpesaTransaction(models.Model):
     """A paybill/till payment reported by Safaricom. Matched ones are linked to the payment they created."""
+    objects = scoped_manager("account_id")
+    all_objects = models.Manager()
+
+    account = models.ForeignKey(Account, on_delete=models.CASCADE, null=True, blank=True, related_name="mpesa_transactions")
     trans_id = models.CharField(max_length=30, unique=True)
     trans_time = models.DateTimeField(null=True, blank=True)
     amount = models.DecimalField(max_digits=12, decimal_places=2)
@@ -565,3 +668,60 @@ class MpesaTransaction(models.Model):
 
     def __str__(self):
         return f"{self.trans_id} {self.amount} ({'matched' if self.payment_id else 'unmatched'})"
+
+
+class SmsMessage(AccountOwnedMixin):
+    """A text sent to a tenant. Also stops the daily reminders from repeating themselves."""
+    DUE = "due"
+    OVERDUE = "overdue"
+    MANUAL = "manual"
+    KINDS = [(DUE, "Rent due soon"), (OVERDUE, "Rent overdue"), (MANUAL, "Sent by hand")]
+
+    account = models.ForeignKey(Account, on_delete=models.CASCADE, null=True, blank=True, related_name="sms_messages")
+    contract = models.ForeignKey(RentalContract, on_delete=models.SET_NULL, null=True, blank=True, related_name="sms_messages")
+    invoice_number = models.CharField(max_length=50, blank=True, default="")
+    phone = models.CharField(max_length=20)
+    message = models.TextField()
+    kind = models.CharField(max_length=10, choices=KINDS)
+    sent = models.BooleanField(default=False)
+    error = models.CharField(max_length=255, blank=True, default="")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    objects = scoped_manager("account_id")
+    all_objects = models.Manager()
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"{self.get_kind_display()} to {self.phone}"
+
+
+class MpesaStkRequest(AccountOwnedMixin):
+    """A "pay now" prompt sent to a tenant's phone (Daraja STK push) and what came of it."""
+    PENDING = "pending"
+    PAID = "paid"
+    FAILED = "failed"
+    STATUSES = [(PENDING, "Waiting for the tenant"), (PAID, "Paid"), (FAILED, "Not paid")]
+
+    account = models.ForeignKey(Account, on_delete=models.CASCADE, null=True, blank=True, related_name="stk_requests")
+    receipt = models.ForeignKey(Receipt, on_delete=models.CASCADE, related_name="stk_requests")
+    phone = models.CharField(max_length=20)
+    amount = models.DecimalField(max_digits=12, decimal_places=2)
+    merchant_request_id = models.CharField(max_length=100, blank=True, default="")
+    checkout_request_id = models.CharField(max_length=100, unique=True)
+    status = models.CharField(max_length=10, choices=STATUSES, default=PENDING)
+    result_desc = models.CharField(max_length=255, blank=True, default="")
+    mpesa_receipt = models.CharField(max_length=30, blank=True, default="")
+    requested_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    objects = scoped_manager("account_id")
+    all_objects = models.Manager()
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"STK {self.amount} to {self.phone} ({self.status})"

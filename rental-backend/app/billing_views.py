@@ -12,13 +12,16 @@ from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from rest_framework import status
 from rest_framework.permissions import AllowAny, IsAuthenticated
+from .permissions import IsAccountMember
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from . import billing
+from . import billing, daraja, sms
 from .caching import cached_get
+from .tenancy import set_current_account
 from .models import (
-    Customer, Expense, MoveOut, MpesaTransaction, Payment, Receipt, RentalContract, SystemParameter, Unit,
+    Account,
+    Customer, Expense, MoveOut, MpesaStkRequest, MpesaTransaction, Payment, Receipt, RentalContract, SystemParameter, Unit,
 )
 
 logger = logging.getLogger(__name__)
@@ -60,7 +63,7 @@ def _tenant_card(customer):
 
 class CustomerStatementView(APIView):
     """GET api/customers/<id>/statement/?contract_id=&start_date=&end_date="""
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAccountMember]
 
     @cached_get
     def get(self, request, customer_id):
@@ -104,7 +107,7 @@ class CustomerStatementView(APIView):
 
 class ArrearsView(APIView):
     """GET api/arrears/?property_id="""
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAccountMember]
 
     @cached_get
     def get(self, request):
@@ -132,7 +135,7 @@ class ContractsEndingSoonView(APIView):
     GET api/contracts/ending-soon/?property_id=&days=60
     Active contracts whose end date is within `days`, including ones already past it.
     """
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAccountMember]
 
     @cached_get
     def get(self, request):
@@ -193,7 +196,7 @@ class ContractMoveOutView(APIView):
     GET  api/contracts/<id>/move-out/  figures to review before the tenant leaves (or the saved settlement)
     POST api/contracts/<id>/move-out/  end the contract and settle the deposit
     """
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAccountMember]
 
     @cached_get
     def get(self, request, pk):
@@ -342,11 +345,22 @@ class ContractMoveOutView(APIView):
 # M-Pesa paybill / till payments (Daraja C2B)
 # ---------------------------------------------------------------------------
 
-def _check_callback_token(token):
-    """The callback URLs are public, so they carry a secret that only Safaricom is given."""
-    expected = getattr(settings, "MPESA_CALLBACK_TOKEN", "")
-    if not expected or not hmac.compare_digest(str(token), str(expected)):
+def _callback_account(token):
+    """
+    The callback URLs are public, so they carry a secret that only Safaricom is
+    given. Each account has its own; the older single MPESA_CALLBACK_TOKEN still
+    works and belongs to the first account, so a paybill already registered with
+    Safaricom keeps working.
+    """
+    token = str(token)
+    account = Account.objects.filter(mpesa_callback_token=token).first()
+    if account is None:
+        expected = getattr(settings, "MPESA_CALLBACK_TOKEN", "")
+        if expected and hmac.compare_digest(token, str(expected)):
+            account = Account.objects.order_by("id").first()
+    if account is None:
         raise Http404()
+    return account
 
 
 def _digits(value):
@@ -408,7 +422,7 @@ class MpesaValidationView(APIView):
     authentication_classes = []
 
     def post(self, request, token):
-        _check_callback_token(token)
+        _callback_account(token)
         return Response({"ResultCode": 0, "ResultDesc": "Accepted"})
 
 
@@ -418,7 +432,9 @@ class MpesaConfirmationView(APIView):
     authentication_classes = []
 
     def post(self, request, token):
-        _check_callback_token(token)
+        account = _callback_account(token)
+        # Match only against this account's tenants and invoices
+        set_current_account(account.id)
         data = request.data
         trans_id = str(data.get("TransID") or "").strip()
         amount = _decimal(data.get("TransAmount"))
@@ -434,9 +450,10 @@ class MpesaConfirmationView(APIView):
 
         name = " ".join(filter(None, (data.get("FirstName"), data.get("MiddleName"), data.get("LastName"))))
         with transaction.atomic():
-            row, created = MpesaTransaction.objects.get_or_create(
+            row, created = MpesaTransaction.all_objects.get_or_create(
                 trans_id=trans_id,
                 defaults={
+                    "account": account,
                     "trans_time": trans_time,
                     "amount": amount,
                     "bill_ref": str(data.get("BillRefNumber") or "").strip()[:100],
@@ -471,7 +488,7 @@ def _mpesa_row(row):
 
 class MpesaTransactionListView(APIView):
     """GET api/paybill-transactions/?status=unmatched"""
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAccountMember]
 
     @cached_get
     def get(self, request):
@@ -486,7 +503,7 @@ class MpesaTransactionListView(APIView):
 
 class MpesaTransactionMatchView(APIView):
     """POST api/paybill-transactions/<id>/match/ {receipt: <invoice id>}"""
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAccountMember]
 
     @transaction.atomic
     def post(self, request, pk):
@@ -497,3 +514,124 @@ class MpesaTransactionMatchView(APIView):
         apply_mpesa_transaction(row, invoice)
         row = MpesaTransaction.objects.select_related("payment__receipt").get(pk=row.pk)
         return Response(_mpesa_row(row))
+
+
+# ---------------------------------------------------------------------------
+# M-Pesa "pay now" prompts (Daraja STK push)
+# ---------------------------------------------------------------------------
+
+def _stk_row(row):
+    return {
+        "id": row.id,
+        "receipt": row.receipt_id,
+        "invoice_number": row.receipt.receipt_number,
+        "phone": row.phone,
+        "amount": row.amount,
+        "status": row.status,
+        "status_label": row.get_status_display(),
+        "result_desc": row.result_desc,
+        "mpesa_receipt": row.mpesa_receipt,
+        "created_at": row.created_at,
+    }
+
+
+class StkPushView(APIView):
+    """
+    GET  api/mpesa/stk/            whether prompts can be sent
+    POST api/mpesa/stk/ {receipt, phone?, amount?}
+         Sends the tenant a payment prompt for what they owe. Phone and amount
+         default to the tenant's number and their balance.
+    """
+    permission_classes = [IsAccountMember]
+
+    def get(self, request):
+        return Response({"configured": daraja.stk_configured()})
+
+    def post(self, request):
+        if not daraja.stk_configured():
+            return Response({"error": "M-Pesa prompts are not set up on the server yet."},
+                            status=status.HTTP_400_BAD_REQUEST)
+        invoice = get_object_or_404(Receipt.objects.select_related("contract__customer", "contract__unit"),
+                                    pk=request.data.get("receipt"))
+        contract = invoice.contract
+        owed = billing.outstanding(billing.contract_invoices(contract))
+        amount = _decimal(request.data.get("amount"), owed)
+        if amount is None or amount < 1:
+            return Response({"amount": ["Enter at least KES 1."]}, status=status.HTTP_400_BAD_REQUEST)
+        # Safaricom only takes whole shillings
+        amount = amount.quantize(Decimal("1"))
+
+        phone = sms.kenyan_number(request.data.get("phone") or contract.customer.phone_number)
+        if phone is None:
+            return Response({"phone": ["Enter a Safaricom number such as 0712 345 678."]},
+                            status=status.HTTP_400_BAD_REQUEST)
+
+        account = request.user.account
+        callback = (f"{settings.MPESA_CALLBACK_BASE_URL.rstrip('/')}"
+                    f"/api/mpesa/stk/{account.mpesa_callback_token}/callback/")
+        try:
+            merchant_id, checkout_id = daraja.stk_push(
+                phone.lstrip("+"), amount, contract.unit.unit_number, "Rent", callback,
+            )
+        except daraja.DarajaError as error:
+            return Response({"error": str(error)}, status=status.HTTP_502_BAD_GATEWAY)
+
+        row = MpesaStkRequest.objects.create(
+            account=account, receipt=invoice, phone=phone, amount=amount,
+            merchant_request_id=merchant_id, checkout_request_id=checkout_id, requested_by=request.user,
+        )
+        return Response(_stk_row(row), status=status.HTTP_201_CREATED)
+
+
+class StkPushStatusView(APIView):
+    """GET api/mpesa/stk/<id>/ — polled by the dashboard until the tenant has answered the prompt"""
+    permission_classes = [IsAccountMember]
+
+    def get(self, request, pk):
+        return Response(_stk_row(get_object_or_404(MpesaStkRequest.objects.select_related("receipt"), pk=pk)))
+
+
+class StkCallbackView(APIView):
+    """Safaricom reports how a prompt ended. Safe to receive the same result twice."""
+    permission_classes = [AllowAny]
+    authentication_classes = []
+
+    def post(self, request, token):
+        account = _callback_account(token)
+        set_current_account(account.id)
+        result = (request.data.get("Body") or {}).get("stkCallback") or {}
+        checkout_id = str(result.get("CheckoutRequestID") or "")
+
+        with transaction.atomic():
+            row = MpesaStkRequest.objects.select_for_update().select_related("receipt").filter(
+                checkout_request_id=checkout_id,
+            ).first()
+            if row is None or row.status != MpesaStkRequest.PENDING:
+                return Response({"ResultCode": 0, "ResultDesc": "Accepted"})
+
+            row.result_desc = str(result.get("ResultDesc") or "")[:255]
+            if str(result.get("ResultCode")) != "0":
+                row.status = MpesaStkRequest.FAILED
+                row.save(update_fields=["status", "result_desc", "updated_at"])
+                return Response({"ResultCode": 0, "ResultDesc": "Accepted"})
+
+            items = {item.get("Name"): item.get("Value")
+                     for item in (result.get("CallbackMetadata") or {}).get("Item", [])}
+            receipt_no = str(items.get("MpesaReceiptNumber") or "")[:30]
+            amount = _decimal(items.get("Amount"), row.amount)
+            row.status = MpesaStkRequest.PAID
+            row.mpesa_receipt = receipt_no
+            row.save(update_fields=["status", "result_desc", "mpesa_receipt", "updated_at"])
+
+            # Recorded like a paybill payment, so a C2B confirmation of the same
+            # payment (sent when the paybill URLs are registered) is not counted twice
+            mpesa_row, created = MpesaTransaction.all_objects.get_or_create(
+                trans_id=receipt_no or f"STK-{row.checkout_request_id}"[:30],
+                defaults={
+                    "account": account, "trans_time": timezone.now(), "amount": amount,
+                    "bill_ref": row.receipt.receipt_number, "msisdn": row.phone, "raw": dict(request.data),
+                },
+            )
+            if created or mpesa_row.payment_id is None:
+                apply_mpesa_transaction(mpesa_row, row.receipt)
+        return Response({"ResultCode": 0, "ResultDesc": "Accepted"})

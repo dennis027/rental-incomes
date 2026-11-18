@@ -19,6 +19,8 @@ from django.db import transaction
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from .tenancy import current_account_id
+
 VERSION_KEY = "api:version"
 
 
@@ -48,7 +50,8 @@ def invalidate_on_write(**kwargs):
 
 
 def _key(request, version):
-    url = f"{request.get_host()}{request.get_full_path()}"
+    # Per account: two landlords asking for the same URL get different data
+    url = f"{current_account_id()}:{request.get_host()}{request.get_full_path()}"
     return f"api:{version}:{hashlib.sha256(url.encode()).hexdigest()}"
 
 
