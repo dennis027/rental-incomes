@@ -31,6 +31,16 @@ export class BillingService {
     return this.http.post<any>(`${this.api}contracts/${contractId}/move-out/`, data, { headers: this.headers() });
   }
 
+  /** Texts sent to tenants, and whether SMS is set up on the server */
+  reminders(): Observable<{ configured: boolean; enabled: boolean; messages: any[] }> {
+    return this.http.get<any>(`${this.api}reminders/`, { headers: this.headers() });
+  }
+
+  /** SMS the tenants of these contracts about their balance now */
+  sendSmsReminders(contractIds: number[]): Observable<{ sent: number; failed: number; results: any[] }> {
+    return this.http.post<any>(`${this.api}reminders/send/`, { contract_ids: contractIds }, { headers: this.headers() });
+  }
+
   paybillTransactions(): Observable<any> {
     return this.http.get<any>(`${this.api}paybill-transactions/`, { headers: this.headers() });
   }

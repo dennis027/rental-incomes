@@ -1,10 +1,9 @@
 import { inject, PLATFORM_ID } from '@angular/core';
-import { rememberPath } from '../services/return-path';
 import { isPlatformBrowser } from '@angular/common';
 import { HttpBackend, HttpClient, HttpErrorResponse, HttpInterceptorFn } from '@angular/common/http';
-import { Router } from '@angular/router';
 import { Observable, catchError, finalize, map, shareReplay, switchMap, tap, throwError } from 'rxjs';
 import { environment } from '../../environments/environment';
+import { AuthService } from '../services/auth';
 
 const refreshUrl = `${environment.apiUrl}api/token/refresh/`;
 
@@ -27,22 +26,12 @@ export const sessionInterceptor: HttpInterceptorFn = (req, next) => {
     return next(req);
   }
 
-  const router = inject(Router);
+  const auth = inject(AuthService);
   const http = new HttpClient(inject(HttpBackend));
   const withToken = (token: string | null) =>
     token ? req.clone({ setHeaders: { Authorization: `Bearer ${token}` } }) : req;
 
-  const endSession = () => {
-    localStorage.removeItem('access_token');
-    localStorage.removeItem('refresh_token');
-    // The login page reads this to explain why the user is back there
-    sessionStorage.setItem('session_expired', '1');
-    if (!router.url.startsWith('/login')) {
-      // Signing in again brings the user back to this page
-      rememberPath(router.url);
-      router.navigate(['/login']);
-    }
-  };
+  const endSession = () => auth.expireSession();
 
   return next(withToken(localStorage.getItem('access_token'))).pipe(
     catchError((error: HttpErrorResponse) => {
