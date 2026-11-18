@@ -15,7 +15,7 @@ import random
 import logging
 from datetime import datetime
 from rest_framework.permissions import AllowAny, IsAuthenticated
-from .permissions import IsAccountMember
+from .permissions import IsAccountMember, hides_money
 from django.template.loader import render_to_string
 from django.utils.html import strip_tags
 from django.core.cache import cache
@@ -863,11 +863,11 @@ class UnitListCreate(APIView):
             )
             .order_by("-created_at")
         )
-        serializer = UnitSerializer(units, many=True)
+        serializer = UnitSerializer(units, many=True, context={"request": request})
         return Response(serializer.data)
 
     def post(self, request):
-        serializer = UnitSerializer(data=request.data)
+        serializer = UnitSerializer(data=request.data, context={"request": request})
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data, status=status.HTTP_201_CREATED)
@@ -882,13 +882,13 @@ class UnitDetail(APIView):
     @cached_get
     def get(self, request, pk):
         unit = get_object_or_404(Unit, pk=pk)
-        serializer = UnitSerializer(unit)
+        serializer = UnitSerializer(unit, context={"request": request})
         return Response(serializer.data)
 
     def put(self, request, pk):
         """Full update (all fields required)"""
         unit = get_object_or_404(Unit, pk=pk)
-        serializer = UnitSerializer(unit, data=request.data)  # full update
+        serializer = UnitSerializer(unit, data=request.data, context={"request": request})  # full update
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data)
@@ -897,7 +897,7 @@ class UnitDetail(APIView):
     def patch(self, request, pk):
         """Partial update (only provided fields will be updated)"""
         unit = get_object_or_404(Unit, pk=pk)
-        serializer = UnitSerializer(unit, data=request.data, partial=True)
+        serializer = UnitSerializer(unit, data=request.data, partial=True, context={"request": request})
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data)
@@ -1340,7 +1340,8 @@ class PropertyUnitsListView(APIView):
                 "status": unit.status,
                 "water_meter_reading": str(unit.water_meter_reading),
                 "electricity_meter_reading": str(unit.electricity_meter_reading),
-                "financial": {
+                # Caretakers are shown no money
+                "financial": None if hides_money(request) else {
                     "total_billed": str(unit.total_billed),
                     "total_paid": str(unit.total_paid),
                     "balance": str(unit.balance)

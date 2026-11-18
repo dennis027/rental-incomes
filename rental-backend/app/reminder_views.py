@@ -49,7 +49,11 @@ class ReminderSendView(APIView):
     def post(self, request):
         if not sms.configured():
             return Response({"error": "SMS is not set up on the server yet."}, status=status.HTTP_400_BAD_REQUEST)
-        wanted = {int(pk) for pk in request.data.get("contract_ids") or [] if str(pk).isdigit()}
+        ids = request.data.get("contract_ids")
+        # A list of ids: a bare "12" must not be read as contracts 1 and 2
+        if not isinstance(ids, list):
+            return Response({"contract_ids": ["Send a list of contract ids."]}, status=status.HTTP_400_BAD_REQUEST)
+        wanted = {int(pk) for pk in ids if str(pk).isdigit()}
         if not wanted:
             return Response({"contract_ids": ["Choose at least one tenant."]}, status=status.HTTP_400_BAD_REQUEST)
 

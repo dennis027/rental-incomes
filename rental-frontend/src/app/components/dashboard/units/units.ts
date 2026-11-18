@@ -16,6 +16,7 @@ import { SystemParametersServices } from '../../../services/system-parameters-se
 import { ContractsService } from '../../../services/contract-service';
 import { CustomersService } from '../../../services/customer';
 import { downloadCsv, fileDate } from '../../../shared/export';
+import { currentRole } from '../../../services/account';
 
 export interface UnitsTable {
   id: string;
@@ -98,7 +99,9 @@ export class Units implements OnInit, AfterViewInit {
     return `${year}-${month}-${day}`;
   }
 
-  displayedColumns: string[] = ['unit_number', 'tenant_name', 'rent_amount', 'active_contract_deposit', 'balance', 'status', 'actions'];
+  // Caretakers are not sent unit balances, so they get no balance column
+  displayedColumns: string[] = ['unit_number', 'tenant_name', 'rent_amount', 'active_contract_deposit', 'balance', 'status', 'actions']
+    .filter(column => column !== 'balance' || currentRole() !== 'caretaker');
   unitsObject: UnitsTable[] = [];
 
   systemParameters: any;

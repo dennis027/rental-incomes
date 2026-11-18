@@ -493,9 +493,15 @@ class Payment(models.Model):
         default="cash"
     )
     type = models.CharField(max_length=3, choices=PAYMENT_TYPES, default=INCOME)
-    reference = models.CharField(max_length=100, blank=True, null=True, unique=True)
+    # Unique within an account (see Meta): one landlord's reference says nothing about another's
+    reference = models.CharField(max_length=100, blank=True, null=True)
     notes = models.TextField(blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=["account", "reference"], name="unique_payment_reference_per_account"),
+        ]
 
     @property
     def property_id(self):
@@ -537,11 +543,12 @@ class Payment(models.Model):
 
     def save(self, *args, **kwargs):
         # Editing a payment only moves the difference; it must not be counted a second time
-        previous = None if self._state.adding else Payment.objects.filter(pk=self.pk).first()
+        # Unscoped: a payment hidden by the current scope is still not new
+        previous = None if self._state.adding else Payment.all_objects.filter(pk=self.pk).first()
         if previous is None and self.type == self.INCOME and self.receipt_id:
             # Rent is paid on the tenant's latest invoice: it already includes
             # whatever was unpaid on the earlier ones
-            latest = Receipt.objects.filter(contract_id=self.receipt.contract_id).order_by("issue_date", "id").last()
+            latest = Receipt.all_objects.filter(contract_id=self.receipt.contract_id).order_by("issue_date", "id").last()
             if latest is not None and latest.pk != self.receipt_id:
                 self.receipt = latest
         links = ("receipt_id", "expense_id", "maintenance_request_id")

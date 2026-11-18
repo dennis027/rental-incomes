@@ -1181,5 +1181,131 @@ class SecondReviewFixTests(TestCase):
                          [self.user.account_id])
         removed.refresh_from_db(); pending.refresh_from_db()
         self.assertIsNotNone(removed.removed_at)
-        self.assertFalse(removed.has_usable_password())
+        self.assertTrue(removed.has_usable_password())  # left alone; removal on the team page clears it
         self.assertIsNone(pending.removed_at)
+
+
+@override_settings(MPESA_CALLBACK_TOKEN="secret-token", SECURE_SSL_REDIRECT=False)
+class ThirdReviewFixTests(TestCase):
+    """Fixes from the third code review."""
+
+    def setUp(self):
+        from django.core.cache import cache
+        cache.clear()
+        AccountIsolationTests.setUp(self)
+
+    member = AccountIsolationTests.member
+
+    # 1. Caretakers get no unit money
+    def test_caretakers_get_no_unit_balances(self):
+        caretaker = self.member("caretaker")
+        for unit in (caretaker.get("/api/units/").json()[0], caretaker.get(f"/api/units/{self.unit.id}/").json()):
+            for name in ("balance", "total_billed", "total_paid"):
+                self.assertNotIn(name, unit)
+            self.assertEqual(unit["unit_number"], "B12")
+        self.assertIsNone(caretaker.get(f"/api/properties/{self.property.id}/units/").json()["units"][0]["financial"])
+        self.assertIn("balance", self.client.get("/api/units/").json()[0])
+        self.assertIsNotNone(self.client.get(f"/api/properties/{self.property.id}/units/").json()["units"][0]["financial"])
+
+    # 2. Payment references are unique per account
+    def test_payment_references_are_unique_within_an_account(self):
+        b_invoice = ReviewFixTests.landlord_b_invoice(self)
+        pay = lambda client, invoice: client.post("/api/payments/", {
+            "receipt": invoice.id, "amount": "100", "method": "mpesa", "reference": "QWE123XYZ"}, format="json")
+        self.assertEqual(pay(self.client, self.first_invoice).status_code, 201)
+        response = pay(self.other_client, b_invoice)
+        self.assertEqual(response.status_code, 201, response.data)
+        response = pay(self.client, self.first_invoice)
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("reference", response.data)
+
+    # 3. Payments linked to nothing
+    def test_migration_gives_unlinked_payments_the_first_account(self):
+        import importlib
+        from django.apps import apps
+        loose = Payment.all_objects.create(amount=50, type=Payment.INCOME, account=self.user.account)
+        Payment.all_objects.filter(pk=loose.pk).update(account=None)
+        migration = importlib.import_module("app.migrations.0010_payment_reference_per_account_and_repairs")
+        migration.unlinked_payments_to_first_account(apps, None)
+        loose.refresh_from_db()
+        self.assertEqual(loose.account_id, self.user.account_id)
+
+    # 4. Old sign-ups in the shared account are not "removed"
+    def test_old_pending_signups_are_not_marked_removed(self):
+        import importlib
+        from datetime import timedelta as td
+        from django.apps import apps
+        old = get_user_model().objects.create_user(username="old", email="old@example.com", password="pw",
+                                                   account=self.user.account, is_active=False)
+        get_user_model().objects.filter(pk=old.pk).update(date_joined=self.user.account.created_at - td(days=30))
+        m9 = importlib.import_module("app.migrations.0009_server_mpesa_owner_and_removed_members")
+        m9.mark_removed_members(apps, None)
+        old.refresh_from_db()
+        self.assertIsNone(old.removed_at)
+        self.assertTrue(old.check_password("pw"))
+        # And marks left by the earlier version of 0009 are undone
+        get_user_model().objects.filter(pk=old.pk).update(removed_at=timezone.now(), password="!")
+        m10 = importlib.import_module("app.migrations.0010_payment_reference_per_account_and_repairs")
+        m10.undo_wrong_removals(apps, None)
+        old.refresh_from_db()
+        self.assertIsNone(old.removed_at)
+
+    # 5. Tenants without an email
+    def test_several_tenants_may_leave_email_blank(self):
+        for n in (1, 2):
+            response = self.client.post("/api/customers/", {
+                "first_name": f"T{n}", "last_name": "X", "phone_number": f"070000000{n}", "id_number": f"9{n}",
+                "email": ""}, format="json")
+            self.assertEqual(response.status_code, 201, response.data)
+
+    # 6. A payment hidden by the current scope is still not new
+    def test_saving_a_payment_outside_its_scope_does_not_count_it_twice(self):
+        from .tenancy import reset_current_account, set_current_account
+        response = self.client.post("/api/payments/", {"receipt": self.first_invoice.id, "amount": "100",
+                                                       "method": "cash"}, format="json")
+        payment = Payment.all_objects.get(pk=response.data["id"])
+        token = set_current_account(self.other.account_id)
+        try:
+            payment.notes = "edited"
+            payment.save()
+        finally:
+            reset_current_account(token)
+        self.first_invoice.refresh_from_db()
+        self.assertEqual(self.first_invoice.amount_paid, Decimal("100.00"))
+
+    # 7. Bad property filter
+    def test_tax_report_rejects_a_non_numeric_property(self):
+        self.assertEqual(self.client.get("/api/reports/rental-income-tax/?property_id=abc").status_code, 400)
+
+    # 8. contract_ids must be a list
+    @override_settings(AT_USERNAME="sandbox", AT_API_KEY="key")
+    def test_reminders_need_a_list_of_contract_ids(self):
+        for ids in ("12", 12):
+            response = self.client.post("/api/reminders/send/", {"contract_ids": ids}, format="json")
+            self.assertEqual(response.status_code, 400, ids)
+
+    # 9. Operators without an account can still sign out
+    def test_accountless_user_can_see_themselves_and_sign_out(self):
+        from rest_framework_simplejwt.tokens import RefreshToken
+        ops = get_user_model().objects.create_superuser("ops", "ops@example.com", "pw")
+        self.assertIsNone(ops.account_id)
+        client = APIClient()
+        client.force_authenticate(ops)
+        me = client.get("/api/me/")
+        self.assertEqual(me.status_code, 200)
+        self.assertIsNone(me.json()["account"])
+        response = client.post("/api/logout/", {"refresh": str(RefreshToken.for_user(ops))}, format="json")
+        self.assertNotEqual(response.status_code, 403)
+        self.assertEqual(client.get("/api/properties/").status_code, 403)
+
+    # 10. One landlord's writes leave the others' cache alone
+    def test_writes_clear_only_their_own_accounts_cache(self):
+        self.assertEqual(self.client.get("/api/properties/")["X-Cache"], "MISS")
+        self.assertEqual(self.other_client.get("/api/properties/")["X-Cache"], "MISS")
+        self.other_client.post("/api/properties/", {"name": "Hillside", "address": "Thika"}, format="json")
+        self.assertEqual(self.client.get("/api/properties/")["X-Cache"], "HIT")
+        self.assertEqual(self.other_client.get("/api/properties/")["X-Cache"], "MISS")
+        # Writes outside any account still clear everyone's
+        Property.all_objects.filter(name="Hillside").delete()
+        self.assertEqual(self.client.get("/api/properties/")["X-Cache"], "MISS")
+

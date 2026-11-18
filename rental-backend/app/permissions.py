@@ -38,6 +38,12 @@ CARETAKER_READS = re.compile(
 CARETAKER_WRITES = re.compile(r"^/api/maintenance-requests/(\d+/)?$")
 
 
+def hides_money(request):
+    """Whether this request's user is a caretaker, who is shown no balances or payments."""
+    user = getattr(request, "user", None)
+    return getattr(user, "role", None) == "caretaker"
+
+
 def role_allows(role, method, path):
     if ANYONE.match(path):
         return True
@@ -60,8 +66,13 @@ class IsAccountMember(BasePermission):
 
     def has_permission(self, request, view):
         user = request.user
-        if not (user and user.is_authenticated and user.account_id):
+        if not (user and user.is_authenticated):
             return False
+        if not user.account_id:
+            # Someone not yet placed in an account (an operator made with
+            # createsuperuser) may still see who they are and sign out
+            set_current_account(None)
+            return bool(ANYONE.match(request.path))
         # Also covers sign-ins that skip the JWT class (tests, browsable API)
         set_current_account(user.account_id)
         return role_allows(user.role, request.method, request.path)

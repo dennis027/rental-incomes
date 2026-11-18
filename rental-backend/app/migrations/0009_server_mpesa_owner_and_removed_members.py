@@ -12,16 +12,22 @@ def mark_server_mpesa_owner(apps, schema_editor):
         Account.objects.filter(pk=first.pk).update(uses_server_mpesa=True)
 
 
-def mark_removed_members(apps, schema_editor):
+def was_removed_from_a_team(user, account):
     """
-    Members removed before removed_at existed: inactive, in an account that has
-    active members. A sign-up waiting for its activation email is alone in its own account.
+    Inactive and added to the account after it was made, i.e. through the team
+    page. Everyone who was there before accounts existed was put into one
+    shared account by 0005, so an old sign-up still awaiting activation (or a
+    user deactivated in the admin) joined before that account was created.
     """
-    User = apps.get_model("app", "CustomUser")
-    for user in User.objects.filter(is_active=False, removed_at__isnull=True, account__isnull=False):
-        if User.objects.filter(account_id=user.account_id, is_active=True).exists():
-            User.objects.filter(pk=user.pk).update(removed_at=timezone.now(), password="!")
+    return user.date_joined > account.created_at
 
+
+def mark_removed_members(apps, schema_editor):
+    """Members removed from a team before removed_at existed. Passwords are left alone."""
+    User = apps.get_model("app", "CustomUser")
+    for user in User.objects.filter(is_active=False, removed_at__isnull=True, account__isnull=False).select_related("account"):
+        if was_removed_from_a_team(user, user.account):
+            User.objects.filter(pk=user.pk).update(removed_at=timezone.now())
 
 
 class Migration(migrations.Migration):

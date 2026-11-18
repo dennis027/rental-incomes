@@ -48,7 +48,8 @@ class MeView(APIView):
 
     def get(self, request):
         user = request.user
-        return Response({**user_summary(user), "account": {"id": user.account_id, "name": user.account.name}})
+        account = {"id": user.account_id, "name": user.account.name} if user.account_id else None
+        return Response({**user_summary(user), "account": account})
 
 
 # Who may see the paybill callback URLs. The token in them is the only thing

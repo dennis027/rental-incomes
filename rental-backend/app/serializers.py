@@ -147,6 +147,16 @@ class UnitSerializer(serializers.ModelSerializer):
         fields = "__all__"  # your existing fields
         # DRF will automatically append the two new fields
 
+    MONEY_FIELDS = ("total_billed", "total_paid", "balance")
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        request = self.context.get("request")
+        if request is not None and getattr(request.user, "role", None) == "caretaker":
+            for name in self.MONEY_FIELDS:
+                data.pop(name, None)
+        return data
+
     def get_tenant_name(self, obj):
         # Reverse one-to-one: raises when the unit has no tenant
         tenant = getattr(obj, "tenant", None)
@@ -208,6 +218,10 @@ class CustomerSerializer(serializers.ModelSerializer):
         return self._unique_in_account("phone_number", value, "phone number")
 
     def validate_email(self, value):
+        # Stored as NULL when left out: the database counts '' as a value, so a
+        # second tenant without an email would collide with the first
+        if not value:
+            return None
         return self._unique_in_account("email", value, "email")
 
     def validate_id_number(self, value):
@@ -322,6 +336,18 @@ class PaymentSerializer(serializers.ModelSerializer):
         model = Payment
         # Set from the invoice, expense or repair it pays, never from the request body
         exclude = ("account",)
+
+    def validate_reference(self, value):
+        """Unique within the account (Payment.objects holds only its payments), like the database rule."""
+        value = (value or "").strip() or None
+        if value is None:
+            return None
+        taken = Payment.objects.filter(reference=value)
+        if self.instance is not None:
+            taken = taken.exclude(pk=self.instance.pk)
+        if taken.exists():
+            raise serializers.ValidationError("This reference has already been used on another payment.")
+        return value
 
     def get_customer_name(self, obj):
         if obj.receipt and obj.receipt.contract.customer:

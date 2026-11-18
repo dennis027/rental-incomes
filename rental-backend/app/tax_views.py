@@ -75,6 +75,8 @@ class RentalIncomeTaxView(APIView):
     def get(self, request):
         year, month = _month(request.query_params.get("month"))
         property_id = request.query_params.get("property_id") or None
+        if property_id is not None and not str(property_id).isdigit():
+            return Response({"property_id": ["Choose a property."]}, status=400)
         start = date(year, month, 1)
         end = date(year, month, calendar.monthrange(year, month)[1])
         due_year, due_month = _shift(year, month, 1)
