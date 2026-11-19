@@ -92,9 +92,9 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write   # pushes the built site to the gh-pages branch
-    environment:
-      name: github-pages
-      url: https://dennis027.github.io/rental-incomes/
+    # No `environment:` here: GitHub's github-pages environment only lets the
+    # gh-pages branch deploy, and this job publishes by pushing to that branch anyway.
+    # The site: https://dennis027.github.io/rental-incomes/
     defaults:
       run:
         working-directory: rental-frontend
