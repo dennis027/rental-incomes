@@ -106,6 +106,15 @@ jobs:
           cache: npm
           cache-dependency-path: rental-frontend/package-lock.json
       - run: npm ci
+      # src/environments is gitignored (as in rental-frontend/Dockerfile), so write it here.
+      # The site calls the Render API; set the API_URL repository variable to point elsewhere.
+      - name: Write src/environments
+        env:
+          API_URL: ${{ vars.API_URL || 'https://den-rent.onrender.com/' }}
+        run: |
+          mkdir -p src/environments
+          echo "export const environment = { production: false, apiUrl: '${API_URL}' };" > src/environments/environment.ts
+          echo "export const environment = { production: true, apiUrl: '${API_URL}' };" > src/environments/environment.prod.ts
       # Same build as `npm run deploy`: production settings (the Render API), served under /rental-incomes/
       - run: npm run build:gh
       # Pages has no server-side routing: unknown paths (/dashboard/...) get the app shell,
