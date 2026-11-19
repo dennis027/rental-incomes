@@ -31,8 +31,8 @@ export class BillingService {
     return this.http.post<any>(`${this.api}contracts/${contractId}/move-out/`, data, { headers: this.headers() });
   }
 
-  /** Texts sent to tenants, and whether SMS is set up on the server */
-  reminders(): Observable<{ configured: boolean; enabled: boolean; messages: any[] }> {
+  /** Reminders sent to tenants, and which channels (sms, whatsapp) this account can send on */
+  reminders(): Observable<{ configured: boolean; channels: ('sms' | 'whatsapp')[]; enabled: boolean; messages: any[] }> {
     return this.http.get<any>(`${this.api}reminders/`, { headers: this.headers() });
   }
 

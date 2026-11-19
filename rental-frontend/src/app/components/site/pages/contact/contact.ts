@@ -4,6 +4,7 @@ import { RouterLink } from '@angular/router';
 import { SiteIcon } from '../../site-icon';
 import { SITE } from '../../site-info';
 import { SiteFormsService, formErrorMessage } from '../../../../services/site-forms';
+import { whatsappLink } from '../../../../shared/share';
 
 @Component({
   selector: 'app-contact-page',
@@ -31,7 +32,8 @@ export class ContactPage {
   });
 
   get whatsappLink() {
-    return this.site.whatsapp ? `https://wa.me/${this.site.whatsapp}` : '';
+    // WhatsApp Web on computers, the app on phones
+    return this.site.whatsapp ? whatsappLink(this.site.whatsapp, '') : '';
   }
 
   invalid(name: keyof typeof this.form.controls) {

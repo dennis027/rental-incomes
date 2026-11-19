@@ -1,0 +1,57 @@
+<div class="dialog-head">
+  <div>
+    <h2 mat-dialog-title>Send on WhatsApp</h2>
+    <p class="dialog-sub">{{ data.recipientName || 'Tenant' }} · sent from your business WhatsApp number</p>
+  </div>
+  <button mat-icon-button (click)="close()" aria-label="Close dialog"><mat-icon>close</mat-icon></button>
+</div>
+
+<mat-dialog-content>
+  @if (stage === 'edit') {
+    <form [formGroup]="form" class="wa-form">
+      <mat-form-field appearance="outline">
+        <mat-label>WhatsApp number</mat-label>
+        <input matInput formControlName="phone" inputmode="tel" />
+        @if (form.get('phone')?.invalid) {
+          <mat-error>Enter a number such as 0712 345 678</mat-error>
+        }
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>Message</mat-label>
+        <textarea matInput formControlName="message" rows="7" [maxlength]="max" cdkFocusInitial></textarea>
+        <mat-hint align="end">{{ length }} / {{ max }}</mat-hint>
+        @if (form.get('message')?.hasError('required')) {
+          <mat-error>Write a message</mat-error>
+        }
+      </mat-form-field>
+    </form>
+
+    <div class="wa-preview">
+      <span class="wa-preview-label">The tenant receives</span>
+      <div class="wa-bubble">{{ preview }}</div>
+      <small>WhatsApp sends business messages in one paragraph, so line breaks become spaces.</small>
+    </div>
+
+    @if (error) {
+      <p class="wa-error"><mat-icon>error_outline</mat-icon> {{ error }}</p>
+    }
+  } @else {
+    <div class="wa-state">
+      <mat-icon>check_circle</mat-icon>
+      <strong>Sent to {{ form.get('phone')?.value }}</strong>
+      <span>WhatsApp has accepted the message. It is in the reminders log.</span>
+    </div>
+  }
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  @if (stage === 'edit') {
+    <button mat-button (click)="close()">Cancel</button>
+    <button mat-flat-button color="primary" (click)="send()" [disabled]="sending || form.invalid">
+      {{ sending ? 'Sending…' : 'Send' }}
+    </button>
+  } @else {
+    <button mat-flat-button color="primary" (click)="close()">Done</button>
+  }
+</mat-dialog-actions>

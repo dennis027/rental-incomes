@@ -7,7 +7,8 @@ import { SharedImports } from '../../../shared-imports/imports';
 import { BillingService } from '../../../services/billing';
 import { ContractsService } from '../../../services/contract-service';
 import { PropertyContext } from '../../../services/property-context';
-import { longDate, openWhatsApp } from '../../../shared/share';
+import { longDate } from '../../../shared/share';
+import { WhatsAppComposer } from '../whatsapp-message/whatsapp-message-dialog';
 
 /** Dashboard card: contracts that end within 60 days or have already run past their end date. */
 @Component({
@@ -25,6 +26,7 @@ export class ContractsEndingSoon {
   private snackBar = inject(MatSnackBar);
   private cdr = inject(ChangeDetectorRef);
   private platformId = inject(PLATFORM_ID);
+  private composer = inject(WhatsAppComposer);
 
   @ViewChild('renewDialog') renewDialog!: TemplateRef<any>;
 
@@ -89,8 +91,9 @@ export class ContractsEndingSoon {
 
   ask(contract: any): void {
     const when = contract.days_left < 0 ? `ended on ${longDate(contract.end_date)}` : `ends on ${longDate(contract.end_date)}`;
-    openWhatsApp(contract.customer_phone,
+    this.composer.compose(contract.customer_phone,
       `Hello ${contract.customer_name.split(' ')[0]}, your tenancy for Unit ${contract.unit} at ${contract.property} ${when}. ` +
-      `Would you like to renew? Please let us know.`);
+      `Would you like to renew? Please let us know.`,
+      { recipientName: contract.customer_name, contractId: contract.id });
   }
 }

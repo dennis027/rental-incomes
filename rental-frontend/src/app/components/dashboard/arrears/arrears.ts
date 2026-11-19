@@ -11,7 +11,8 @@ import { invoiceNumber } from '../rent-document/rent-document';
 import { openRecordPayment } from '../record-payment/record-payment-dialog';
 import { openStkPush, stkConfigured } from '../stk-push/stk-push-dialog';
 import { HttpClient } from '@angular/common/http';
-import { longDate, money, openWhatsApp } from '../../../shared/share';
+import { longDate, money } from '../../../shared/share';
+import { WhatsAppComposer } from '../whatsapp-message/whatsapp-message-dialog';
 import { downloadCsv, fileDate } from '../../../shared/export';
 
 export interface ArrearsRow {
@@ -50,9 +51,13 @@ export class Arrears {
   private snackBar = inject(MatSnackBar);
 
   private http = inject(HttpClient);
+  private composer = inject(WhatsAppComposer);
 
   // SMS and M-Pesa prompt buttons show once they are set up on the server
   smsReady = false;
+  /** How reminders go out for this account: "SMS", "WhatsApp" or "SMS & WhatsApp" */
+  channelLabel = 'SMS';
+  channelIcon = 'sms';
   stkReady = false;
   texting = false;
 
@@ -184,6 +189,9 @@ export class Arrears {
     this.billing.reminders().subscribe({
       next: info => {
         this.smsReady = info.configured;
+        const channels = info.channels ?? ['sms'];
+        this.channelLabel = channels.length > 1 ? 'SMS & WhatsApp' : channels[0] === 'whatsapp' ? 'WhatsApp' : 'SMS';
+        this.channelIcon = channels.length === 1 && channels[0] === 'whatsapp' ? 'chat' : 'sms';
         this.cdr.markForCheck();
       },
       error: () => {}
@@ -203,7 +211,7 @@ export class Arrears {
         const queued: number = result.queued ?? 0;
         const skipped: number = result.skipped_recent ?? 0;
         let message = queued
-          ? `Sending ${queued} SMS reminder${queued === 1 ? '' : 's'}`
+          ? `Sending ${queued} reminder${queued === 1 ? '' : 's'} by ${this.channelLabel}`
           : 'No reminders sent';
         if (skipped) {
           message += `. ${skipped} tenant${skipped === 1 ? ' was' : 's were'} texted a few minutes ago and ${skipped === 1 ? 'was' : 'were'} skipped`;
@@ -229,9 +237,10 @@ export class Arrears {
     const overdue = row.days_overdue > 0
       ? `It was due on ${longDate(row.due_date)} and is now ${row.days_overdue} day${row.days_overdue === 1 ? '' : 's'} overdue.`
       : `It is due by ${longDate(row.due_date)}.`;
-    openWhatsApp(row.customer_phone,
+    this.composer.compose(row.customer_phone,
       `Hello ${firstName}, this is a reminder that the rent account for Unit ${row.unit} at ${row.property} has a balance of KES ${money(row.outstanding)}. ` +
-      `${overdue} Please quote ${invoiceNumber(row.invoice_number)} when paying. Thank you.`);
+      `${overdue} Please quote ${invoiceNumber(row.invoice_number)} when paying. Thank you.`,
+      { recipientName: row.customer_name, contractId: row.contract_id });
   }
 
   // ---------- Pay ----------

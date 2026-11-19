@@ -33,6 +33,9 @@ export interface AccountSettings {
   paybill_validation_url: string | null;
   paybill_confirmation_url: string | null;
   sms_configured: boolean;
+  /** How rent reminders reach tenants */
+  reminder_channel: 'sms' | 'whatsapp' | 'both';
+  whatsapp_configured: boolean;
   /** The account's own paybill/till number for "pay now" prompts and SMS pay lines */
   mpesa_shortcode: string;
   /** Write-only; reads only say whether one is saved */

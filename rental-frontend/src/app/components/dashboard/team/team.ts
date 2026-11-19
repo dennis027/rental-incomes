@@ -48,6 +48,7 @@ export class Team implements OnInit {
   accountForm = this.fb.group({
     name: ['', [Validators.required, Validators.maxLength(150)]],
     sms_reminders_enabled: [false],
+    reminder_channel: ['sms' as 'sms' | 'whatsapp' | 'both', Validators.required],
     sms_days_before_due: [3, [Validators.required, Validators.min(0), Validators.max(15)]],
     sms_overdue_every_days: [7, [Validators.required, Validators.min(1), Validators.max(30)]],
   });

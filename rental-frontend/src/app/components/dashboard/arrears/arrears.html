@@ -60,7 +60,7 @@
         <div class="ui-bulk-actions">
           <button mat-button (click)="clearSelection()">Clear</button>
           @if (smsReady) {
-            <button mat-flat-button (click)="smsSelected()" [disabled]="texting"><mat-icon>sms</mat-icon> {{ texting ? 'Sending…' : 'Send SMS' }}</button>
+            <button mat-flat-button (click)="smsSelected()" [disabled]="texting"><mat-icon>{{ channelIcon }}</mat-icon> {{ texting ? 'Sending…' : 'Send ' + channelLabel }}</button>
           }
           <button mat-flat-button (click)="startQueue()"><i class="fab fa-whatsapp"></i>&nbsp; Send reminders</button>
         </div>
@@ -157,8 +157,8 @@
                 </button>
               }
               @if (smsReady) {
-                <button mat-icon-button (click)="sms([row])" [disabled]="texting" matTooltip="Send a reminder by SMS" aria-label="Send a reminder by SMS">
-                  <mat-icon>sms</mat-icon>
+                <button mat-icon-button (click)="sms([row])" [disabled]="texting" [matTooltip]="'Send a reminder by ' + channelLabel" [attr.aria-label]="'Send a reminder by ' + channelLabel">
+                  <mat-icon>{{ channelIcon }}</mat-icon>
                 </button>
               }
               <button mat-icon-button class="whatsapp-btn" (click)="remind(row)" matTooltip="Send a reminder on WhatsApp" aria-label="Send a reminder on WhatsApp">

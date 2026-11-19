@@ -1,7 +1,8 @@
-import { Component, ElementRef, Input, ViewChild } from '@angular/core';
+import { Component, ElementRef, Input, ViewChild, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { buildRentDocumentPdf } from './rent-document-pdf';
-import { longDate, money, openWhatsApp } from '../../../shared/share';
+import { longDate, money } from '../../../shared/share';
+import { WhatsAppComposer } from '../whatsapp-message/whatsapp-message-dialog';
 
 export interface RentDocumentLine {
   label: string;
@@ -81,6 +82,7 @@ export function receiptDocument(payment: any, invoice: any, paidToDate: number):
 })
 export class RentDocument {
   @Input() doc: RentDocumentData | null = null;
+  private composer = inject(WhatsAppComposer);
 
   /** The landlord or agency issuing the document (the account name) */
   issuer = (() => {
@@ -160,7 +162,7 @@ export class RentDocument {
           ? `Balance remaining on invoice ${d.payment?.invoiceNumber}: KES ${money(d.balance)}.`
           : `Invoice ${d.payment?.invoiceNumber} is now fully paid.`) + ' Thank you.';
     }
-    openWhatsApp(d.tenant.phone, message);
+    this.composer.compose(d.tenant.phone, message, { recipientName: d.tenant.name });
   }
 
   /** Save the document as an A4 PDF. */

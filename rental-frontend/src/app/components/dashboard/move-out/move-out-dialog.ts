@@ -3,7 +3,8 @@ import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { SharedImports } from '../../../shared-imports/imports';
 import { BillingService } from '../../../services/billing';
-import { longDate, money, openWhatsApp, printPdf } from '../../../shared/share';
+import { longDate, money, printPdf } from '../../../shared/share';
+import { WhatsAppComposer } from '../whatsapp-message/whatsapp-message-dialog';
 import { buildMoveOutPdf } from './move-out-pdf';
 
 /**
@@ -24,6 +25,7 @@ export class MoveOutDialog implements OnInit {
   private cdr = inject(ChangeDetectorRef);
   private dialogRef = inject(MatDialogRef<MoveOutDialog>);
   data: { contractId: number } = inject(MAT_DIALOG_DATA);
+  private composer = inject(WhatsAppComposer);
 
   isLoading = true;
   loadError = '';
@@ -141,8 +143,9 @@ export class MoveOutDialog implements OnInit {
     const outcome = refund >= 0
       ? `Refund to you: KES ${money(refund)}.`
       : `Amount still payable: KES ${money(-refund)}.`;
-    openWhatsApp(s.tenant.phone,
+    this.composer.compose(s.tenant.phone,
       `Hello ${s.tenant.name.split(' ')[0]}, here is your move-out statement for Unit ${s.unit} at ${s.property.name} (${longDate(s.move_out_date)}). ` +
-      `Deposit held: KES ${money(s.deposit_held)}. Unpaid rent and bills: KES ${money(s.unpaid_balance)}. Deductions: KES ${money(s.deductions)}. ${outcome}`);
+      `Deposit held: KES ${money(s.deposit_held)}. Unpaid rent and bills: KES ${money(s.unpaid_balance)}. Deductions: KES ${money(s.deductions)}. ${outcome}`,
+      { recipientName: s.tenant.name, contractId: this.data.contractId });
   }
 }

@@ -77,8 +77,8 @@
           <header class="team-card-head">
             <span class="team-icon"><i class="fas fa-comment-sms"></i></span>
             <div>
-              <h3>Account &amp; SMS reminders</h3>
-              <p>Tenants get a text before rent is due and while it is overdue.</p>
+              <h3>Account &amp; rent reminders</h3>
+              <p>Tenants get a reminder before rent is due and while it is overdue, by SMS, WhatsApp or both.</p>
             </div>
           </header>
           <form [formGroup]="accountForm" class="team-form" (ngSubmit)="saveAccount()">
@@ -93,15 +93,30 @@
 
             <div class="team-toggle">
               <div>
-                <label for="sms-toggle">Send SMS rent reminders</label>
-                @if (account?.sms_configured) {
-                  <small>Sent at 8am to tenants due soon or overdue.</small>
-                } @else {
-                  <small class="team-warn">SMS is not set up on the server yet (Africa's Talking keys), so nothing will be sent.</small>
-                }
+                <label for="sms-toggle">Send rent reminders automatically</label>
+                <small>Sent at 8am to tenants due soon or overdue.</small>
               </div>
-              <mat-slide-toggle id="sms-toggle" formControlName="sms_reminders_enabled" aria-label="Send SMS rent reminders"></mat-slide-toggle>
+              <mat-slide-toggle id="sms-toggle" formControlName="sms_reminders_enabled" aria-label="Send rent reminders automatically"></mat-slide-toggle>
             </div>
+
+            <mat-form-field appearance="outline">
+              <mat-label>Send reminders by</mat-label>
+              <mat-select formControlName="reminder_channel">
+                <mat-option value="sms">SMS</mat-option>
+                <mat-option value="whatsapp">WhatsApp</mat-option>
+                <mat-option value="both">SMS and WhatsApp</mat-option>
+              </mat-select>
+              <mat-hint>Applies to automatic reminders and the ones you send from Arrears</mat-hint>
+            </mat-form-field>
+            @if (account) {
+              @let channel = accountForm.get('reminder_channel')?.value;
+              @if ((channel === 'sms' || channel === 'both') && !account.sms_configured) {
+                <p class="team-note team-warn">SMS is not set up on the server yet (Africa's Talking keys), so no texts will be sent.</p>
+              }
+              @if ((channel === 'whatsapp' || channel === 'both') && !account.whatsapp_configured) {
+                <p class="team-note team-warn">WhatsApp is not set up on the server yet (Meta keys and approved templates), so no WhatsApp messages will be sent.</p>
+              }
+            }
 
             <div class="dialog-grid">
               <mat-form-field appearance="outline">

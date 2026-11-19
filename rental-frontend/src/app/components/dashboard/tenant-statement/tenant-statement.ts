@@ -3,7 +3,8 @@ import { Location, isPlatformBrowser } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
 import { SharedImports } from '../../../shared-imports/imports';
 import { BillingService } from '../../../services/billing';
-import { longDate, money, openWhatsApp, printPdf } from '../../../shared/share';
+import { longDate, money, printPdf } from '../../../shared/share';
+import { WhatsAppComposer } from '../whatsapp-message/whatsapp-message-dialog';
 import { invoiceNumber } from '../rent-document/rent-document';
 import { buildStatementPdf } from './statement-pdf';
 
@@ -29,6 +30,7 @@ export class TenantStatement implements OnInit {
   loadError = false;
 
   contractId: number | '' = '';
+  private composer = inject(WhatsAppComposer);
   startDate = '';
   endDate = '';
 
@@ -106,8 +108,9 @@ export class TenantStatement implements OnInit {
       : this.closing > 0
         ? `The balance due is KES ${money(this.closing)}.`
         : 'Your account is fully paid. Thank you.';
-    openWhatsApp(tenant.phone,
+    this.composer.compose(tenant.phone,
       `Hello ${tenant.name.split(' ')[0]}, here is your rent statement${where} as at ${longDate(this.statement.generated_on)}: ` +
-      `charged KES ${money(this.statement.total_charged)}, paid KES ${money(this.statement.total_paid)}. ${balance}`);
+      `charged KES ${money(this.statement.total_charged)}, paid KES ${money(this.statement.total_paid)}. ${balance}`,
+      { recipientName: tenant.name, contractId: this.contractId || null });
   }
 }
