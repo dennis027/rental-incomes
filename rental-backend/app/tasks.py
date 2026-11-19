@@ -42,3 +42,21 @@ def send_rent_reminders():
     from .sms import send_daily_reminders
     sent = send_daily_reminders()
     logger.info("Sent %d rent reminders", sent)
+
+
+@shared_task
+def send_manual_reminders(account_id, contract_ids):
+    """SMS the tenants an owner picked in Arrears, outside the web request."""
+    from .models import Account
+    from .sms import send_manual_reminders as send
+    from .tenancy import reset_current_account, set_current_account
+    account = Account.objects.filter(pk=account_id).first()
+    if account is None:
+        return
+    token = set_current_account(account.id)
+    try:
+        sent, failed, skipped = send(account, contract_ids)
+    finally:
+        reset_current_account(token)
+    logger.info("Manual reminders for account %s: %d sent, %d failed, %d skipped as recent",
+                account_id, sent, failed, skipped)

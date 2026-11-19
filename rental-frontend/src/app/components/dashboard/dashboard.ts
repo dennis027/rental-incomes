@@ -3,7 +3,7 @@ import { Logo } from '../../shared/logo';
 // dashboard.component.ts
 import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { rememberPath } from '../../services/return-path';
-import { Component, OnInit, OnDestroy, HostListener, Inject, PLATFORM_ID, effect, inject, untracked } from '@angular/core';
+import { ChangeDetectorRef, Component, OnInit, OnDestroy, HostListener, Inject, PLATFORM_ID, effect, inject, untracked } from '@angular/core';
 import { Router, RouterModule } from '@angular/router';
 import { AuthService } from '../../services/auth';
 import { MatMenuModule } from '@angular/material/menu';
@@ -14,7 +14,7 @@ import { NotificationsService } from '../../services/notifications';
 import { openSearchPalette } from './search-palette/search-palette';
 import { Shortcut, openShortcuts as showShortcuts } from './shortcuts/shortcuts-dialog';
 import { openIdleDialog } from './idle/idle-dialog';
-import { ROLE_OPTIONS, currentRole, roleCanOpen } from '../../services/account';
+import { AccountService, ROLE_OPTIONS, Role, currentRole, homeFor, rememberRole, roleCanOpen } from '../../services/account';
 
 // Last activity in any tab, and how long the dashboard may sit unused
 const ACTIVITY_KEY = 'last_activity';
@@ -62,10 +62,50 @@ links = [
   role = currentRole();
 
   // Sidebar sections, in display order, with only the pages this role can open
-  groups = ['Overview', 'Set up', 'Rent', 'Manage'].map(name => ({
-    name,
-    links: this.links.filter(link => link.group === name && roleCanOpen(this.role, link.route))
-  })).filter(group => group.links.length > 0);
+  groups = this.buildGroups();
+
+  private buildGroups() {
+    return ['Overview', 'Set up', 'Rent', 'Manage'].map(name => ({
+      name,
+      links: this.links.filter(link => link.group === name && roleCanOpen(this.role, link.route))
+    })).filter(group => group.links.length > 0);
+  }
+
+  private accountService = inject(AccountService);
+  private cdr = inject(ChangeDetectorRef);
+
+  /**
+   * The role is saved at sign-in, so a session from before roles existed, or
+   * someone whose role an owner has since changed, would see the wrong pages.
+   * Ask the server, and follow it.
+   */
+  @HostListener('window:focus')
+  refreshRole(): void {
+    if (!isPlatformBrowser(this.platformId) || !this.authService.hasSession()) {
+      return;
+    }
+    this.accountService.me().subscribe({
+      next: me => {
+        if (me.account?.name) {
+          this.accountName = me.account.name;
+          localStorage.setItem('account_name', me.account.name);
+        }
+        rememberRole(me.role as Role);
+        if (me.role === this.role) {
+          this.cdr.markForCheck();
+          return;
+        }
+        this.role = me.role as Role;
+        this.groups = this.buildGroups();
+        if (!roleCanOpen(this.role, this.router.url)) {
+          this.router.navigate([homeFor(this.role)]);
+        }
+        this.cdr.markForCheck();
+      },
+      // Offline or signed out: the session check deals with it
+      error: () => {},
+    });
+  }
 
   // The set-up and rent pages form one chain; this is what the "Next" link follows
   private flow = ['Properties', 'Units', 'Tenants', 'Contracts', 'Invoices', 'Payments'];
@@ -125,6 +165,7 @@ links = [
       // The guard only runs on navigation, so a tab left open would keep
       // showing data after the session ran out
       this.noteActivity(true);
+      this.refreshRole();
       this.sessionTimer = setInterval(() => this.checkSession(), 30_000);
     }
   }
@@ -148,10 +189,9 @@ links = [
     }
     // Signed out after a stretch without activity in any tab, so an
     // unattended office computer does not stay open on tenants' details
-    const idleFor = Date.now() - Number(localStorage.getItem(ACTIVITY_KEY) || Date.now());
-    if (idleFor > IDLE_LIMIT_MS && !this.dialog.getDialogById('idle')) {
+    if (this.idle() && !this.dialog.getDialogById('idle')) {
       this.dialog.closeAll();
-      openIdleDialog(this.dialog).subscribe(stay => {
+      openIdleDialog(this.dialog, { stillIdle: () => this.idle() }).subscribe(stay => {
         if (stay) {
           this.noteActivity(true);
         } else {
@@ -159,6 +199,17 @@ links = [
         }
       });
     }
+  }
+
+  /** No activity in any tab for the idle limit */
+  private idle(): boolean {
+    let last: string | null = null;
+    try {
+      last = localStorage.getItem(ACTIVITY_KEY);
+    } catch {
+      return false;
+    }
+    return Date.now() - Number(last || Date.now()) > IDLE_LIMIT_MS;
   }
 
   /** Remembers the last mouse, key or touch use; shared by every open tab */

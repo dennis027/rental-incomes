@@ -560,11 +560,18 @@ class StkPushView(APIView):
         invoice = get_object_or_404(Receipt.objects.select_related("contract__customer", "contract__unit"),
                                     pk=request.data.get("receipt"))
         contract = invoice.contract
+        # Billing is per tenant, not per invoice: each invoice carries the
+        # unpaid balance of the earlier ones forward, and a payment always goes
+        # on the latest (Payment.save moves it there). So the prompt is for what
+        # the tenant owes in all, and is recorded against that latest invoice,
+        # whichever of their invoices it was started from.
+        invoices = billing.contract_invoices(contract)
+        invoice = billing.invoice_to_pay(invoices) or invoice
         # Safaricom only takes whole shillings. Round up, so a balance of
         # 1000.50 is cleared in one prompt rather than left 50 cents short.
-        owed = billing.outstanding(billing.contract_invoices(contract)).quantize(Decimal("1"), rounding=ROUND_CEILING)
+        owed = billing.outstanding(invoices).quantize(Decimal("1"), rounding=ROUND_CEILING)
         if owed < 1:
-            return Response({"error": "Nothing is owed on this invoice."}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({"error": "This tenant owes nothing."}, status=status.HTTP_400_BAD_REQUEST)
         raw = request.data.get("amount")
         if raw in (None, ""):
             amount = owed  # the whole balance, already rounded up

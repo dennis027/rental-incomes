@@ -109,29 +109,66 @@ def send_reminder(row, kind, account):
 
 
 def due_reminders(account, today=None):
-    """The arrears rows that should get an automatic text today, with the kind of text."""
+    """
+    The arrears rows that should get an automatic text today, with the kind of
+    text. What was already sent is read in two queries up front, not one per row.
+    """
     today = today or timezone.localdate()
+    rows = [row for row in billing.arrears(today=today) if row["is_active"]]
+    contract_ids = {row["contract_id"] for row in rows}
+    # Due-soon texts go once per invoice
+    due_sent = set(SmsMessage.objects.filter(
+        contract_id__in=contract_ids, kind=SmsMessage.DUE, sent=True,
+    ).values_list("contract_id", "invoice_number"))
+    # Overdue texts repeat every few days; a text sent by hand counts too
+    since = timezone.now() - timedelta(days=account.sms_overdue_every_days)
+    overdue_recent = set(SmsMessage.objects.filter(
+        contract_id__in=contract_ids, kind__in=[SmsMessage.OVERDUE, SmsMessage.MANUAL],
+        sent=True, created_at__gte=since,
+    ).values_list("contract_id", flat=True))
+
     picked = []
-    for row in billing.arrears(today=today):
-        if not row["is_active"]:
-            continue
+    for row in rows:
         days_to_due = (row["due_date"] - today).days
         if 0 <= days_to_due <= account.sms_days_before_due:
-            # Once per invoice
-            already = SmsMessage.objects.filter(
-                contract_id=row["contract_id"], invoice_number=row["invoice_number"], kind=SmsMessage.DUE, sent=True,
-            ).exists()
-            if not already:
+            if (row["contract_id"], row["invoice_number"]) not in due_sent:
                 picked.append((row, SmsMessage.DUE))
         elif row["days_overdue"] > 0:
-            since = timezone.now() - timedelta(days=account.sms_overdue_every_days)
-            recent = SmsMessage.objects.filter(
-                contract_id=row["contract_id"], kind__in=[SmsMessage.OVERDUE, SmsMessage.MANUAL],
-                sent=True, created_at__gte=since,
-            ).exists()
-            if not recent:
+            if row["contract_id"] not in overdue_recent:
                 picked.append((row, SmsMessage.OVERDUE))
     return picked
+
+
+# A reminder sent by hand is not sent again within this long: a retried or
+# double-clicked request must not text the same tenant twice
+MANUAL_REPEAT_WINDOW = timedelta(minutes=10)
+
+
+def recently_texted(contract_ids):
+    """Contracts that got a text sent by hand within MANUAL_REPEAT_WINDOW."""
+    return set(SmsMessage.objects.filter(
+        contract_id__in=contract_ids, kind=SmsMessage.MANUAL, sent=True,
+        created_at__gte=timezone.now() - MANUAL_REPEAT_WINDOW,
+    ).values_list("contract_id", flat=True))
+
+
+def send_manual_reminders(account, contract_ids):
+    """
+    Text the chosen tenants now; run by a Celery task, so the web request does
+    not wait on the provider. Safe to run twice: recent ones are skipped.
+    Returns (sent, failed, skipped) counts.
+    """
+    wanted = set(contract_ids) - recently_texted(contract_ids)
+    skipped = len(set(contract_ids)) - len(wanted)
+    sent = failed = 0
+    for row in billing.arrears():
+        if row["contract_id"] not in wanted:
+            continue
+        if send_reminder(row, SmsMessage.MANUAL, account) is None:
+            sent += 1
+        else:
+            failed += 1
+    return sent, failed, skipped
 
 
 def send_daily_reminders(today=None):

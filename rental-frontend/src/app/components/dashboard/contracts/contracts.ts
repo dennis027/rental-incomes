@@ -6,16 +6,13 @@ import { isPlatformBrowser } from '@angular/common';
 import { MatPaginator } from '@angular/material/paginator';
 import { MatTableDataSource } from '@angular/material/table';
 import { SharedImports } from '../../../shared-imports/imports';
-import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { MatDialog } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { Router } from '@angular/router';
 import { forkJoin } from 'rxjs';
 import { ContractsService } from '../../../services/contract-service';
-import { CustomersService } from '../../../services/customer';
 import { UnitsService } from '../../../services/units';
 import { PropertiesService } from '../../../services/properties';
-import { SystemParametersServices } from '../../../services/system-parameters-services';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 import { environment } from '../../../../environments/environment';
@@ -67,11 +64,8 @@ export class Contracts implements OnInit, AfterViewInit {
   private router = inject(Router);
   private cdr = inject(ChangeDetectorRef);
   private contractsService = inject(ContractsService);
-  private customersService = inject(CustomersService);
   private unitsService = inject(UnitsService);
   private propertyService = inject(PropertiesService);
-  private systemParametersService = inject(SystemParametersServices);
-  private fb = inject(FormBuilder);
   private platformId = inject(PLATFORM_ID); // ✅ Add this
 
   apiUrl = environment.apiUrl;
@@ -95,27 +89,15 @@ export class Contracts implements OnInit, AfterViewInit {
     'actions',
   ];
 
-  contractForm!: FormGroup;
-  updateContractForm!: FormGroup;
-  selectedContractId: number | null = null;
-  isEditMode = false;
-
   isLoading: boolean = false;
-  loadAdding = false;
-  loadUpdating = false;
-  loadDeleting = false;
-  loadCancelling = false;
   isGeneratingPDF = false;
   selectedPropertyId: any;
   error: string | null = null;
 
-  customers: any[] = [];
   units: any[] = [];
   properties: any[] = [];
-  filteredUnits: any[] = [];
 
   searchText = '';
-  systemParameters: any;
 
   // Contract preview data
   selectedContract: ContractObject | null = null;
@@ -133,10 +115,6 @@ export class Contracts implements OnInit, AfterViewInit {
   }
 
   ngOnInit(): void {
-    // Initialize forms first (can run on server)
-    this.initForm();
-    this.upContractForm();
-
     // ✅ CRITICAL: Only load data in browser
     if (isPlatformBrowser(this.platformId)) {
 
@@ -179,21 +157,15 @@ export class Contracts implements OnInit, AfterViewInit {
     forkJoin({
       properties: this.propertyService.getProperties(),
       units: this.unitsService.getUnits(),
-      customers: this.customersService.getCustomers(),
       contracts: this.contractsService.getContracts(),
     }).subscribe({
-      next: ({ properties, units, customers, contracts }) => {
+      next: ({ properties, units, contracts }) => {
         this.properties = properties;
         this.units = units;
-        this.customers = customers;
         this.setContracts(contracts);
 
         if (this.properties.length > 0) {
           this.selectedPropertyId = this.propertyContext.resolve(this.properties);
-        }
-        if (this.selectedPropertyId) {
-          this.getSystemParameters(this.selectedPropertyId);
-          this.filteredUnits = this.units.filter(u => u.property === this.selectedPropertyId);
         }
 
         this.isLoading = false;
@@ -257,10 +229,6 @@ export class Contracts implements OnInit, AfterViewInit {
   }
 
   onPropertyFilterChange() {
-    if (this.selectedPropertyId) {
-      this.getSystemParameters(this.selectedPropertyId);
-      this.filteredUnits = this.units.filter(u => u.property === this.selectedPropertyId);
-    }
     this.applyView();
   }
 
@@ -280,166 +248,6 @@ export class Contracts implements OnInit, AfterViewInit {
         }
       });
     }
-  }
-
-  initForm() {
-    this.contractForm = this.fb.group({
-      customer: ['', Validators.required],
-      unit: ['', Validators.required],
-      start_date: ['', Validators.required],
-      rent_amount: ['', Validators.required],
-      deposit_amount: ['', Validators.required],
-      payment_frequency: ['monthly', Validators.required],
-    });
-  }
-
-  upContractForm() {
-    this.updateContractForm = this.fb.group({
-      customer: ['', Validators.required],
-      unit: ['', Validators.required],
-      start_date: ['', Validators.required],
-      rent_amount: ['', Validators.required],
-      deposit_amount: ['', Validators.required],
-      payment_frequency: ['', Validators.required],
-    });
-  }
-
-  loadCustomers() {
-    this.customersService.getCustomers().subscribe({
-      next: (res) => {
-        this.customers = res;
-        this.cdr.detectChanges();
-      },
-      error: (err) => {
-        console.error('❌ Error loading customers:', err);
-        if (err.status === 401) {
-          this.router.navigate(['/login']);
-        }
-      },
-    });
-  }
-
-  loadUnits() {
-    this.unitsService.getUnits().subscribe({
-      next: (res) => {
-        this.units = res;
-        this.cdr.detectChanges();
-      },
-      error: (err) => {
-        console.error('❌ Error loading units:', err);
-        if (err.status === 401) {
-          this.router.navigate(['/login']);
-        }
-      },
-    });
-  }
-
-  onUnitChange(id: number) {
-    const test = this.units.find(u => u.id === id);
-    this.cdr.detectChanges();
-    this.contractForm.patchValue({
-      rent_amount: test ? test.rent_amount : '',
-      deposit_amount: test ? Number(test.rent_amount) * this.systemParameters.rent_deposit_months : '',
-      payment_frequency: 'monthly'
-    });
-  }
-
-  getSystemParameters(propertyId: number) {
-    this.systemParametersService.getSystemParams(propertyId).subscribe({
-      next: (res) => {
-        this.systemParameters = res;
-      },
-      error: (err) => {
-        console.error('❌ Error loading system parameters:', err);
-        if (err.status === 401) {
-          this.router.navigate(['/login']);
-        }
-      },
-    });
-  }
-
-  loadProperties() {
-    this.propertyService.getProperties().subscribe({
-      next: (res) => {
-        this.systemParameters = res;
-        this.properties = res;
-        this.selectedPropertyId = this.properties[0]?.id;
-        this.onPropertyChange(this.selectedPropertyId);
-
-      setTimeout(() => {
-      this.loadContracts();
-      }, 200);
-        this.cdr.detectChanges();
-      },
-      error: (err) => {
-        console.error('❌ Error loading properties:', err);
-        if (err.status === 401) {
-          this.router.navigate(['/login']);
-        }
-      },
-    });
-  }
-
-  onPropertyChange(propertyId: number) {
-    this.getSystemParameters(propertyId);
-    setTimeout(() => {
-      this.filteredUnits = this.units.filter(u => u.property === propertyId);
-      this.cdr.detectChanges();
-    }, 100);
-    this.contractForm.patchValue({ unit: '' });
-  }
-
-  loadContracts() {
-    this.contractsService.getContracts().subscribe({
-      next: (res) => {
-        this.setContracts(res);
-        this.applyView();
-      },
-      error: (err) => {
-        if (err.status === 401) {
-          this.router.navigate(['/login']);
-          return;
-        }
-        this.showError('Contracts could not be refreshed.');
-      },
-    });
-  }
-
-  filterContractsByProperty() {
-    this.onPropertyChange(this.selectedPropertyId);
-    if (!this.selectedPropertyId) {
-      const activeContracts = this.contracts.filter(c => c.is_active);
-      const inactiveContracts = this.contracts.filter(c => !c.is_active);
-
-      this.activeDataSource.data = activeContracts;
-      this.inactiveDataSource.data = inactiveContracts;
-      return;
-    }
-
-    const filteredContracts = this.contracts.filter(contract => {
-      const unit = this.units.find(u => u.id === contract.unit);
-      return unit && unit.property === this.selectedPropertyId;
-    });
-
-    const activeContracts = filteredContracts.filter(c => c.is_active);
-    const inactiveContracts = filteredContracts.filter(c => !c.is_active);
-
-    this.activeDataSource.data = activeContracts;
-    this.inactiveDataSource.data = inactiveContracts;
-
-    // ✅ Only update paginator in browser
-    if (isPlatformBrowser(this.platformId)) {
-      setTimeout(() => {
-        if (this.activePaginator) {
-          this.activeDataSource.paginator = this.activePaginator;
-        }
-        if (this.inactivePaginator) {
-          this.inactiveDataSource.paginator = this.inactivePaginator;
-        }
-      });
-    }
-
-    this.cdr.detectChanges();
   }
 
   openStatement(contract: ContractObject) {

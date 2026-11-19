@@ -244,26 +244,45 @@ class TeamView(APIView):
 
 
 class TeamMemberView(APIView):
+    """
+    Changes to who owns the account run one at a time: the account row is
+    locked first and everything is checked after it. Otherwise two owners
+    removing (or demoting) each other at the same moment would both see the
+    other still there, and leave the account with no owner at all.
+    """
     permission_classes = [IsAccountMember]
 
-    def _member(self, request, pk):
-        return get_object_or_404(User, pk=pk, account_id=request.user.account_id)
+    def _locked(self, request, pk):
+        """(member, refusal): the account locked for this transaction, then the rows read fresh."""
+        Account.objects.select_for_update().filter(pk=request.user.account_id).first()
+        member = get_object_or_404(User, pk=pk, account_id=request.user.account_id)
+        # The one asking may have been removed or demoted while waiting for the lock
+        me = User.objects.filter(pk=request.user.pk, is_active=True, role=User.OWNER).first()
+        if me is None:
+            return member, Response({"error": "Your role does not allow this."}, status=status.HTTP_403_FORBIDDEN)
+        return member, None
 
+    @transaction.atomic
     def patch(self, request, pk):
-        member = self._member(request, pk)
         role = request.data.get("role")
         if role not in dict(User.ROLES):
             return Response({"role": ["Choose a valid role."]}, status=status.HTTP_400_BAD_REQUEST)
+        member, refusal = self._locked(request, pk)
+        if refusal:
+            return refusal
         if member.role == User.OWNER and role != User.OWNER and not _owners_left(member.account, member):
             return Response({"error": "The account needs at least one owner."}, status=status.HTTP_400_BAD_REQUEST)
         member.role = role
         member.save(update_fields=["role"])
         return Response(user_summary(member))
 
+    @transaction.atomic
     def delete(self, request, pk):
-        member = self._member(request, pk)
-        if member.pk == request.user.pk:
+        if int(pk) == request.user.pk:
             return Response({"error": "You cannot remove yourself."}, status=status.HTTP_400_BAD_REQUEST)
+        member, refusal = self._locked(request, pk)
+        if refusal:
+            return refusal
         if member.role == User.OWNER and not _owners_left(member.account, member):
             return Response({"error": "The account needs at least one owner."}, status=status.HTTP_400_BAD_REQUEST)
         # Kept, not deleted, so the invoices and payments they recorded still name them

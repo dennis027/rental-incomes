@@ -2,14 +2,14 @@
 SMS reminders sent to tenants.
 
   GET  api/reminders/        the latest texts and whether SMS is set up
-  POST api/reminders/send/   text tenants now {contract_ids: [..]}
+  POST api/reminders/send/   text tenants now {contract_ids: [..]}; queued for the worker (202)
 """
 from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from . import billing, sms
-from .models import SmsMessage
+from . import sms, tasks
+from .models import RentalContract, SmsMessage
 from .permissions import IsAccountMember
 
 
@@ -57,16 +57,15 @@ class ReminderSendView(APIView):
         if not wanted:
             return Response({"contract_ids": ["Choose at least one tenant."]}, status=status.HTTP_400_BAD_REQUEST)
 
-        account = request.user.account
-        results = []
-        for row in billing.arrears():
-            if row["contract_id"] not in wanted:
-                continue
-            error = sms.send_reminder(row, SmsMessage.MANUAL, account)
-            results.append({"contract_id": row["contract_id"], "customer_name": row["customer_name"],
-                            "sent": error is None, "error": error or ""})
+        # Only this account's contracts, and none texted by hand a moment ago:
+        # repeating a request (a timeout, a double click) never texts anyone twice
+        contracts = set(RentalContract.objects.filter(pk__in=wanted).values_list("pk", flat=True))
+        recent = sms.recently_texted(contracts)
+        queued = sorted(contracts - recent)
+        if queued:
+            # The texts go out from the worker; each one appears in the SMS log as it is sent
+            tasks.send_manual_reminders.delay(request.user.account_id, queued)
         return Response({
-            "sent": len([r for r in results if r["sent"]]),
-            "failed": len([r for r in results if not r["sent"]]),
-            "results": results,
-        })
+            "queued": len(queued),
+            "skipped_recent": len(recent),
+        }, status=status.HTTP_202_ACCEPTED)

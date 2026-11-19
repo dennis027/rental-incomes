@@ -80,12 +80,25 @@ export class AccountService {
 const CARETAKER_PAGES = ['/dashboard/properties', '/dashboard/units', '/dashboard/rental-customers',
   '/dashboard/contracts', '/dashboard/expensesmaintain'];
 
-/** The role saved at sign-in. Accounts from before roles existed are owners. */
+/**
+ * The role saved at sign-in, until the dashboard has asked the server (see
+ * rememberRole). A session from before roles existed has none: it is treated
+ * as an owner only for the moment that takes.
+ */
 export function currentRole(): Role {
   try {
     return (localStorage.getItem('user_role') as Role) || 'owner';
   } catch {
     return 'owner';
+  }
+}
+
+/** Store the role the server reports, for the guard and the pages that read it */
+export function rememberRole(role: Role): void {
+  try {
+    localStorage.setItem('user_role', role);
+  } catch {
+    // Storage blocked: the guard keeps its default
   }
 }
 

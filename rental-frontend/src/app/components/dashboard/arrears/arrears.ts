@@ -199,10 +199,14 @@ export class Arrears {
     this.billing.sendSmsReminders(rows.map(row => row.contract_id)).subscribe({
       next: result => {
         this.texting = false;
-        const failed = result.results.filter(r => !r.sent);
-        let message = `${result.sent} SMS reminder${result.sent === 1 ? '' : 's'} sent`;
-        if (failed.length) {
-          message += `. Not sent to ${failed.map(r => r.customer_name).join(', ')}: ${failed[0].error}`;
+        // The server queues the texts and sends them in the background
+        const queued: number = result.queued ?? 0;
+        const skipped: number = result.skipped_recent ?? 0;
+        let message = queued
+          ? `Sending ${queued} SMS reminder${queued === 1 ? '' : 's'}`
+          : 'No reminders sent';
+        if (skipped) {
+          message += `. ${skipped} tenant${skipped === 1 ? ' was' : 's were'} texted a few minutes ago and ${skipped === 1 ? 'was' : 'were'} skipped`;
         }
         this.snackBar.open(message, 'Close', { duration: 6000 });
         this.clearSelection();

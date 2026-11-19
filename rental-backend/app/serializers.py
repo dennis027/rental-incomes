@@ -1,6 +1,8 @@
 from rest_framework import serializers
 from django.contrib.auth import get_user_model
 from django.contrib.auth import authenticate
+
+from .permissions import hides_money
 from .models import (
     Property, Unit, Customer, RentalContract,
     Receipt, Payment, Expense, MaintenanceRequest,
@@ -152,7 +154,7 @@ class UnitSerializer(serializers.ModelSerializer):
     def to_representation(self, instance):
         data = super().to_representation(instance)
         request = self.context.get("request")
-        if request is not None and getattr(request.user, "role", None) == "caretaker":
+        if request is not None and hides_money(request):
             for name in self.MONEY_FIELDS:
                 data.pop(name, None)
         return data

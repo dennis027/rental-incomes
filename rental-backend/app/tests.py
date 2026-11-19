@@ -644,16 +644,23 @@ class SmsReminderTests(TestCase):
             self.assertEqual(send_daily_reminders(), 0)
 
     def test_send_now_from_the_arrears_page(self):
+        # Queued for the worker (run inline in tests); the outcome lands in the SMS log
         with self.provider("InvalidPhoneNumber"):
             response = self.client.post("/api/reminders/send/", {"contract_ids": [self.contract.id]}, format="json")
-        self.assertEqual(response.status_code, 200, response.data)
-        self.assertEqual(response.data["failed"], 1)
+        self.assertEqual(response.status_code, 202, response.data)
+        self.assertEqual(response.data["queued"], 1)
+        # A failed text is not "recent", so trying again sends it
         with self.provider():
             response = self.client.post("/api/reminders/send/", {"contract_ids": [self.contract.id]}, format="json")
-        self.assertEqual(response.data["sent"], 1)
+        self.assertEqual(response.data["queued"], 1)
         log = self.client.get("/api/reminders/").data
         self.assertTrue(log["configured"])
         self.assertEqual([m["sent"] for m in log["messages"]], [True, False])
+        # Sending again straight away (a retry, a double click) does not text them twice
+        with self.provider() as post:
+            response = self.client.post("/api/reminders/send/", {"contract_ids": [self.contract.id]}, format="json")
+        self.assertEqual(response.data, {"queued": 0, "skipped_recent": 1})
+        post.assert_not_called()
 
     @override_settings(AT_API_KEY="")
     def test_off_until_configured(self):
@@ -1308,4 +1315,84 @@ class ThirdReviewFixTests(TestCase):
         # Writes outside any account still clear everyone's
         Property.all_objects.filter(name="Hillside").delete()
         self.assertEqual(self.client.get("/api/properties/")["X-Cache"], "MISS")
+
+
+@override_settings(MPESA_CALLBACK_TOKEN="secret-token", SECURE_SSL_REDIRECT=False, MPESA_SHORTCODE="174379",
+                   MPESA_CONSUMER_KEY="key", MPESA_CONSUMER_SECRET="secret", MPESA_PASSKEY="passkey",
+                   MPESA_CALLBACK_BASE_URL="https://api.example.com")
+class FourthReviewFixTests(TestCase):
+    """Fixes from the fourth code review."""
+
+    def setUp(self):
+        from django.core.cache import cache
+        cache.clear()
+        AccountIsolationTests.setUp(self)
+
+    member = AccountIsolationTests.member
+
+    # 2. A prompt is for what the tenant owes, on the invoice payments land on
+    def test_stk_from_an_older_invoice_is_recorded_on_the_latest(self):
+        from .models import MpesaStkRequest
+        latest = BillingFlowTests.generate(self, BillingFlowTests.next_month(self))
+        self.assertNotEqual(latest.pk, self.first_invoice.pk)
+        get, post = StkPushTests.daraja(self)
+        with get, post as sent:
+            response = self.client.post("/api/mpesa/stk/", {"receipt": self.first_invoice.id}, format="json")
+        self.assertEqual(response.status_code, 201, response.data)
+        self.assertEqual(MpesaStkRequest.all_objects.get().receipt_id, latest.pk)
+        owed = billing.outstanding(billing.contract_invoices(self.contract))
+        self.assertEqual(sent.call_args.kwargs["json"]["Amount"], int(owed))
+
+    def test_stk_refuses_a_tenant_who_owes_nothing(self):
+        self.client.post("/api/payments/", {"receipt": self.first_invoice.id, "amount": "20000", "method": "cash"},
+                         format="json")
+        get, post = StkPushTests.daraja(self)
+        with get, post as sent:
+            response = self.client.post("/api/mpesa/stk/", {"receipt": self.first_invoice.id}, format="json")
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.data["error"], "This tenant owes nothing.")
+        sent.assert_not_called()
+
+    # 4. Owners changing each other one at a time
+    def test_an_owner_demoted_meanwhile_cannot_remove_the_other(self):
+        second = get_user_model().objects.create_user(username="second", email="second@example.com", password="pw",
+                                                      account=self.user.account, role="owner")
+        # As if the second owner's demotion of the first committed while this request waited on the lock
+        get_user_model().objects.filter(pk=self.user.pk).update(role="manager")
+        response = self.client.delete(f"/api/team/{second.id}/")  # self.client still holds the stale owner
+        self.assertEqual(response.status_code, 403)
+        second.refresh_from_db()
+        self.assertTrue(second.is_active)
+        self.assertEqual(get_user_model().objects.filter(account=self.user.account, role="owner",
+                                                         is_active=True).count(), 1)
+
+    # 10. Daily reminders read what was sent once, not once per tenant
+    @override_settings(AT_USERNAME="sandbox", AT_API_KEY="key")
+    def test_due_reminders_queries_do_not_grow_with_tenants(self):
+        from django.db import connection
+        from django.test.utils import CaptureQueriesContext
+        from .sms import due_reminders
+        from .tenancy import reset_current_account, set_current_account
+
+        def sms_queries():
+            token = set_current_account(self.user.account_id)
+            try:
+                with CaptureQueriesContext(connection) as queries:
+                    due_reminders(self.user.account)
+            finally:
+                reset_current_account(token)
+            return len([q for q in queries.captured_queries if "app_smsmessage" in q["sql"]])
+
+        one = sms_queries()
+        for n in range(3):
+            unit = Unit.objects.create(property=self.property, unit_number=f"E{n}", rent_amount=5000)
+            tenant = Customer.objects.create(first_name=f"T{n}", last_name="X", phone_number=f"071100000{n}",
+                                             id_number=f"80{n}", account=self.user.account)
+            response = self.client.post("/api/contracts/", {
+                "customer": tenant.id, "unit": unit.id, "start_date": "2026-01-01", "rent_amount": "5000",
+                "deposit_amount": "5000", "end_date": (timezone.localdate() + timedelta(days=200)).isoformat(),
+            }, format="json")
+            self.assertEqual(response.status_code, 201, response.data)
+        self.assertEqual(sms_queries(), one)
+        self.assertLessEqual(one, 2)
 

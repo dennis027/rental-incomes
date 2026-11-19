@@ -36,8 +36,11 @@ export class BillingService {
     return this.http.get<any>(`${this.api}reminders/`, { headers: this.headers() });
   }
 
-  /** SMS the tenants of these contracts about their balance now */
-  sendSmsReminders(contractIds: number[]): Observable<{ sent: number; failed: number; results: any[] }> {
+  /**
+   * SMS the tenants of these contracts about their balance. The server queues
+   * the texts and sends them in the background; tenants texted minutes ago are skipped.
+   */
+  sendSmsReminders(contractIds: number[]): Observable<{ queued: number; skipped_recent: number }> {
     return this.http.post<any>(`${this.api}reminders/send/`, { contract_ids: contractIds }, { headers: this.headers() });
   }
 
