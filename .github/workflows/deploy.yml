@@ -33,12 +33,15 @@ jobs:
       - uses: dorny/paths-filter@v3
         id: filter
         with:
+          # A change to this workflow redeploys both, so a new deploy setup is tried out at once
           filters: |
             backend:
               - 'rental-backend/**'
               - 'render.yaml'
+              - '.github/workflows/deploy.yml'
             frontend:
               - 'rental-frontend/**'
+              - '.github/workflows/deploy.yml'
 
   backend-tests:
     name: Backend tests
