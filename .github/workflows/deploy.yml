@@ -1,0 +1,116 @@
+# Redeploys KodiDesk when main changes:
+#   rental-backend/**  -> run the backend tests, then redeploy the API on Render
+#   rental-frontend/** -> build the site and publish it to GitHub Pages (gh-pages branch)
+# "Run workflow" on the Actions tab redeploys both, whatever changed.
+#
+# Needs one repository secret, RENDER_DEPLOY_HOOK_URL: Render dashboard -> den-rent
+# -> Settings -> Deploy Hook. Render's own auto-deploy is off (render.yaml), so the
+# API only goes out once its tests have passed, and only once per push.
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# One deploy of main at a time; a newer push waits rather than cancelling one half-way
+concurrency:
+  group: deploy-main
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  changes:
+    name: What changed
+    runs-on: ubuntu-latest
+    outputs:
+      backend: ${{ github.event_name == 'workflow_dispatch' || steps.filter.outputs.backend == 'true' }}
+      frontend: ${{ github.event_name == 'workflow_dispatch' || steps.filter.outputs.frontend == 'true' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            backend:
+              - 'rental-backend/**'
+              - 'render.yaml'
+            frontend:
+              - 'rental-frontend/**'
+
+  backend-tests:
+    name: Backend tests
+    needs: changes
+    if: needs.changes.outputs.backend == 'true'
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: rental-backend
+    env:
+      # Only so projects.settings can import; test_settings swaps in sqlite
+      DATABASE_URL: postgres://ci:ci@localhost/ci
+      DJANGO_SETTINGS_MODULE: projects.test_settings
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'   # as in rental-backend/Dockerfile
+          cache: pip
+          cache-dependency-path: rental-backend/requirements.txt
+      - run: pip install -r requirements.txt
+      - run: python manage.py makemigrations --check --dry-run
+      - run: python manage.py test app
+
+  deploy-render:
+    name: Deploy API to Render
+    needs: backend-tests
+    runs-on: ubuntu-latest
+    environment:
+      name: render
+      url: https://den-rent.onrender.com
+    steps:
+      - name: Trigger the Render deploy hook
+        env:
+          HOOK: ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
+        run: |
+          if [ -z "$HOOK" ]; then
+            echo "::error::Add the RENDER_DEPLOY_HOOK_URL secret (Render -> den-rent -> Settings -> Deploy Hook)."
+            exit 1
+          fi
+          curl --fail --silent --show-error --retry 3 --retry-all-errors -X POST "$HOOK" > /dev/null
+          echo "Render is building the new version; follow it in the Render dashboard (Events)."
+
+  deploy-pages:
+    name: Deploy site to GitHub Pages
+    needs: changes
+    if: needs.changes.outputs.frontend == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write   # pushes the built site to the gh-pages branch
+    environment:
+      name: github-pages
+      url: https://dennis027.github.io/rental-incomes/
+    defaults:
+      run:
+        working-directory: rental-frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'   # as in rental-frontend/Dockerfile
+          cache: npm
+          cache-dependency-path: rental-frontend/package-lock.json
+      - run: npm ci
+      # Same build as `npm run deploy`: production settings (the Render API), served under /rental-incomes/
+      - run: npm run build:gh
+      # Pages has no server-side routing: unknown paths (/dashboard/...) get the app shell,
+      # which then routes in the browser
+      - run: cp dist/rental-frontend/browser/index.csr.html dist/rental-frontend/browser/404.html
+      - uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_branch: gh-pages
+          publish_dir: rental-frontend/dist/rental-frontend/browser
+          commit_message: 'Deploy ${{ github.sha }}'

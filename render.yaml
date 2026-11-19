@@ -13,6 +13,10 @@ services:
     region: frankfurt
     dockerContext: ./rental-backend
     dockerfilePath: ./rental-backend/Dockerfile
+    # Deploys come from GitHub Actions (.github/workflows/deploy.yml) through the
+    # service's Deploy Hook, after the backend tests pass. Left on, Render would
+    # also deploy every push itself: twice per push, and even when tests fail.
+    autoDeploy: false
     # Frontend-only commits don't redeploy the API
     buildFilter:
       paths:

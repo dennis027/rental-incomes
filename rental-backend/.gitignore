@@ -178,3 +178,5 @@ cython_debug/
 /staticfiles/
 
 /static/
+# Database used by projects.test_settings
+test-db.sqlite3
