@@ -1,8 +1,9 @@
 """
-SMS rent reminders through Africa's Talking.
+Rent reminders to tenants: by SMS through Africa's Talking, by WhatsApp (see
+whatsapp.py), or both, as each account chooses (Account.reminder_channel).
 
 Set AT_USERNAME and AT_API_KEY (and AT_SENDER_ID once Africa's Talking has
-approved one) to switch it on. Use the username "sandbox" with a sandbox key
+approved one) to switch SMS on. Use the username "sandbox" with a sandbox key
 to try it without sending real texts.
 """
 import logging
@@ -13,7 +14,7 @@ import requests
 from django.conf import settings
 from django.utils import timezone
 
-from . import billing
+from . import billing, whatsapp
 from .models import Account, SmsMessage
 from .tenancy import reset_current_account, set_current_account
 
@@ -73,7 +74,7 @@ def _money(value):
     return f"KES {value:,.0f}"
 
 
-def _pay_line(row, account):
+def pay_line(row, account):
     # The account's own paybill, never another landlord's
     shortcode, _ = account.mpesa_credentials()
     if shortcode and account.mpesa_is_till():
@@ -94,18 +95,44 @@ def reminder_text(row, kind, account, today=None):
                 f"is {days} day{'s' if days != 1 else ''} overdue. Please pay as soon as you can.")
     else:
         text = f"Hi {first}, you have a rent balance of {_money(row['outstanding'])} for {place}."
-    return f"{text}{_pay_line(row, account)} - {account.name}"
+    return f"{text}{pay_line(row, account)} - {account.name}"
+
+
+def channels_for(account):
+    """The channels this account sends reminders on that the server is set up for, SMS first."""
+    chosen = {
+        Account.SMS: [SmsMessage.SMS],
+        Account.WHATSAPP: [SmsMessage.WHATSAPP],
+        Account.BOTH: [SmsMessage.SMS, SmsMessage.WHATSAPP],
+    }.get(account.reminder_channel, [SmsMessage.SMS])
+    ready = {SmsMessage.SMS: configured(), SmsMessage.WHATSAPP: whatsapp.configured()}
+    return [channel for channel in chosen if ready[channel]]
 
 
 def send_reminder(row, kind, account):
-    """Text one arrears row and keep a record of it."""
-    message = reminder_text(row, kind, account)
-    error = send_sms(row["customer_phone"], message)
-    SmsMessage.objects.create(
-        account=account, contract_id=row["contract_id"], invoice_number=row["invoice_number"],
-        phone=row["customer_phone"], message=message, kind=kind, sent=error is None, error=error or "",
-    )
-    return error
+    """
+    Remind one arrears row on each of the account's channels, keeping a record
+    of each. Returns None when it reached the tenant on at least one channel,
+    otherwise why not (the first channel's reason).
+    """
+    channels = channels_for(account)
+    if not channels:
+        return "No reminder channel is set up"
+    errors = []
+    for channel in channels:
+        if channel == SmsMessage.WHATSAPP:
+            template, variables, message = whatsapp.reminder_template(row, kind, account)
+            error = whatsapp.send_template(row["customer_phone"], template, variables)
+        else:
+            message = reminder_text(row, kind, account)
+            error = send_sms(row["customer_phone"], message)
+        SmsMessage.objects.create(
+            account=account, contract_id=row["contract_id"], invoice_number=row["invoice_number"],
+            phone=row["customer_phone"], message=message, kind=kind, channel=channel,
+            sent=error is None, error=error or "",
+        )
+        errors.append(error)
+    return None if None in errors else errors[0]
 
 
 def due_reminders(account, today=None):
@@ -172,12 +199,15 @@ def send_manual_reminders(account, contract_ids):
 
 
 def send_daily_reminders(today=None):
-    """Run once a day: texts every tenant who is due soon or overdue, in every account that switched it on."""
-    if not configured():
-        logger.info("SMS reminders skipped: Africa's Talking is not configured")
+    """Run once a day: reminds every tenant who is due soon or overdue, in every account that switched it on."""
+    if not (configured() or whatsapp.configured()):
+        logger.info("Reminders skipped: neither SMS (Africa's Talking) nor WhatsApp is configured")
         return 0
     sent = 0
     for account in Account.objects.filter(sms_reminders_enabled=True):
+        if not channels_for(account):
+            logger.info("Reminders skipped for account %s: its channel is not set up on the server", account.pk)
+            continue
         token = set_current_account(account.id)
         try:
             for row, kind in due_reminders(account, today):

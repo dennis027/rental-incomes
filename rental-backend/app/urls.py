@@ -153,6 +153,7 @@ urlpatterns = [
     path('api/mpesa/stk/<str:token>/callback/', billing_views.StkCallbackView.as_view(), name='mpesa-stk-callback'),
     path('api/reminders/', reminder_views.ReminderListView.as_view(), name='reminders'),
     path('api/reminders/send/', reminder_views.ReminderSendView.as_view(), name='reminders-send'),
+    path('api/reminders/whatsapp/', reminder_views.WhatsAppMessageView.as_view(), name='reminders-whatsapp'),
     path('api/reports/rental-income-tax/', tax_views.RentalIncomeTaxView.as_view(), name='rental-income-tax'),
     path('api/paybill-transactions/<int:pk>/match/', billing_views.MpesaTransactionMatchView.as_view(), name='paybill-transaction-match'),
 

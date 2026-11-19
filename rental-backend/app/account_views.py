@@ -23,7 +23,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.token_blacklist.models import BlacklistedToken, OutstandingToken
 
-from . import daraja, sms, tasks
+from . import daraja, sms, tasks, whatsapp
 from .models import Account
 from .permissions import IsAccountMember
 
@@ -61,6 +61,7 @@ class AccountSerializer(serializers.ModelSerializer):
     paybill_validation_url = serializers.SerializerMethodField()
     paybill_confirmation_url = serializers.SerializerMethodField()
     sms_configured = serializers.SerializerMethodField()
+    whatsapp_configured = serializers.SerializerMethodField()
     # Write-only: never sent back, only whether one is saved
     mpesa_passkey = serializers.CharField(write_only=True, required=False, allow_blank=True, max_length=128)
     mpesa_passkey_set = serializers.SerializerMethodField()
@@ -70,8 +71,8 @@ class AccountSerializer(serializers.ModelSerializer):
         model = Account
         fields = (
             "id", "name",
-            "sms_reminders_enabled", "sms_days_before_due", "sms_overdue_every_days",
-            "paybill_validation_url", "paybill_confirmation_url", "sms_configured",
+            "sms_reminders_enabled", "sms_days_before_due", "sms_overdue_every_days", "reminder_channel",
+            "paybill_validation_url", "paybill_confirmation_url", "sms_configured", "whatsapp_configured",
             "mpesa_shortcode", "mpesa_passkey", "mpesa_passkey_set", "stk_configured",
         )
         read_only_fields = ("id",)
@@ -84,6 +85,9 @@ class AccountSerializer(serializers.ModelSerializer):
 
     def get_sms_configured(self, obj):
         return sms.configured()
+
+    def get_whatsapp_configured(self, obj):
+        return whatsapp.configured()
 
     def get_mpesa_passkey_set(self, obj):
         return bool(obj.mpesa_passkey)

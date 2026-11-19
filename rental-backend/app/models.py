@@ -15,6 +15,11 @@ def _new_callback_token():
 
 class Account(models.Model):
     """A landlord or agency. Its members see only its properties, tenants and money."""
+    SMS = "sms"
+    WHATSAPP = "whatsapp"
+    BOTH = "both"
+    REMINDER_CHANNELS = [(SMS, "SMS"), (WHATSAPP, "WhatsApp"), (BOTH, "SMS and WhatsApp")]
+
     name = models.CharField(max_length=150)
     # Part of the M-Pesa callback URLs; tells which account a paybill payment belongs to
     mpesa_callback_token = models.CharField(max_length=64, unique=True, default=_new_callback_token)
@@ -22,6 +27,8 @@ class Account(models.Model):
     sms_reminders_enabled = models.BooleanField(default=False)
     sms_days_before_due = models.PositiveSmallIntegerField(default=3)
     sms_overdue_every_days = models.PositiveSmallIntegerField(default=7)
+    # How rent reminders reach tenants
+    reminder_channel = models.CharField(max_length=10, choices=REMINDER_CHANNELS, default=SMS)
     # The account's own paybill for "pay now" prompts and SMS pay lines. Saved
     # as a pair: a passkey only works with the shortcode it was issued for.
     mpesa_shortcode = models.CharField(max_length=20, blank=True, default="")
@@ -776,7 +783,14 @@ class MpesaTransaction(models.Model):
 
 
 class SmsMessage(AccountOwnedMixin):
-    """A text sent to a tenant. Also stops the daily reminders from repeating themselves."""
+    """
+    A reminder sent to a tenant, by SMS or WhatsApp (one row per channel).
+    Also stops the daily reminders from repeating themselves, whichever channel reached them.
+    """
+    SMS = "sms"
+    WHATSAPP = "whatsapp"
+    CHANNELS = [(SMS, "SMS"), (WHATSAPP, "WhatsApp")]
+
     DUE = "due"
     OVERDUE = "overdue"
     MANUAL = "manual"
@@ -788,6 +802,7 @@ class SmsMessage(AccountOwnedMixin):
     phone = models.CharField(max_length=20)
     message = models.TextField()
     kind = models.CharField(max_length=10, choices=KINDS)
+    channel = models.CharField(max_length=10, choices=CHANNELS, default=SMS)
     sent = models.BooleanField(default=False)
     error = models.CharField(max_length=255, blank=True, default="")
     created_at = models.DateTimeField(auto_now_add=True)

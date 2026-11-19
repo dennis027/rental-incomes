@@ -1396,3 +1396,152 @@ class FourthReviewFixTests(TestCase):
         self.assertEqual(sms_queries(), one)
         self.assertLessEqual(one, 2)
 
+
+
+@override_settings(MPESA_CALLBACK_TOKEN="secret-token", SECURE_SSL_REDIRECT=False, MPESA_SHORTCODE="174379",
+                   AT_USERNAME="sandbox", AT_API_KEY="key",
+                   WHATSAPP_TOKEN="wa-token", WHATSAPP_PHONE_NUMBER_ID="1098765")
+class WhatsAppReminderTests(TestCase):
+    def setUp(self):
+        from django.core.cache import cache
+        cache.clear()
+        BillingFlowTests.setUp(self)  # the first invoice is unpaid and past its grace period
+        self.account = self.user.account
+        self.account.sms_reminders_enabled = True
+        self.account.reminder_channel = "whatsapp"
+        self.account.save()
+
+    def meta(self, ok=True):
+        from unittest import mock
+        response = mock.Mock(ok=ok, status_code=200 if ok else 400)
+        response.json.return_value = (
+            {"messaging_product": "whatsapp", "messages": [{"id": "wamid.1"}]} if ok
+            else {"error": {"message": "Template name does not exist in the translation"}}
+        )
+        return mock.patch("app.whatsapp.requests.post", return_value=response)
+
+    def test_overdue_reminder_goes_as_an_approved_template(self):
+        from .models import SmsMessage
+        from .sms import send_daily_reminders
+        from unittest import mock
+        # SMS and WhatsApp share the requests module, so SMS is stubbed at send_sms
+        with self.meta() as post, mock.patch("app.sms.send_sms", return_value=None) as sms_post:
+            sent = send_daily_reminders()
+        self.assertEqual(sent, 1, list(SmsMessage.objects.values_list("channel", "error")))
+        sms_post.assert_not_called()
+        call = post.call_args
+        self.assertEqual(call.args[0], "https://graph.facebook.com/v21.0/1098765/messages")
+        self.assertEqual(call.kwargs["headers"]["Authorization"], "Bearer wa-token")
+        payload = call.kwargs["json"]
+        self.assertEqual(payload["to"], "254712345678")
+        self.assertEqual(payload["template"]["name"], "rent_overdue_reminder")
+        variables = [p["text"] for p in payload["template"]["components"][0]["parameters"]]
+        self.assertEqual(len(variables), 6)
+        self.assertTrue(all(variables), variables)  # WhatsApp refuses empty variables
+        self.assertEqual(variables[0], "Wanjiru")
+        self.assertIn("paybill 174379", variables[4])
+        self.assertEqual(variables[5], self.account.name)
+        row = SmsMessage.objects.get()
+        self.assertEqual((row.channel, row.sent), ("whatsapp", True))
+        self.assertIn("overdue", row.message)
+        # Not again tomorrow: the overdue repeat window counts WhatsApp too
+        with self.meta() as post:
+            self.assertEqual(send_daily_reminders(), 0)
+        post.assert_not_called()
+
+    def test_both_channels_log_one_row_each(self):
+        from .models import SmsMessage
+        from .sms import send_daily_reminders
+        self.account.reminder_channel = "both"
+        self.account.save()
+        from unittest import mock
+        with self.meta() as post, mock.patch("app.sms.send_sms", return_value=None) as sms_post:
+            self.assertEqual(send_daily_reminders(), 1)
+        self.assertEqual((post.call_count, sms_post.call_count), (1, 1))
+        self.assertTrue(SmsMessage.objects.filter(sent=True).count() == 2)
+        self.assertEqual(sorted(SmsMessage.objects.values_list("channel", flat=True)), ["sms", "whatsapp"])
+
+    def test_refusals_are_logged_with_metas_reason(self):
+        from .models import SmsMessage
+        with self.meta(ok=False):
+            response = self.client.post("/api/reminders/send/", {"contract_ids": [self.contract.id]}, format="json")
+        self.assertEqual(response.status_code, 202)
+        row = SmsMessage.objects.get()
+        self.assertFalse(row.sent)
+        self.assertIn("Template name does not exist", row.error)
+
+    def test_template_without_a_paybill_still_says_how_to_pay(self):
+        from .whatsapp import reminder_template
+        self.account.uses_server_mpesa = False
+        row = {"customer_name": "Otieno Achieng", "unit": "C1", "property": "Hillside", "outstanding": Decimal("8000"),
+               "due_date": timezone.localdate(), "days_overdue": 0}
+        name, variables, preview = reminder_template(row, "due", self.account)
+        self.assertEqual(name, "rent_due_reminder")
+        self.assertEqual(variables[3], "today")
+        self.assertEqual(variables[4], "Contact us for how to pay.")
+        self.assertTrue(preview.endswith("via KodiDesk."))
+        name, variables, _ = reminder_template({**row, "due_date": timezone.localdate() - timedelta(days=9),
+                                                "days_overdue": 9}, "manual", self.account)
+        self.assertEqual((name, variables[3]), ("rent_overdue_reminder", "9 days"))
+        name, variables, _ = reminder_template({**row, "due_date": timezone.localdate() + timedelta(days=9)},
+                                               "manual", self.account)
+        self.assertEqual((name, len(variables)), ("rent_balance_reminder", 5))
+
+    @override_settings(WHATSAPP_TOKEN="")
+    def test_whatsapp_account_without_whatsapp_on_the_server_sends_nothing(self):
+        info = self.client.get("/api/reminders/").json()
+        self.assertFalse(info["configured"])
+        self.assertEqual(info["channels"], [])
+        response = self.client.post("/api/reminders/send/", {"contract_ids": [self.contract.id]}, format="json")
+        self.assertEqual(response.status_code, 400)
+
+    def test_owner_picks_the_channel(self):
+        response = self.client.patch("/api/account/", {"reminder_channel": "both"}, format="json")
+        self.assertEqual(response.status_code, 200, response.data)
+        self.assertEqual(response.data["reminder_channel"], "both")
+        self.assertTrue(response.data["whatsapp_configured"])
+        self.assertEqual(self.client.patch("/api/account/", {"reminder_channel": "telegram"},
+                                           format="json").status_code, 400)
+
+    # The "Send on WhatsApp" dialog
+    def test_dialog_message_goes_inside_the_tenant_message_template(self):
+        from .models import SmsMessage
+        text = "Hello Wanjiru,\nyour statement:   charged KES 20,000.\n\nThank you."
+        with self.meta() as post:
+            response = self.client.post("/api/reminders/whatsapp/", {
+                "phone": "0712 345 678", "message": text, "contract_id": self.contract.id}, format="json")
+        self.assertEqual(response.status_code, 200, response.data)
+        payload = post.call_args.kwargs["json"]
+        self.assertEqual(payload["template"]["name"], "tenant_message")
+        variables = [p["text"] for p in payload["template"]["components"][0]["parameters"]]
+        # One line, no runs of spaces: WhatsApp refuses either in a variable
+        self.assertEqual(variables, [self.account.name, "Hello Wanjiru, your statement: charged KES 20,000. Thank you."])
+        row = SmsMessage.objects.get()
+        self.assertEqual((row.channel, row.kind, row.sent, row.contract_id), ("whatsapp", "manual", True, self.contract.id))
+
+    def test_dialog_explains_an_unapproved_template(self):
+        from unittest import mock
+        response_mock = mock.Mock(ok=False, status_code=404)
+        response_mock.json.return_value = {"error": {"message": "(#132001) Template name does not exist in the translation"}}
+        with mock.patch("app.whatsapp.requests.post", return_value=response_mock):
+            response = self.client.post("/api/reminders/whatsapp/", {"phone": "0712345678", "message": "Hi"},
+                                        format="json")
+        self.assertEqual(response.status_code, 502)
+        self.assertIn("not approved the message template yet", response.data["error"])
+
+    def test_dialog_checks_its_input_and_who_may_send(self):
+        bad = self.client.post("/api/reminders/whatsapp/", {"phone": "12", "message": "Hi"}, format="json")
+        self.assertEqual(bad.status_code, 400)
+        empty = self.client.post("/api/reminders/whatsapp/", {"phone": "0712345678", "message": "  \n "}, format="json")
+        self.assertEqual(empty.status_code, 400)
+        caretaker = AccountIsolationTests.member(self, "caretaker")
+        self.assertEqual(caretaker.post("/api/reminders/whatsapp/", {"phone": "0712345678", "message": "Hi"},
+                                        format="json").status_code, 403)
+        # Another account's contract is not attached to the log
+        other = get_user_model().objects.create_user(username="other2", email="o2@example.com", password="pw")
+        client = APIClient(); client.force_authenticate(other)
+        with self.meta():
+            client.post("/api/reminders/whatsapp/", {"phone": "0712345678", "message": "Hi",
+                                                     "contract_id": self.contract.id}, format="json")
+        from .models import SmsMessage
+        self.assertIsNone(SmsMessage.all_objects.get(account=other.account).contract_id)

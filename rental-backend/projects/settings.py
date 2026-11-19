@@ -308,6 +308,18 @@ AT_USERNAME = os.getenv("AT_USERNAME", "")
 AT_API_KEY = os.getenv("AT_API_KEY", "")
 AT_SENDER_ID = os.getenv("AT_SENDER_ID", "")
 
+# WhatsApp rent reminders (Meta WhatsApp Cloud API). Leave WHATSAPP_TOKEN empty to keep WhatsApp off.
+# The three message templates must be approved in WhatsApp Manager first; see app/whatsapp.py.
+WHATSAPP_TOKEN = os.getenv("WHATSAPP_TOKEN", "")
+WHATSAPP_PHONE_NUMBER_ID = os.getenv("WHATSAPP_PHONE_NUMBER_ID", "")
+WHATSAPP_BUSINESS_ACCOUNT_ID = os.getenv("WHATSAPP_BUSINESS_ACCOUNT_ID", "")
+WHATSAPP_API_VERSION = os.getenv("WHATSAPP_API_VERSION", "v21.0")
+WHATSAPP_TEMPLATE_LANGUAGE = os.getenv("WHATSAPP_TEMPLATE_LANGUAGE", "en")
+WHATSAPP_TEMPLATE_DUE = os.getenv("WHATSAPP_TEMPLATE_DUE", "rent_due_reminder")
+WHATSAPP_TEMPLATE_OVERDUE = os.getenv("WHATSAPP_TEMPLATE_OVERDUE", "rent_overdue_reminder")
+WHATSAPP_TEMPLATE_BALANCE = os.getenv("WHATSAPP_TEMPLATE_BALANCE", "rent_balance_reminder")
+WHATSAPP_TEMPLATE_MESSAGE = os.getenv("WHATSAPP_TEMPLATE_MESSAGE", "tenant_message")
+
 # ---------------------------------------------------------------------------
 # Logging
 # ---------------------------------------------------------------------------
